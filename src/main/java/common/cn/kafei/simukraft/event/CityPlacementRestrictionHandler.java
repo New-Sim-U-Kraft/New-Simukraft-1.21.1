@@ -5,6 +5,7 @@ import common.cn.kafei.simukraft.city.CityData;
 import common.cn.kafei.simukraft.city.CityManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiService;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
+import common.cn.kafei.simukraft.building.ResidentialBedPoiService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -54,6 +55,9 @@ public final class CityPlacementRestrictionHandler {
 
     @SubscribeEvent
     public static void onBlockPlaced(BlockEvent.EntityPlaceEvent event) {
+        if (event instanceof BlockEvent.EntityMultiPlaceEvent) {
+            return;
+        }
         if (event.getLevel().isClientSide()) {
             return;
         }
@@ -70,7 +74,32 @@ public final class CityPlacementRestrictionHandler {
             return;
         }
         if (level instanceof ServerLevel serverLevel) {
+            ResidentialBedPoiService.handleBlockPlaced(serverLevel, event.getPos(), event.getPlacedBlock());
             registerPoiForPlacedBlock(serverLevel, event.getPos(), block, player);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onMultiBlockPlaced(BlockEvent.EntityMultiPlaceEvent event) {
+        if (event.getLevel().isClientSide()) {
+            return;
+        }
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        Level level = (Level) event.getLevel();
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        for (net.neoforged.neoforge.common.util.BlockSnapshot snapshot : event.getReplacedBlockSnapshots()) {
+            BlockState placedState = snapshot.getCurrentState();
+            Block block = placedState.getBlock();
+            if (shouldBlockPlacement(level, snapshot.getPos(), block, player)) {
+                event.setCanceled(true);
+                return;
+            }
+            ResidentialBedPoiService.handleBlockPlaced(serverLevel, snapshot.getPos(), placedState);
+            registerPoiForPlacedBlock(serverLevel, snapshot.getPos(), block, player);
         }
     }
 
@@ -79,7 +108,9 @@ public final class CityPlacementRestrictionHandler {
         if (!(event.getLevel() instanceof ServerLevel serverLevel)) {
             return;
         }
-        Block block = serverLevel.getBlockState(event.getPos()).getBlock();
+        BlockState brokenState = serverLevel.getBlockState(event.getPos());
+        ResidentialBedPoiService.handleBlockBroken(serverLevel, event.getPos(), brokenState);
+        Block block = brokenState.getBlock();
         if (poiTypeForBlock(block).isPresent()) {
             CityPoiService.deactivatePoi(serverLevel, event.getPos());
         }
