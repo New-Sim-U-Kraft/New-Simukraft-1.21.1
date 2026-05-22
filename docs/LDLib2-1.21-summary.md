@@ -78,7 +78,7 @@ dependencies {
 注意：当前主项目目前添加的是 CurseMaven 上的旧 LDLib：
 
 ```gradle
-implementation "curse.maven:ldlib-626676:8046986"
+implementation "curse.maven:ldlib-626676:8125765"
 ```
 
 这不等于官方文档中的 LDLib2 Maven 坐标。如果后续明确要使用 LDLib2 API，应改为官方 Maven 依赖，并确认版本号是否支持 Minecraft 1.21.1 / NeoForge 21.1.x。
@@ -515,7 +515,7 @@ public class MyObject implements IPersistedSerializable {
 当前 build.gradle 中已有：
 
 ```gradle
-implementation "curse.maven:ldlib-626676:8046986"
+implementation "curse.maven:ldlib-626676:8125765"
 ```
 
 如果要按本文档使用 LDLib2 API，需要替换或额外添加官方 LDLib2 依赖。

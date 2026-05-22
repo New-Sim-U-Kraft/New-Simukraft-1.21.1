@@ -77,6 +77,18 @@ public final class BuildingBoundsRenderer {
         }
     }
 
+    public static void updateDisplayedBuildingBounds(BlockPos controlBoxPos, boolean hasBuildingBounds, BlockPos boundsMin, BlockPos boundsMax, List<BlockPos> residentialPoiPositions) {
+        if (controlBoxPos == null || !isBuildingBoundsVisible(controlBoxPos)) {
+            return;
+        }
+        if (!hasBuildingBounds) {
+            setBuildingBoundsVisible(controlBoxPos, null, false);
+            return;
+        }
+        AABB bounds = new AABB(boundsMin.getX(), boundsMin.getY(), boundsMin.getZ(), boundsMax.getX() + 1, boundsMax.getY() + 1, boundsMax.getZ() + 1);
+        setBuildingBoundsVisible(controlBoxPos, bounds, residentialPoiPositions, true);
+    }
+
     @SubscribeEvent
     public static void onRender(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {

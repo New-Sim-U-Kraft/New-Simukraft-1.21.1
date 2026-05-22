@@ -25,6 +25,7 @@ public final class PlacedBuildingDemolitionService {
         Set<UUID> deactivatedPois = deactivateBuildingPois(level, building);
         releaseResidents(level, deactivatedPois);
         building.blocks().forEach(block -> level.setBlock(resolveWorldPos(building, block.relativePos()), Blocks.AIR.defaultBlockState(), 3));
+        ResidentialBedPoiService.removeRecordedBeds(level, building);
         PlacedBuildingService.unregister(level, building.buildingId());
         return true;
     }

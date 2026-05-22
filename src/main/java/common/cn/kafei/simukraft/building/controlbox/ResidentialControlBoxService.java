@@ -11,6 +11,10 @@ import common.cn.kafei.simukraft.city.poi.CityPoiType;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BedPart;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 import java.util.Comparator;
 import java.util.List;
@@ -82,7 +86,7 @@ public final class ResidentialControlBoxService {
         List<CityPoiData> registeredPois = building.poiInstances().stream()
                 .filter(instance -> instance.poiType() == CityPoiType.RESIDENTIAL)
                 .map(instance -> manager.getPoiAt(instance.worldPos()))
-                .filter(registeredPoi -> registeredPoi != null && registeredPoi.active() && registeredPoi.type() == CityPoiType.RESIDENTIAL)
+                .filter(registeredPoi -> registeredPoi != null && registeredPoi.active() && registeredPoi.type() == CityPoiType.RESIDENTIAL && isRedBedHead(level.getBlockState(registeredPoi.pos())))
                 .toList();
         if (!registeredPois.isEmpty()) {
             return registeredPois;
@@ -151,5 +155,11 @@ public final class ResidentialControlBoxService {
 
     private static String safeName(String name) {
         return name == null || name.isBlank() ? "entity.simukraft.citizen" : name;
+    }
+
+    private static boolean isRedBedHead(BlockState state) {
+        return state.is(Blocks.RED_BED)
+                && (!state.hasProperty(BlockStateProperties.BED_PART)
+                || state.getValue(BlockStateProperties.BED_PART) == BedPart.HEAD);
     }
 }

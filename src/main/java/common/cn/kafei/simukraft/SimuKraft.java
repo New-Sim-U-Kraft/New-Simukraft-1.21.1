@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft;
 
 import com.mojang.logging.LogUtils;
+import common.cn.kafei.simukraft.citizen.CitizenDeathService;
 import common.cn.kafei.simukraft.citizen.CitizenManager;
 import common.cn.kafei.simukraft.citizen.CitizenHomeRestService;
 import common.cn.kafei.simukraft.citizen.PopulationGrowthService;
@@ -10,6 +11,7 @@ import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.building.BuilderConstructionService;
 import common.cn.kafei.simukraft.building.BuilderMaterialPolicy;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
+import common.cn.kafei.simukraft.building.ResidentialBedPoiService;
 import common.cn.kafei.simukraft.command.SimuKraftCommand;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.event.CityPlacementRestrictionHandler;
@@ -25,6 +27,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -52,6 +55,7 @@ public final class SimuKraft {
         NeoForge.EVENT_BUS.register(CityPlacementRestrictionHandler.class);
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
+        NeoForge.EVENT_BUS.addListener(this::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(this::onServerTick);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
         LOGGER.info("Initializing {}", MOD_ID);
@@ -64,6 +68,13 @@ public final class SimuKraft {
     private void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
             CityChunkSyncService.syncToPlayer(player);
+        }
+    }
+
+    private void onLivingDeath(LivingDeathEvent event) {
+        if (event.getEntity() instanceof common.cn.kafei.simukraft.entity.CitizenEntity citizenEntity
+                && citizenEntity.level() instanceof net.minecraft.server.level.ServerLevel level) {
+            CitizenDeathService.handleDeath(level, citizenEntity);
         }
     }
 
@@ -94,6 +105,7 @@ public final class SimuKraft {
         });
         BuilderConstructionService.clearServerCaches(event.getServer());
         PlacedBuildingService.clearServerCaches(event.getServer());
+        ResidentialBedPoiService.clearServerCaches(event.getServer());
         CitizenHomeRestService.clearServerCaches(event.getServer());
         CityJobAssignmentService.clearServerCaches(event.getServer());
         HudSyncService.clearServerCaches(event.getServer());

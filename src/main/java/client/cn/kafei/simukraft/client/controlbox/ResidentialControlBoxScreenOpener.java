@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.ColorBorderTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -37,6 +38,7 @@ public final class ResidentialControlBoxScreenOpener {
     private static final int PANEL_HEIGHT = 184;
     private static final int ACTION_WIDTH = 132;
     private static final int ACTION_HEIGHT = 22;
+    private static BlockPos openedControlBoxPos;
 
     private ResidentialControlBoxScreenOpener() {
     }
@@ -53,7 +55,21 @@ public final class ResidentialControlBoxScreenOpener {
         if (!packet.hasBuildingBounds() && packet.capacity() <= 0 && packet.residents().isEmpty()) {
             BuildingBoundsRenderer.setBuildingBoundsVisible(packet.controlBoxPos(), null, false);
         }
-        minecraft.execute(() -> minecraft.setScreen(new com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen(createUi(packet), Component.empty())));
+        openedControlBoxPos = packet.controlBoxPos().immutable();
+        minecraft.execute(() -> minecraft.setScreen(new ResidentialControlBoxScreen(createUi(packet), Component.empty())));
+    }
+
+    public static void refreshIfOpen(ResidentialControlBoxOpenResponsePacket packet) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft == null || openedControlBoxPos == null || !openedControlBoxPos.equals(packet.controlBoxPos())) {
+            return;
+        }
+        openedControlBoxPos = packet.controlBoxPos().immutable();
+        minecraft.execute(() -> {
+            if (openedControlBoxPos != null && openedControlBoxPos.equals(packet.controlBoxPos()) && minecraft.screen instanceof ResidentialControlBoxScreen) {
+                minecraft.setScreen(new ResidentialControlBoxScreen(createUi(packet), Component.empty()));
+            }
+        });
     }
 
     private static ModularUI createUi(ResidentialControlBoxOpenResponsePacket packet) {
@@ -214,7 +230,7 @@ public final class ResidentialControlBoxScreenOpener {
         BuildingBoundsRenderer.setBuildingBoundsVisible(packet.controlBoxPos(), bounds, packet.residentialPoiPositions(), next);
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft != null) {
-            minecraft.setScreen(new com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen(createUi(packet), Component.empty()));
+            minecraft.setScreen(new ResidentialControlBoxScreen(createUi(packet), Component.empty()));
         }
     }
 
@@ -228,6 +244,22 @@ public final class ResidentialControlBoxScreenOpener {
     }
 
     private static void close() {
+        openedControlBoxPos = null;
         Minecraft.getInstance().setScreen(null);
+    }
+
+    private static final class ResidentialControlBoxScreen extends ModularUIScreen {
+        private ResidentialControlBoxScreen(ModularUI modularUI, Component title) {
+            super(modularUI, title);
+        }
+
+        @Override
+        public void removed() {
+            super.removed();
+            Minecraft minecraft = Minecraft.getInstance();
+            if (!(minecraft.screen instanceof ResidentialControlBoxScreen)) {
+                openedControlBoxPos = null;
+            }
+        }
     }
 }

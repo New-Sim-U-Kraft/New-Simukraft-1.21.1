@@ -150,9 +150,12 @@ configurations {
 }
 
 dependencies {
-    implementation "com.lowdragmc.ldlib2:ldlib2-neoforge-${minecraft_version}:2.2.8:all"
+    implementation "curse.maven:ldlib-626676:8125765"
+    implementation "dev.vfyjxf:taffy:1.1.4"
+    compileOnly "org.appliedenergistics.yoga:yoga:1.0.0"
     implementation "org.xerial:sqlite-jdbc:3.46.1.0"
     implementation "curse.maven:sodium-394468:6382651"
+    implementation "curse.maven:irisshaders-455508:6661598"
     localRuntime "org.xerial:sqlite-jdbc:3.46.1.0"
     jarJar "org.xerial:sqlite-jdbc:3.46.1.0"
 

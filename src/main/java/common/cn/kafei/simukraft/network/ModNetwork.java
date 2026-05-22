@@ -2,10 +2,12 @@ package common.cn.kafei.simukraft.network;
 
 import common.cn.kafei.simukraft.network.building.BuildingCacheReloadPacket;
 import common.cn.kafei.simukraft.network.building.BuildBoxStartConstructionPacket;
+import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxBoundsUpdatePacket;
 import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxDemolishPacket;
 import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxOccupancyPacket;
 import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxOpenRequestPacket;
 import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxViewUpdatePacket;
 import common.cn.kafei.simukraft.network.city.chunk.CityChunkPurchasePacket;
 import common.cn.kafei.simukraft.network.city.chunk.CityChunkSyncPacket;
 import common.cn.kafei.simukraft.network.city.core.CityCoreCreateCityPacket;
@@ -63,6 +65,8 @@ public final class ModNetwork {
         registrar.playToClient(EmploymentStateResponsePacket.TYPE, EmploymentStateResponsePacket.STREAM_CODEC, EmploymentStateResponsePacket::handle);
         registrar.playToClient(HudSyncPacket.TYPE, HudSyncPacket.STREAM_CODEC, HudSyncPacket::handle);
         registrar.playToClient(BuildingCacheReloadPacket.TYPE, BuildingCacheReloadPacket.STREAM_CODEC, BuildingCacheReloadPacket::handle);
+        registrar.playToClient(ResidentialControlBoxBoundsUpdatePacket.TYPE, ResidentialControlBoxBoundsUpdatePacket.STREAM_CODEC, ResidentialControlBoxBoundsUpdatePacket::handle);
+        registrar.playToClient(ResidentialControlBoxViewUpdatePacket.TYPE, ResidentialControlBoxViewUpdatePacket.STREAM_CODEC, ResidentialControlBoxViewUpdatePacket::handle);
         registrar.playToClient(ResidentialControlBoxOpenResponsePacket.TYPE, ResidentialControlBoxOpenResponsePacket.STREAM_CODEC, ResidentialControlBoxOpenResponsePacket::handle);
     }
 }
