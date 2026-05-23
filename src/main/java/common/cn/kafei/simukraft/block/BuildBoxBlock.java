@@ -5,7 +5,9 @@ import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenManager;
 import common.cn.kafei.simukraft.citizen.CitizenService;
 import common.cn.kafei.simukraft.job.CityJobMobilityService;
+import common.cn.kafei.simukraft.registry.ModSoundEvents;
 import net.minecraft.core.BlockPos;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -28,8 +30,18 @@ public class BuildBoxBlock extends Block {
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (level.isClientSide()) {
             ClientOpener.open(pos);
+        } else {
+            level.playSound(null, pos, ModSoundEvents.BUILD_BOX_OPEN.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
         }
         return InteractionResult.sidedSuccess(level.isClientSide());
+    }
+
+    @Override
+    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+        super.onPlace(state, level, pos, oldState, movedByPiston);
+        if (!level.isClientSide() && !state.is(oldState.getBlock())) {
+            level.playSound(null, pos, ModSoundEvents.BUILD_BOX_PLACE.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
+        }
     }
 
     @Override
@@ -39,6 +51,7 @@ public class BuildBoxBlock extends Block {
             return;
         }
         if (!level.isClientSide() && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+            level.playSound(null, pos, ModSoundEvents.BUILD_BOX_BREAK.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
             BuilderConstructionService.interruptTasksByBuildBox(serverLevel, pos, "build_box_removed");
             releaseAssignedCitizen(serverLevel, pos, "builder");
             releaseAssignedCitizen(serverLevel, pos, "planner");

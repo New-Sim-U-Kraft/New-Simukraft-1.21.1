@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft.registry;
 
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.block.CityCoreBlock;
+import common.cn.kafei.simukraft.block.FarmlandBoxBlock;
 import common.cn.kafei.simukraft.block.ResidentialControlBoxBlock;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -28,7 +29,7 @@ public final class ModBlocks {
     public static final DeferredBlock<Block> INDUSTRIAL_CONTROL_BOX = registerBlock("industrial_control_box", ModBlocks::controlBox);
     public static final DeferredBlock<Block> LOGISTICS_CLIENT_BOX = registerBlock("logistics_client_box", ModBlocks::controlBox);
     public static final DeferredBlock<Block> LOGISTICS_SERVER_BOX = registerBlock("logistics_server_box", ModBlocks::controlBox);
-    public static final DeferredBlock<Block> NSUK_FARMLAND_BOX = registerBlock("nsuk_farmland_box", ModBlocks::controlBox);
+    public static final DeferredBlock<Block> NSUK_FARMLAND_BOX = registerBlock("nsuk_farmland_box", FarmlandBoxBlock::new);
     public static final DeferredBlock<Block> ORANGE_LIGHT_BLOCK = registerBlock("orange_light_block", ModBlocks::lightBlock);
     public static final DeferredBlock<Block> OTHER_CONTROL_BOX = registerBlock("other_control_box", ModBlocks::controlBox);
     public static final DeferredBlock<Block> PURPLE_LIGHT_BLOCK = registerBlock("purple_light_block", ModBlocks::lightBlock);

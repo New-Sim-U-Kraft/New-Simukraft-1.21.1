@@ -1,4 +1,40 @@
 {
+  "block.build_box.place": {
+    "subtitle": "simukraft.subtitle.build_box.place",
+    "sounds": [
+      "simukraft:block/build_box_place"
+    ]
+  },
+  "block.build_box.break": {
+    "subtitle": "simukraft.subtitle.build_box.break",
+    "sounds": [
+      "simukraft:block/build_box_break"
+    ]
+  },
+  "ui.build_box.open": {
+    "subtitle": "simukraft.subtitle.build_box.open",
+    "sounds": [
+      "simukraft:ui/build_box_open"
+    ]
+  },
+  "ui.city_core.open": {
+    "subtitle": "simukraft.subtitle.city_core.open",
+    "sounds": [
+      "simukraft:ui/city_core_open"
+    ]
+  },
+  "block.farmland_box.place": {
+    "subtitle": "simukraft.subtitle.farmland_box.place",
+    "sounds": [
+      "simukraft:block/farmland_box_place"
+    ]
+  },
+  "block.farmland_box.break": {
+    "subtitle": "simukraft.subtitle.farmland_box.break",
+    "sounds": [
+      "simukraft:block/build_box_break"
+    ]
+  },
   "player.wake_up": {
     "subtitle": "simukraft.subtitle.player.wake_up",
     "sounds": [
