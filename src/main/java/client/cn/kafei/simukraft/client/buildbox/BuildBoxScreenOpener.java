@@ -200,6 +200,7 @@ public class BuildBoxScreenOpener {
     }
 
     private static void handlePlanArea(BlockPos pos) {
+        PlanningAreaScreen.open(pos);
     }
 
     private static void handleBuildingCategory(BlockPos buildBoxPos, String translationKey) {

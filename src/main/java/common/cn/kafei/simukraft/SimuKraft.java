@@ -16,6 +16,7 @@ import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.economy.ResidentialRentService;
 import common.cn.kafei.simukraft.farmland.FarmlandBoxManager;
 import common.cn.kafei.simukraft.farmland.FarmlandFarmingService;
+import common.cn.kafei.simukraft.planner.PlannerWorkService;
 import common.cn.kafei.simukraft.event.CityPlacementRestrictionHandler;
 import common.cn.kafei.simukraft.network.ModNetwork;
 import common.cn.kafei.simukraft.network.city.chunk.CityChunkSyncService;
@@ -125,6 +126,7 @@ public final class SimuKraft {
             PlacedBuildingService.ensureCityPoisRegistered(level);
             CitizenHomeRestService.tick(level);
             BuilderConstructionService.tick(level);
+            PlannerWorkService.tick(level);
             PopulationGrowthService.tick(level);
             ResidentialRentService.tick(level);
             FarmlandFarmingService.tick(level);
@@ -142,6 +144,7 @@ public final class SimuKraft {
     private void onServerStopping(ServerStoppingEvent event) {
         event.getServer().getAllLevels().forEach(level -> {
             BuilderConstructionService.flush(level);
+            PlannerWorkService.flush(level);
             CityManager.get(level).saveToSqlite(level);
             CityChunkManager.get(level).saveToSqlite(level);
             CityPoiManager.get(level).saveToSqlite(level);
@@ -149,6 +152,7 @@ public final class SimuKraft {
             FarmlandBoxManager.get(level).saveToSqlite(level);
         });
         BuilderConstructionService.clearServerCaches(event.getServer());
+        PlannerWorkService.clearServerCaches(event.getServer());
         FarmlandFarmingService.clearServerCaches(event.getServer());
         PlacedBuildingService.clearServerCaches(event.getServer());
         ResidentialBedPoiService.clearServerCaches(event.getServer());

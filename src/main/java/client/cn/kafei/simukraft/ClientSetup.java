@@ -15,10 +15,13 @@ import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.registry.ModEntities;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.gui.ConfigurationScreen;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
 
 @SuppressWarnings("null")
@@ -31,6 +34,8 @@ public final class ClientSetup {
         modEventBus.addListener(ClientSetup::onRegisterRenderers);
         NeoForge.EVENT_BUS.addListener(BuildingBoundsRenderer::onRender);
         NeoForge.EVENT_BUS.addListener(NpcPathDebugRenderer::onRender);
+        // 注册 NeoForge 内置配置屏，让模组列表里"模拟大都市"的配置按钮能打开 GUI 配置页（含规划师计费等）。
+        ModLoadingContext.get().getActiveContainer().registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }
 
     @SubscribeEvent

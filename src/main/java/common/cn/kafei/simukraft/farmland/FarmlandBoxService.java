@@ -3,6 +3,8 @@ package common.cn.kafei.simukraft.farmland;
 import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenService;
 import common.cn.kafei.simukraft.city.CityChunkManager;
+import common.cn.kafei.simukraft.job.CityJobAssignmentService;
+import common.cn.kafei.simukraft.job.CityJobMobilityService;
 import common.cn.kafei.simukraft.job.CityJobType;
 import common.cn.kafei.simukraft.material.GenericContainerAccess;
 import net.minecraft.core.BlockPos;
@@ -153,9 +155,14 @@ public final class FarmlandBoxService {
         }
     }
 
-    // 农田盒被移除时清理配置（POI 注销与农民解雇由放置事件/雇佣系统单独处理）。
+    // 农田盒被移除时清理配置并自动解雇该盒的农民（FARMLAND POI 注销由放置事件处理器负责）。
     public static void onRemoved(ServerLevel level, BlockPos boxPos) {
         FarmlandBoxManager.get(level).remove(boxPos);
+        UUID farmerId = CitizenService.findAssignedCitizen(level, hireWorkplaceId(boxPos));
+        if (farmerId != null) {
+            CityJobAssignmentService.clearAssignment(level, farmerId);
+            CityJobMobilityService.resetCitizenAfterFire(level, farmerId);
+        }
     }
 
     /**

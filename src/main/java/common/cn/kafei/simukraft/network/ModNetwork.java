@@ -28,6 +28,7 @@ import common.cn.kafei.simukraft.network.city.member.CityCoreMembersRequestPacke
 import common.cn.kafei.simukraft.network.city.member.CityCoreMembersResponsePacket;
 import common.cn.kafei.simukraft.network.citizen.info.CitizenInfoResponsePacket;
 import common.cn.kafei.simukraft.network.hud.HudSyncPacket;
+import common.cn.kafei.simukraft.network.planner.CreatePlanningTaskPacket;
 import common.cn.kafei.simukraft.network.npc.hire.NpcHireAssignPacket;
 import common.cn.kafei.simukraft.network.npc.hire.NpcHireFirePacket;
 import common.cn.kafei.simukraft.network.npc.hire.NpcHireListRequestPacket;
@@ -42,7 +43,7 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "7";
+    private static final String NETWORK_VERSION = "8";
 
     private ModNetwork() {
     }
@@ -71,6 +72,7 @@ public final class ModNetwork {
         registrar.playToServer(FarmlandBoxSetCropPacket.TYPE, FarmlandBoxSetCropPacket.STREAM_CODEC, FarmlandBoxSetCropPacket::handle);
         registrar.playToServer(FarmlandBoxSetAreaPacket.TYPE, FarmlandBoxSetAreaPacket.STREAM_CODEC, FarmlandBoxSetAreaPacket::handle);
         registrar.playToServer(FarmlandBoxBoundsRequestPacket.TYPE, FarmlandBoxBoundsRequestPacket.STREAM_CODEC, FarmlandBoxBoundsRequestPacket::handle);
+        registrar.playToServer(CreatePlanningTaskPacket.TYPE, CreatePlanningTaskPacket.STREAM_CODEC, CreatePlanningTaskPacket::handle);
         registrar.playToServer(NpcPathDebugRequestPacket.TYPE, NpcPathDebugRequestPacket.STREAM_CODEC, NpcPathDebugRequestPacket::handle);
         registrar.playToClient(CityCoreOpenResponsePacket.TYPE, CityCoreOpenResponsePacket.STREAM_CODEC, CityCoreOpenResponsePacket::handle);
         registrar.playToClient(CityCoreMembersResponsePacket.TYPE, CityCoreMembersResponsePacket.STREAM_CODEC, CityCoreMembersResponsePacket::handle);

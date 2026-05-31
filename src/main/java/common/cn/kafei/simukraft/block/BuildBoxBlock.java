@@ -53,6 +53,7 @@ public class BuildBoxBlock extends Block {
         if (!level.isClientSide() && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
             level.playSound(null, pos, ModSoundEvents.BUILD_BOX_BREAK.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
             BuilderConstructionService.interruptTasksByBuildBox(serverLevel, pos, "build_box_removed");
+            common.cn.kafei.simukraft.planner.PlannerWorkService.interruptTasksByBuildBox(serverLevel, pos, "build_box_removed");
             releaseAssignedCitizen(serverLevel, pos, "builder");
             releaseAssignedCitizen(serverLevel, pos, "planner");
         }

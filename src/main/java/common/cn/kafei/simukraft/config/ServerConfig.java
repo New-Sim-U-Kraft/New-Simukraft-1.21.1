@@ -35,6 +35,14 @@ public final class ServerConfig {
     private static final ModConfigSpec.IntValue FARM_AREA_RADIUS;
     private static final ModConfigSpec.IntValue FARM_WORK_INTERVAL_TICKS;
     private static final ModConfigSpec.IntValue FARM_ACTIONS_PER_CYCLE;
+    private static final ModConfigSpec.DoubleValue PLANNER_BLOCKS_PER_SECOND;
+    private static final ModConfigSpec.IntValue PLANNER_MAX_VOLUME;
+    private static final ModConfigSpec.DoubleValue PLANNER_MONEY_PER_BLOCK_REMOVE;
+    private static final ModConfigSpec.DoubleValue PLANNER_MONEY_PER_BLOCK_FILL;
+    private static final ModConfigSpec.DoubleValue PLANNER_MONEY_PER_BLOCK_REPLACE;
+    private static final ModConfigSpec.BooleanValue PLANNER_XP_GAIN;
+    private static final ModConfigSpec.IntValue PLANNER_XP_PER_BLOCK;
+    private static final ModConfigSpec.BooleanValue PLANNER_PAUSE_AT_NIGHT;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -191,6 +199,40 @@ public final class ServerConfig {
                 .translation("config.simukraft.farming.actionsPerCycle")
                 .defineInRange("actionsPerCycle", 4, 1, 64);
         builder.pop();
+        builder.push("planner");
+        PLANNER_BLOCKS_PER_SECOND = builder
+                .comment("Base blocks a level 1 planner processes per second. Scales with NPC level like the builder.")
+                .translation("config.simukraft.planner.blocksPerSecond")
+                .defineInRange("blocksPerSecond", 2.0D, 0.1D, 40.0D);
+        PLANNER_MAX_VOLUME = builder
+                .comment("Maximum number of blocks (volume) a single planning task may cover.")
+                .translation("config.simukraft.planner.maxVolume")
+                .defineInRange("maxVolume", 8192, 1, 200000);
+        PLANNER_MONEY_PER_BLOCK_REMOVE = builder
+                .comment("City funds charged up-front per block for a REMOVE planning task.")
+                .translation("config.simukraft.planner.moneyPerBlockRemove")
+                .defineInRange("moneyPerBlockRemove", 0.02D, 0.0D, 1000.0D);
+        PLANNER_MONEY_PER_BLOCK_FILL = builder
+                .comment("City funds charged up-front per block for a FILL planning task.")
+                .translation("config.simukraft.planner.moneyPerBlockFill")
+                .defineInRange("moneyPerBlockFill", 0.02D, 0.0D, 1000.0D);
+        PLANNER_MONEY_PER_BLOCK_REPLACE = builder
+                .comment("City funds charged up-front per block for a REPLACE planning task.")
+                .translation("config.simukraft.planner.moneyPerBlockReplace")
+                .defineInRange("moneyPerBlockReplace", 0.04D, 0.0D, 1000.0D);
+        PLANNER_XP_GAIN = builder
+                .comment("Whether planners gain profession experience when processing blocks.")
+                .translation("config.simukraft.planner.enableXpGain")
+                .define("enableXpGain", true);
+        PLANNER_XP_PER_BLOCK = builder
+                .comment("Planner profession experience gained per processed block.")
+                .translation("config.simukraft.planner.xpPerBlock")
+                .defineInRange("xpPerBlock", 1, 0, 100);
+        PLANNER_PAUSE_AT_NIGHT = builder
+                .comment("Whether planner tasks pause during the configured night/rest time (shares the builder rest window).")
+                .translation("config.simukraft.planner.pauseAtNight")
+                .define("pauseAtNight", true);
+        builder.pop();
         SPEC = builder.build();
     }
 
@@ -311,6 +353,34 @@ public final class ServerConfig {
 
     public static int farmActionsPerCycle() {
         return FARM_ACTIONS_PER_CYCLE.get();
+    }
+
+    public static double plannerBlocksPerSecond() {
+        return PLANNER_BLOCKS_PER_SECOND.get();
+    }
+
+    public static int plannerMaxVolume() {
+        return PLANNER_MAX_VOLUME.get();
+    }
+
+    public static double plannerMoneyPerBlock(common.cn.kafei.simukraft.planner.PlanOperation operation) {
+        return switch (operation) {
+            case REMOVE -> PLANNER_MONEY_PER_BLOCK_REMOVE.get();
+            case FILL -> PLANNER_MONEY_PER_BLOCK_FILL.get();
+            case REPLACE -> PLANNER_MONEY_PER_BLOCK_REPLACE.get();
+        };
+    }
+
+    public static boolean plannerXpGainEnabled() {
+        return PLANNER_XP_GAIN.get();
+    }
+
+    public static int plannerXpPerBlock() {
+        return PLANNER_XP_PER_BLOCK.get();
+    }
+
+    public static boolean plannerPauseAtNight() {
+        return PLANNER_PAUSE_AT_NIGHT.get();
     }
 
     private static boolean isStringEntry(Object value) {
