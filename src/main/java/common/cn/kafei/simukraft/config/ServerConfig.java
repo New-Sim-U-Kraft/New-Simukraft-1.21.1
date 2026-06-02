@@ -31,6 +31,9 @@ public final class ServerConfig {
     private static final ModConfigSpec.IntValue PATH_REPATH_COOLDOWN_TICKS;
     private static final ModConfigSpec.IntValue PATH_CACHE_TTL_TICKS;
     private static final ModConfigSpec.BooleanValue PATH_DEBUG;
+    private static final ModConfigSpec.IntValue BUILDING_INTEGRITY_AUTO_DEMOLISH_THRESHOLD_PERCENT;
+    private static final ModConfigSpec.IntValue BUILDING_INTEGRITY_CHECK_INTERVAL_TICKS;
+    private static final ModConfigSpec.DoubleValue BUILDING_INTEGRITY_REPAIR_MONEY_PER_BLOCK;
     private static final ModConfigSpec.IntValue FARM_AREA_RADIUS;
     private static final ModConfigSpec.IntValue FARM_WORK_INTERVAL_TICKS;
     private static final ModConfigSpec.IntValue FARM_ACTIONS_PER_CYCLE;
@@ -183,6 +186,23 @@ public final class ServerConfig {
                 .comment("Whether NPC pathfinding debug logs are enabled.")
                 .translation("config.simukraft.npc_pathfinding.debugPathfinding")
                 .define("debugPathfinding", false);
+        builder.pop();
+        builder.push("building_integrity");
+        BUILDING_INTEGRITY_AUTO_DEMOLISH_THRESHOLD_PERCENT = builder
+                .comment(
+                        "Completed buildings below this integrity percentage are automatically demolished.",
+                        "Set to 0 to disable automatic demolition."
+                )
+                .translation("config.simukraft.building_integrity.autoDemolishThresholdPercent")
+                .defineInRange("autoDemolishThresholdPercent", 30, 0, 100);
+        BUILDING_INTEGRITY_CHECK_INTERVAL_TICKS = builder
+                .comment("Ticks between completed building integrity checks.")
+                .translation("config.simukraft.building_integrity.checkIntervalTicks")
+                .defineInRange("checkIntervalTicks", 200, 20, 24000);
+        BUILDING_INTEGRITY_REPAIR_MONEY_PER_BLOCK = builder
+                .comment("City funds charged per repaired building block.")
+                .translation("config.simukraft.building_integrity.repairMoneyPerBlock")
+                .defineInRange("repairMoneyPerBlock", 0.05D, 0.0D, 1000.0D);
         builder.pop();
         builder.push("farming");
         FARM_AREA_RADIUS = builder
@@ -340,6 +360,18 @@ public final class ServerConfig {
 
     public static boolean pathDebugEnabled() {
         return PATH_DEBUG.get();
+    }
+
+    public static int buildingIntegrityAutoDemolishThresholdPercent() {
+        return BUILDING_INTEGRITY_AUTO_DEMOLISH_THRESHOLD_PERCENT.get();
+    }
+
+    public static int buildingIntegrityCheckIntervalTicks() {
+        return BUILDING_INTEGRITY_CHECK_INTERVAL_TICKS.get();
+    }
+
+    public static double buildingIntegrityRepairMoneyPerBlock() {
+        return BUILDING_INTEGRITY_REPAIR_MONEY_PER_BLOCK.get();
     }
 
     public static int farmAreaRadius() {

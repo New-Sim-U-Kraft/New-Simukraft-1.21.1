@@ -1,6 +1,7 @@
 package client.cn.kafei.simukraft.client.industrial;
 
 import client.cn.kafei.simukraft.client.buildbox.BuildingBoundsRenderer;
+import client.cn.kafei.simukraft.client.building.BuildingIntegrityUi;
 import client.cn.kafei.simukraft.client.hire.NpcHireScreen;
 import client.cn.kafei.simukraft.client.ui.SimuKraftUiTheme;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
@@ -46,6 +47,7 @@ public final class IndustrialControlBoxScreenOpener {
     private static final int ROW_BUTTON_HOVER = 0xFFF0F0F0;
     private static final int ROW_BUTTON_SELECTED = 0xFFD8EAD8;
     private static final int ROW_BUTTON_BORDER = 0xFF1E1E1E;
+    private static final float TEXT_ROLL_SPEED = 0.25F;
     private static BlockPos openedBoxPos;
 
     private IndustrialControlBoxScreenOpener() {
@@ -142,6 +144,7 @@ public final class IndustrialControlBoxScreenOpener {
         info.addChild(label(definitionLine(packet), Horizontal.LEFT, packet.definitionValid() ? 0xFFF5F5A0 : 0xFFFF7070, metrics.infoLineHeight(), TextWrap.HOVER_ROLL));
         info.addChild(label(workerLine(packet), Horizontal.LEFT, 0xFFF5F5A0, metrics.infoLineHeight(), TextWrap.HOVER_ROLL));
         info.addChild(label(statusLine(packet), Horizontal.LEFT, 0xFFE0E0FF, metrics.infoLineHeight(), TextWrap.HOVER_ROLL));
+        info.addChild(BuildingIntegrityUi.progressBar(packet.integrityAvailable(), packet.integrityPercent(), metrics.integrityBarHeight()));
         row.addChild(info);
 
         UIElement tools = new UIElement().layout(layout -> {
@@ -155,6 +158,7 @@ public final class IndustrialControlBoxScreenOpener {
         });
         tools.addChild(flatButton(Component.translatable("gui.button.demolish"), () -> demolish(packet), packet.hasBuilding(), metrics.toolWidth(), metrics.toolButtonHeight()));
         tools.addChild(flatButton(boundsText(packet), () -> toggleBounds(packet), packet.hasBuildingBounds(), metrics.toolWidth(), metrics.toolButtonHeight()));
+        tools.addChild(flatButton(BuildingIntegrityUi.repairText(packet.integrityRepairCost()), () -> action(packet, IndustrialControlBoxActionPacket.Action.REPAIR_BUILDING, ""), packet.integrityAvailable() && (packet.integrityRepairableBlocks() > 0 || packet.integrityManualRepairBlocks() > 0), metrics.toolWidth(), metrics.toolButtonHeight()));
         row.addChild(tools);
         return row;
     }
@@ -268,6 +272,7 @@ public final class IndustrialControlBoxScreenOpener {
     private static Button flatButton(Component text, Runnable action, boolean active, int width, int height) {
         Button button = new Button();
         button.setText(text);
+        button.textStyle(style -> style.textWrap(TextWrap.HOVER_ROLL).rollSpeed(TEXT_ROLL_SPEED));
         if (active) {
             button.setOnClick(event -> action.run());
         }
@@ -423,9 +428,10 @@ public final class IndustrialControlBoxScreenOpener {
         int doneButtonHeight = clamp(Math.round(panelHeight * 0.078F), 18, 24);
         int titleBarHeight = Math.max(titleHeight, doneButtonHeight);
         int infoLineHeight = clamp(Math.round(panelHeight * 0.056F), 11, 16);
+        int integrityBarHeight = clamp(Math.round(panelHeight * 0.060F), 12, 18);
         int toolButtonHeight = clamp(Math.round(panelHeight * 0.085F), 18, 24);
         int toolWidth = clamp(Math.round(panelWidth * 0.235F), 86, 112);
-        int headerHeight = Math.max(infoLineHeight * 4 + innerGap * 3, toolButtonHeight * 2 + innerGap);
+        int headerHeight = Math.max(infoLineHeight * 4 + integrityBarHeight + innerGap * 4, toolButtonHeight * 3 + innerGap * 2);
         int actionHeight = clamp(Math.round(panelHeight * 0.078F), 20, 24);
         int actionWidth = clamp((panelWidth - panelPadding * 2 - gap * 2) / 3, 84, 132);
         int recipeAreaHeight = Math.max(28, panelHeight - panelPadding * 2 - titleBarHeight - headerHeight - actionHeight - gap * 4 - innerGap);
@@ -440,7 +446,7 @@ public final class IndustrialControlBoxScreenOpener {
         int outputLimit = Math.max(1, outputStripWidth / Math.max(1, iconSize + iconGap));
         int rowPadding = clamp(Math.round(panelWidth * 0.014F), 4, 8);
         int doneButtonWidth = clamp(Math.round(panelWidth * 0.16F), 50, 76);
-        return new LayoutMetrics(rootPadding, panelWidth, panelHeight, panelPadding, gap, innerGap, titleBarHeight, doneButtonHeight, infoLineHeight, headerHeight, toolWidth, toolButtonHeight, recipeAreaHeight, recipeRowHeight, iconSize, iconGap, selectorWidth, arrowWidth, inputStripWidth, outputStripWidth, inputLimit, outputLimit, rowPadding, actionWidth, actionHeight, doneButtonWidth);
+        return new LayoutMetrics(rootPadding, panelWidth, panelHeight, panelPadding, gap, innerGap, titleBarHeight, doneButtonHeight, infoLineHeight, integrityBarHeight, headerHeight, toolWidth, toolButtonHeight, recipeAreaHeight, recipeRowHeight, iconSize, iconGap, selectorWidth, arrowWidth, inputStripWidth, outputStripWidth, inputLimit, outputLimit, rowPadding, actionWidth, actionHeight, doneButtonWidth);
     }
 
     private static int clamp(int value, int min, int max) {
@@ -456,6 +462,7 @@ public final class IndustrialControlBoxScreenOpener {
                                  int titleBarHeight,
                                  int doneButtonHeight,
                                  int infoLineHeight,
+                                 int integrityBarHeight,
                                  int headerHeight,
                                  int toolWidth,
                                  int toolButtonHeight,

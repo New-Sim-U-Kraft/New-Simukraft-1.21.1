@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.industrial;
 
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
+import common.cn.kafei.simukraft.building.BuildingIntegrityService;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenService;
@@ -8,8 +9,10 @@ import common.cn.kafei.simukraft.job.CitizenEmploymentService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -37,6 +40,7 @@ public final class IndustrialControlBoxService {
         synchronizeWorkerMetadata(level, worker, definition);
         String statusKey = resolveStatusKey(data, building, loadResult, worker);
         String statusText = data.statusText();
+        BuildingIntegrityService.IntegrityPreview integrity = BuildingIntegrityService.preview(level, building);
         List<IndustrialControlBoxView.RecipeEntry> recipes = definition == null ? List.of() : definition.recipes().stream()
                 .map(IndustrialControlBoxService::recipeEntry)
                 .toList();
@@ -56,6 +60,11 @@ public final class IndustrialControlBoxService {
                 building != null,
                 building != null ? building.minPos().immutable() : BlockPos.ZERO,
                 building != null ? building.maxPos().immutable() : BlockPos.ZERO,
+                integrity.available(),
+                integrity.percent(),
+                integrity.repairableBlocks(),
+                integrity.manualRepairBlocks(),
+                integrity.repairCost(),
                 pointMarkers(building, definition),
                 recipes
         );
@@ -199,7 +208,23 @@ public final class IndustrialControlBoxService {
         return IndustrialCoordinateResolver.resolvePositions(building, container.positions());
     }
 
-    public static BlockPos resolvePoint(PlacedBuildingRecord building, IndustrialDefinition definition, String pointId, net.minecraft.world.phys.Vec3 origin) {
+    /**
+     * resolveContainerPosition: 解析容器数组中距离 NPC 最近的一个容器坐标。
+     */
+    public static BlockPos resolveContainerPosition(PlacedBuildingRecord building, IndustrialDefinition definition, String containerId, Vec3 origin) {
+        List<BlockPos> positions = resolveContainerPositions(building, definition, containerId);
+        if (positions.isEmpty()) {
+            return null;
+        }
+        if (origin == null) {
+            return positions.getFirst();
+        }
+        return positions.stream()
+                .min(Comparator.comparingDouble(pos -> Vec3.atCenterOf(pos).distanceToSqr(origin)))
+                .orElse(positions.getFirst());
+    }
+
+    public static BlockPos resolvePoint(PlacedBuildingRecord building, IndustrialDefinition definition, String pointId, Vec3 origin) {
         if (definition == null || pointId == null || pointId.isBlank()) {
             return null;
         }

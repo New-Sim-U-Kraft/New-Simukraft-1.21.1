@@ -249,7 +249,11 @@ public final class IndustrialDefinitionLoader {
                     bool(object, "swing", false),
                     Math.max(0.1D, decimal(object, "range", 1.5D)),
                     string(object, "statusKey", ""),
-                    string(object, "statusText", "")
+                    string(object, "statusText", ""),
+                    stringAny(object, "", "entityType", "entity"),
+                    Math.max(0, integer(object, "count", 0)),
+                    Math.max(0.5D, decimal(object, "radius", 6.0D)),
+                    bool(object, "requireFood", bool(object, "requiresFood", true))
             ));
         }
         return List.copyOf(steps);

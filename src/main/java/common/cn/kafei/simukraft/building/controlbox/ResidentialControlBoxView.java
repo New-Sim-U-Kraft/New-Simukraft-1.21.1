@@ -14,7 +14,12 @@ public record ResidentialControlBoxView(BlockPos controlBoxPos,
                                         boolean hasBuildingBounds,
                                         BlockPos boundsMin,
                                         BlockPos boundsMax,
-                                        List<BlockPos> residentialPoiPositions) {
+                                        List<BlockPos> residentialPoiPositions,
+                                        boolean integrityAvailable,
+                                        double integrityPercent,
+                                        int integrityRepairableBlocks,
+                                        int integrityManualRepairBlocks,
+                                        double integrityRepairCost) {
     public record ResidentEntry(UUID citizenId, String name) {
     }
 }

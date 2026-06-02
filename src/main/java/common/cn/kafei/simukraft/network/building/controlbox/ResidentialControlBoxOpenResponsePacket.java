@@ -23,7 +23,12 @@ public record ResidentialControlBoxOpenResponsePacket(BlockPos controlBoxPos,
                                                       boolean hasBuildingBounds,
                                                       BlockPos boundsMin,
                                                       BlockPos boundsMax,
-                                                      List<BlockPos> residentialPoiPositions) implements CustomPacketPayload {
+                                                      List<BlockPos> residentialPoiPositions,
+                                                      boolean integrityAvailable,
+                                                      double integrityPercent,
+                                                      int integrityRepairableBlocks,
+                                                      int integrityManualRepairBlocks,
+                                                      double integrityRepairCost) implements CustomPacketPayload {
     public static final Type<ResidentialControlBoxOpenResponsePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "residential_control_box_open_response"));
     public static final StreamCodec<RegistryFriendlyByteBuf, ResidentialControlBoxOpenResponsePacket> STREAM_CODEC = StreamCodec.of(ResidentialControlBoxOpenResponsePacket::encode, ResidentialControlBoxOpenResponsePacket::decode);
 
@@ -43,7 +48,12 @@ public record ResidentialControlBoxOpenResponsePacket(BlockPos controlBoxPos,
                 view.hasBuildingBounds(),
                 view.boundsMin(),
                 view.boundsMax(),
-                view.residentialPoiPositions()
+                view.residentialPoiPositions(),
+                view.integrityAvailable(),
+                view.integrityPercent(),
+                view.integrityRepairableBlocks(),
+                view.integrityManualRepairBlocks(),
+                view.integrityRepairCost()
         );
     }
 
@@ -58,7 +68,12 @@ public record ResidentialControlBoxOpenResponsePacket(BlockPos controlBoxPos,
                 false,
                 BlockPos.ZERO,
                 BlockPos.ZERO,
-                List.of()
+                List.of(),
+                false,
+                0.0D,
+                0,
+                0,
+                0.0D
         );
     }
 
@@ -78,6 +93,11 @@ public record ResidentialControlBoxOpenResponsePacket(BlockPos controlBoxPos,
         buffer.writeBlockPos(packet.boundsMax());
         buffer.writeVarInt(packet.residentialPoiPositions().size());
         packet.residentialPoiPositions().forEach(buffer::writeBlockPos);
+        buffer.writeBoolean(packet.integrityAvailable());
+        buffer.writeDouble(packet.integrityPercent());
+        buffer.writeVarInt(packet.integrityRepairableBlocks());
+        buffer.writeVarInt(packet.integrityManualRepairBlocks());
+        buffer.writeDouble(packet.integrityRepairCost());
     }
 
     public static ResidentialControlBoxOpenResponsePacket decode(RegistryFriendlyByteBuf buffer) {
@@ -99,6 +119,11 @@ public record ResidentialControlBoxOpenResponsePacket(BlockPos controlBoxPos,
         for (int index = 0; index < poiSize; index++) {
             residentialPoiPositions.add(buffer.readBlockPos());
         }
+        boolean integrityAvailable = buffer.readBoolean();
+        double integrityPercent = buffer.readDouble();
+        int integrityRepairableBlocks = buffer.readVarInt();
+        int integrityManualRepairBlocks = buffer.readVarInt();
+        double integrityRepairCost = buffer.readDouble();
         return new ResidentialControlBoxOpenResponsePacket(
                 controlBoxPos,
                 buildingName,
@@ -109,7 +134,12 @@ public record ResidentialControlBoxOpenResponsePacket(BlockPos controlBoxPos,
                 hasBuildingBounds,
                 boundsMin,
                 boundsMax,
-                List.copyOf(residentialPoiPositions)
+                List.copyOf(residentialPoiPositions),
+                integrityAvailable,
+                integrityPercent,
+                integrityRepairableBlocks,
+                integrityManualRepairBlocks,
+                integrityRepairCost
         );
     }
 

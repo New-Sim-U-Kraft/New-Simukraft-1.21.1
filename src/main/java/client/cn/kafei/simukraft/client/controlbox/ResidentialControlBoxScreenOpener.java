@@ -1,6 +1,7 @@
 package client.cn.kafei.simukraft.client.controlbox;
 
 import client.cn.kafei.simukraft.client.buildbox.BuildingBoundsRenderer;
+import client.cn.kafei.simukraft.client.building.BuildingIntegrityUi;
 import client.cn.kafei.simukraft.client.ui.SimuKraftUiTheme;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -29,9 +30,11 @@ import java.util.stream.Collectors;
 @SuppressWarnings("null")
 public final class ResidentialControlBoxScreenOpener {
     private static final int PANEL_WIDTH = 320;
-    private static final int PANEL_HEIGHT = 184;
+    private static final int PANEL_HEIGHT = 208;
     private static final int ACTION_WIDTH = 132;
     private static final int ACTION_HEIGHT = 22;
+    private static final int INTEGRITY_HEIGHT = 18;
+    private static final float TEXT_ROLL_SPEED = 0.25F;
     private static BlockPos openedControlBoxPos;
 
     private ResidentialControlBoxScreenOpener() {
@@ -96,6 +99,7 @@ public final class ResidentialControlBoxScreenOpener {
         panel.addChild(label(buildingLine(packet), Horizontal.LEFT, 0xFFF5F5A0, 13));
         panel.addChild(label(Component.translatable(packet.buildingTypeKey()), Horizontal.LEFT, 0xFFF5F5A0, 13));
         panel.addChild(label(residentLine(packet), Horizontal.LEFT, 0xFFF5F5A0, 13));
+        panel.addChild(BuildingIntegrityUi.progressBar(packet.integrityAvailable(), packet.integrityPercent(), INTEGRITY_HEIGHT));
 
         UIElement row = new UIElement().layout(layout -> {
             layout.widthPercent(100);
@@ -105,6 +109,7 @@ public final class ResidentialControlBoxScreenOpener {
             layout.marginTop(2);
         });
         row.addChild(actionButton(boundsText(packet), () -> toggleBounds(packet), packet.hasBuildingBounds()));
+        row.addChild(actionButton(BuildingIntegrityUi.repairText(packet.integrityRepairCost()), () -> repair(packet), packet.integrityAvailable() && (packet.integrityRepairableBlocks() > 0 || packet.integrityManualRepairBlocks() > 0)));
         panel.addChild(row);
 
         UIElement occupancyRow = new UIElement().layout(layout -> {
@@ -148,6 +153,7 @@ public final class ResidentialControlBoxScreenOpener {
         });
         Button button = new Button();
         button.setText(text);
+        button.textStyle(style -> style.textWrap(TextWrap.HOVER_ROLL).rollSpeed(TEXT_ROLL_SPEED));
         if (active) {
             button.setOnClick(event -> action.run());
         }
@@ -226,6 +232,10 @@ public final class ResidentialControlBoxScreenOpener {
 
     private static void occupancy(ResidentialControlBoxOpenResponsePacket packet, ResidentialControlBoxOccupancyPacket.Action action) {
         PacketDistributor.sendToServer(new ResidentialControlBoxOccupancyPacket(packet.controlBoxPos(), action));
+    }
+
+    private static void repair(ResidentialControlBoxOpenResponsePacket packet) {
+        PacketDistributor.sendToServer(new ResidentialControlBoxOccupancyPacket(packet.controlBoxPos(), ResidentialControlBoxOccupancyPacket.Action.REPAIR_BUILDING));
     }
 
     private static void close() {

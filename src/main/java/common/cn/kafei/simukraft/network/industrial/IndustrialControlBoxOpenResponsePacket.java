@@ -29,6 +29,11 @@ public record IndustrialControlBoxOpenResponsePacket(BlockPos boxPos,
                                                      boolean hasBuildingBounds,
                                                      BlockPos boundsMin,
                                                      BlockPos boundsMax,
+                                                     boolean integrityAvailable,
+                                                     double integrityPercent,
+                                                     int integrityRepairableBlocks,
+                                                     int integrityManualRepairBlocks,
+                                                     double integrityRepairCost,
                                                      List<PointMarkerEntry> pointMarkers,
                                                      List<RecipeEntry> recipes) implements CustomPacketPayload {
     public static final Type<IndustrialControlBoxOpenResponsePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "industrial_control_box_open_response"));
@@ -51,6 +56,11 @@ public record IndustrialControlBoxOpenResponsePacket(BlockPos boxPos,
                 view.hasBuildingBounds(),
                 view.boundsMin(),
                 view.boundsMax(),
+                view.integrityAvailable(),
+                view.integrityPercent(),
+                view.integrityRepairableBlocks(),
+                view.integrityManualRepairBlocks(),
+                view.integrityRepairCost(),
                 view.pointMarkers().stream()
                         .map(marker -> new PointMarkerEntry(marker.id(), marker.kind(), marker.pos(), marker.color()))
                         .toList(),
@@ -85,6 +95,11 @@ public record IndustrialControlBoxOpenResponsePacket(BlockPos boxPos,
         buffer.writeBoolean(packet.hasBuildingBounds());
         buffer.writeBlockPos(packet.boundsMin());
         buffer.writeBlockPos(packet.boundsMax());
+        buffer.writeBoolean(packet.integrityAvailable());
+        buffer.writeDouble(packet.integrityPercent());
+        buffer.writeVarInt(packet.integrityRepairableBlocks());
+        buffer.writeVarInt(packet.integrityManualRepairBlocks());
+        buffer.writeDouble(packet.integrityRepairCost());
         buffer.writeVarInt(packet.pointMarkers().size());
         for (PointMarkerEntry marker : packet.pointMarkers()) {
             marker.encode(buffer);
@@ -111,6 +126,11 @@ public record IndustrialControlBoxOpenResponsePacket(BlockPos boxPos,
         boolean hasBuildingBounds = buffer.readBoolean();
         BlockPos boundsMin = buffer.readBlockPos();
         BlockPos boundsMax = buffer.readBlockPos();
+        boolean integrityAvailable = buffer.readBoolean();
+        double integrityPercent = buffer.readDouble();
+        int integrityRepairableBlocks = buffer.readVarInt();
+        int integrityManualRepairBlocks = buffer.readVarInt();
+        double integrityRepairCost = buffer.readDouble();
         int markerCount = buffer.readVarInt();
         List<PointMarkerEntry> pointMarkers = new ArrayList<>();
         for (int i = 0; i < markerCount; i++) {
@@ -121,7 +141,7 @@ public record IndustrialControlBoxOpenResponsePacket(BlockPos boxPos,
         for (int i = 0; i < recipeCount; i++) {
             recipes.add(RecipeEntry.decode(buffer));
         }
-        return new IndustrialControlBoxOpenResponsePacket(boxPos, hasBuilding, buildingName, definitionValid, definitionName, statusKey, statusText, running, selectedRecipeId, hasWorker, workerId, workerName, hasBuildingBounds, boundsMin, boundsMax, List.copyOf(pointMarkers), List.copyOf(recipes));
+        return new IndustrialControlBoxOpenResponsePacket(boxPos, hasBuilding, buildingName, definitionValid, definitionName, statusKey, statusText, running, selectedRecipeId, hasWorker, workerId, workerName, hasBuildingBounds, boundsMin, boundsMax, integrityAvailable, integrityPercent, integrityRepairableBlocks, integrityManualRepairBlocks, integrityRepairCost, List.copyOf(pointMarkers), List.copyOf(recipes));
     }
 
     public static void handle(IndustrialControlBoxOpenResponsePacket packet, IPayloadContext context) {

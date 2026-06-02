@@ -67,7 +67,11 @@ public record IndustrialDefinition(String id,
                                  boolean swing,
                                  double range,
                                  String statusKey,
-                                 String statusText) {
+                                 String statusText,
+                                 String entityType,
+                                 int count,
+                                 double radius,
+                                 boolean requireFood) {
     }
 
     public enum SelectionMode {

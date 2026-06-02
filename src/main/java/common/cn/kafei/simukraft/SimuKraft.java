@@ -9,6 +9,7 @@ import common.cn.kafei.simukraft.city.CityChunkManager;
 import common.cn.kafei.simukraft.city.CityManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.building.BuilderConstructionService;
+import common.cn.kafei.simukraft.building.BuildingIntegrityService;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.building.ResidentialBedPoiService;
 import common.cn.kafei.simukraft.command.SimuKraftCommand;
@@ -133,6 +134,7 @@ public final class SimuKraft {
             CitizenNavigationService.tick(level);
             CitizenWanderService.tick(level);
             PlacedBuildingService.ensureCityPoisRegistered(level);
+            BuildingIntegrityService.tick(level);
             CitizenHomeRestService.tick(level);
             BuilderConstructionService.tick(level);
             PlannerWorkService.tick(level);

@@ -20,6 +20,11 @@ public record IndustrialControlBoxView(BlockPos boxPos,
                                        boolean hasBuildingBounds,
                                        BlockPos boundsMin,
                                        BlockPos boundsMax,
+                                       boolean integrityAvailable,
+                                       double integrityPercent,
+                                       int integrityRepairableBlocks,
+                                       int integrityManualRepairBlocks,
+                                       double integrityRepairCost,
                                        List<PointMarker> pointMarkers,
                                        List<RecipeEntry> recipes) {
     public record RecipeEntry(String id, String name, List<ItemEntry> inputs, List<ItemEntry> outputs) {

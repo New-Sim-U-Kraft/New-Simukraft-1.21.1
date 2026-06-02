@@ -19,6 +19,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.BarrelBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
@@ -141,11 +143,26 @@ public final class IndustrialWorkService {
                 yield StepResult.PROGRESSED;
             }
             case "move_to" -> moveTo(level, data, boxRuntime, building, definition, worker, entity, step);
+            case "move_to_container", "move_to_chest" -> moveToContainer(level, data, boxRuntime, building, definition, worker, entity, step);
             case "look_at" -> lookAt(building, definition, entity, step);
+            case "look_at_container", "look_at_chest" -> lookAtContainer(level, data, building, definition, entity, step);
             case "require_inputs" -> requireInputs(level, manager, data, building, definition, recipe, step);
             case "require_output_space" -> requireOutputSpace(level, manager, data, building, definition, recipe, step);
             case "use_item" -> useItem(entity, boxRuntime, step, gameTime);
             case "craft_recipe" -> craftRecipe(level, manager, data, building, definition, recipe, worker, step);
+            case "inspect_container", "open_container" -> inspectContainer(level, manager, data, boxRuntime, building, definition, step, gameTime);
+            case "breed_entities", "breed_animals" -> entityAction(manager, data,
+                    IndustrialEntityActionService.breed(level, building, definition, step),
+                    "gui.simukraft.industrial.status.breeding");
+            case "slaughter_entities", "slaughter_animals" -> entityAction(manager, data,
+                    IndustrialEntityActionService.slaughter(level, building, definition, step, entity),
+                    "gui.simukraft.industrial.status.slaughtering");
+            case "require_drops", "require_drop_items", "has_drops" -> entityAction(manager, data,
+                    IndustrialEntityActionService.requireDrops(level, building, definition, step, entity),
+                    "gui.simukraft.industrial.status.collecting_drops");
+            case "collect_drops" -> entityAction(manager, data,
+                    IndustrialEntityActionService.collectDrops(level, building, definition, step, entity),
+                    "gui.simukraft.industrial.status.collecting_drops");
             case "set_status" -> {
                 setStatus(manager, data,
                         !step.statusKey().isBlank() ? step.statusKey() : "gui.simukraft.industrial.status.running",
@@ -172,6 +189,10 @@ public final class IndustrialWorkService {
             setStatus(IndustrialBoxManager.get(level), data, "gui.simukraft.industrial.status.missing_point", step.point());
             return StepResult.WAITING_RETRY;
         }
+        if (!canStandAt(level, target)) {
+            setStatus(IndustrialBoxManager.get(level), data, "gui.simukraft.industrial.status.invalid_point", step.point());
+            return StepResult.WAITING_RETRY;
+        }
         double range = Math.max(0.2D, step.range());
         Vec3 targetCenter = Vec3.atBottomCenterOf(target);
         if (entity.position().distanceToSqr(targetCenter) <= range * range) {
@@ -184,9 +205,64 @@ public final class IndustrialWorkService {
         return StepResult.WAITING_MOVE;
     }
 
+    /**
+     * moveToContainer: 让 NPC 走到指定容器旁边的可站立格。
+     */
+    private static StepResult moveToContainer(ServerLevel level,
+                                              IndustrialBoxData data,
+                                              BoxRuntime boxRuntime,
+                                              PlacedBuildingRecord building,
+                                              IndustrialDefinition definition,
+                                              CitizenData worker,
+                                              CitizenEntity entity,
+                                              IndustrialDefinition.StepDefinition step) {
+        String containerId = targetContainerName(step, "input");
+        List<BlockPos> containers = IndustrialControlBoxService.resolveContainerPositions(building, definition, containerId);
+        if (containers.isEmpty()) {
+            setStatus(IndustrialBoxManager.get(level), data, "gui.simukraft.industrial.status.missing_container", containerId);
+            return StepResult.WAITING_RETRY;
+        }
+        ContainerApproach approach = selectContainerApproach(level, building, containers, entity.position());
+        if (approach == null) {
+            setStatus(IndustrialBoxManager.get(level), data, "gui.simukraft.industrial.status.invalid_point", containerId);
+            return StepResult.WAITING_RETRY;
+        }
+        BlockPos target = approach.target();
+        double range = Math.max(0.2D, step.range());
+        Vec3 targetCenter = Vec3.atBottomCenterOf(target);
+        if (entity.position().distanceToSqr(targetCenter) <= range * range) {
+            CitizenNavigationService.stop(level, worker.uuid());
+            return StepResult.PROGRESSED;
+        }
+        setStatus(IndustrialBoxManager.get(level), data, "gui.simukraft.industrial.status.moving", containerId);
+        CitizenNavigationService.requestMove(level, worker.uuid(), targetCenter, MovementIntent.WORK);
+        boxRuntime.resetStep(data.currentStep());
+        return StepResult.WAITING_MOVE;
+    }
+
     private static StepResult lookAt(PlacedBuildingRecord building, IndustrialDefinition definition, CitizenEntity entity, IndustrialDefinition.StepDefinition step) {
         BlockPos target = IndustrialControlBoxService.resolvePoint(building, definition, step.point(), entity.position());
         if (target == null) {
+            return StepResult.WAITING_RETRY;
+        }
+        Vec3 center = Vec3.atCenterOf(target);
+        entity.getLookControl().setLookAt(center.x, center.y, center.z);
+        return StepResult.PROGRESSED;
+    }
+
+    /**
+     * lookAtContainer: 让 NPC 面朝指定容器，配合开箱/放入产物表现。
+     */
+    private static StepResult lookAtContainer(ServerLevel level,
+                                              IndustrialBoxData data,
+                                              PlacedBuildingRecord building,
+                                              IndustrialDefinition definition,
+                                              CitizenEntity entity,
+                                              IndustrialDefinition.StepDefinition step) {
+        String containerId = targetContainerName(step, "input");
+        BlockPos target = IndustrialControlBoxService.resolveContainerPosition(building, definition, containerId, entity.position());
+        if (target == null) {
+            setStatus(IndustrialBoxManager.get(level), data, "gui.simukraft.industrial.status.missing_container", containerId);
             return StepResult.WAITING_RETRY;
         }
         Vec3 center = Vec3.atCenterOf(target);
@@ -241,6 +317,34 @@ public final class IndustrialWorkService {
         return gameTime - boxRuntime.stepStartedAt >= Math.max(1, step.ticks()) ? StepResult.PROGRESSED : StepResult.WAITING;
     }
 
+    private static StepResult inspectContainer(ServerLevel level,
+                                               IndustrialBoxManager manager,
+                                               IndustrialBoxData data,
+                                               BoxRuntime boxRuntime,
+                                               PlacedBuildingRecord building,
+                                               IndustrialDefinition definition,
+                                               IndustrialDefinition.StepDefinition step,
+                                               long gameTime) {
+        List<BlockPos> containers = IndustrialControlBoxService.resolveContainerPositions(building, definition, containerName(step.container(), step.input(), "input"));
+        if (containers.isEmpty()) {
+            setStatus(manager, data, "gui.simukraft.industrial.status.missing_container", "");
+            return StepResult.WAITING_RETRY;
+        }
+        int stepKey = Objects.hash(step.type(), step.container(), step.input(), step.ticks());
+        if (boxRuntime.activeStep != stepKey) {
+            boxRuntime.activeStep = stepKey;
+            boxRuntime.stepStartedAt = gameTime;
+            setContainersOpen(level, containers, true);
+            setStatus(manager, data, "gui.simukraft.industrial.status.inspecting_container", "");
+            return StepResult.WAITING;
+        }
+        if (gameTime - boxRuntime.stepStartedAt < Math.max(1, step.ticks())) {
+            return StepResult.WAITING;
+        }
+        setContainersOpen(level, containers, false);
+        return StepResult.PROGRESSED;
+    }
+
     private static StepResult craftRecipe(ServerLevel level,
                                           IndustrialBoxManager manager,
                                           IndustrialBoxData data,
@@ -261,6 +365,44 @@ public final class IndustrialWorkService {
         setCitizenStatus(level, worker, "gui.simukraft.industrial.status.running", "");
         setStatus(manager, data, "gui.simukraft.industrial.status.running", "");
         return StepResult.PROGRESSED;
+    }
+
+    private static StepResult entityAction(IndustrialBoxManager manager, IndustrialBoxData data, IndustrialEntityActionService.ActionResult result, String successStatusKey) {
+        return switch (result) {
+            case SUCCESS -> {
+                setStatus(manager, data, successStatusKey, "");
+                yield StepResult.PROGRESSED;
+            }
+            case MISSING_ENTITIES -> {
+                setStatus(manager, data, "gui.simukraft.industrial.status.missing_entities", "");
+                yield StepResult.WAITING_RETRY;
+            }
+            case MISSING_DROPS -> {
+                setStatus(manager, data, "gui.simukraft.industrial.status.missing_drops", "");
+                yield StepResult.WAITING_RETRY;
+            }
+            case MISSING_INPUTS -> {
+                setStatus(manager, data, "gui.simukraft.industrial.status.missing_inputs", "");
+                yield StepResult.WAITING_RETRY;
+            }
+            case OUTPUT_FULL -> {
+                setStatus(manager, data, "gui.simukraft.industrial.status.output_full", "");
+                yield StepResult.WAITING_RETRY;
+            }
+        };
+    }
+
+    private static void setContainersOpen(ServerLevel level, List<BlockPos> containers, boolean open) {
+        for (BlockPos container : containers) {
+            if (container == null || !level.isLoaded(container)) {
+                continue;
+            }
+            BlockState state = level.getBlockState(container);
+            if (state.hasProperty(BarrelBlock.OPEN)) {
+                level.setBlock(container, state.setValue(BarrelBlock.OPEN, open), 3);
+            }
+            level.blockEvent(container, state.getBlock(), 1, open ? 1 : 0);
+        }
     }
 
     private static void advanceStep(IndustrialBoxManager manager, IndustrialBoxData data, IndustrialDefinition.RecipeDefinition recipe, BoxRuntime boxRuntime) {
@@ -308,6 +450,84 @@ public final class IndustrialWorkService {
         return fallback;
     }
 
+    /**
+     * targetContainerName: 解析移动/朝向类步骤中的容器名。
+     */
+    private static String targetContainerName(IndustrialDefinition.StepDefinition step, String fallback) {
+        if (step == null) {
+            return fallback;
+        }
+        if (step.container() != null && !step.container().isBlank()) {
+            return step.container();
+        }
+        if (step.input() != null && !step.input().isBlank()) {
+            return step.input();
+        }
+        if (step.output() != null && !step.output().isBlank()) {
+            return step.output();
+        }
+        return fallback;
+    }
+
+    /**
+     * containerApproachPosition: 从容器四周挑选最近的可站立格，避免寻路走进箱子方块。
+     */
+    /**
+     * selectContainerApproach: 从容器数组中选择当前 NPC 最容易抵达的容器落脚点。
+     */
+    private static ContainerApproach selectContainerApproach(ServerLevel level, PlacedBuildingRecord building, List<BlockPos> containers, Vec3 origin) {
+        ContainerApproach best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (BlockPos container : containers) {
+            BlockPos target = containerApproachPosition(level, building, container, origin);
+            if (target == null) {
+                continue;
+            }
+            double distance = origin != null ? Vec3.atBottomCenterOf(target).distanceToSqr(origin) : 0.0D;
+            if (best == null || distance < bestDistance) {
+                best = new ContainerApproach(container, target);
+                bestDistance = distance;
+            }
+        }
+        return best;
+    }
+
+    private static BlockPos containerApproachPosition(ServerLevel level, PlacedBuildingRecord building, BlockPos container, Vec3 origin) {
+        BlockPos best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (int radius = 1; radius <= 2; radius++) {
+            for (int yOffset = 0; yOffset >= -3; yOffset--) {
+                for (int xOffset = -radius; xOffset <= radius; xOffset++) {
+                    for (int zOffset = -radius; zOffset <= radius; zOffset++) {
+                        if (Math.abs(xOffset) != radius && Math.abs(zOffset) != radius) {
+                            continue;
+                        }
+                        BlockPos candidate = container.offset(xOffset, yOffset, zOffset);
+                        if (!canStandAt(level, candidate)) {
+                            continue;
+                        }
+                        double distance = origin != null ? Vec3.atBottomCenterOf(candidate).distanceToSqr(origin) : 0.0D;
+                        if (best == null || distance < bestDistance) {
+                            best = candidate;
+                            bestDistance = distance;
+                        }
+                    }
+                }
+            }
+            if (best != null) {
+                return best;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * canStandAt: 判断 NPC 是否能在目标格站立。
+     */
+    private static boolean canStandAt(ServerLevel level, BlockPos pos) {
+        return CitizenTeleportService.isSafeLandingPosition(level, pos);
+    }
+
     private static int boxRuntimeStepKey(CitizenEntity entity, IndustrialDefinition.StepDefinition step) {
         return Objects.hash(entity.getUUID(), step.type(), step.ticks(), step.swing());
     }
@@ -344,5 +564,8 @@ public final class IndustrialWorkService {
                 reset();
             }
         }
+    }
+
+    private record ContainerApproach(BlockPos container, BlockPos target) {
     }
 }

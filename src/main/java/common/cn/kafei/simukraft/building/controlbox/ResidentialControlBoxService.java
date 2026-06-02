@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft.building.controlbox;
 
 import common.cn.kafei.simukraft.building.BuilderConstructionService;
 import common.cn.kafei.simukraft.building.BuildingPoiInstance;
+import common.cn.kafei.simukraft.building.BuildingIntegrityService;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.citizen.CitizenManager;
@@ -40,6 +41,7 @@ public final class ResidentialControlBoxService {
                 : "gui.residential_control_box.unknown_building";
         BlockPos min = building != null ? building.minPos() : BlockPos.ZERO;
         BlockPos max = building != null ? building.maxPos() : BlockPos.ZERO;
+        BuildingIntegrityService.IntegrityPreview integrity = BuildingIntegrityService.preview(level, building);
         return new ResidentialControlBoxView(
                 controlBoxPos.immutable(),
                 buildingName,
@@ -50,7 +52,12 @@ public final class ResidentialControlBoxService {
                 building != null,
                 min,
                 max,
-                residentialPoiPositions
+                residentialPoiPositions,
+                integrity.available(),
+                integrity.percent(),
+                integrity.repairableBlocks(),
+                integrity.manualRepairBlocks(),
+                integrity.repairCost()
         );
     }
 

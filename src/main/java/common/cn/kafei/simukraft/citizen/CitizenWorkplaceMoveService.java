@@ -49,22 +49,48 @@ public final class CitizenWorkplaceMoveService {
         CityPoiData poi = CityPoiManager.get(level).getPoi(citizen.workplaceId());
         if (poi != null) {
             return poi.active() && (citizen.cityId() == null || citizen.cityId().equals(poi.cityId()))
-                    ? Optional.of(targetAbove(poi.pos()))
+                    ? targetNear(level, poi.pos())
                     : Optional.empty();
         }
         if (citizen.jobType() == CityJobType.BUILDER) {
             BlockPos buildBoxPos = BuilderConstructionService.findBuildBoxPos(level, citizen.uuid());
             if (buildBoxPos != null) {
-                return Optional.of(targetAbove(buildBoxPos));
+                return targetNear(level, buildBoxPos);
             }
         }
         if (citizen.workplacePos() != null) {
-            return Optional.of(targetAbove(citizen.workplacePos()));
+            return targetNear(level, citizen.workplacePos());
         }
         return Optional.empty();
     }
 
-    private static Vec3 targetAbove(BlockPos pos) {
-        return Vec3.atBottomCenterOf(pos).add(0.0D, 1.0D, 0.0D);
+    private static Optional<Vec3> targetNear(ServerLevel level, BlockPos pos) {
+        if (level == null || pos == null) {
+            return Optional.empty();
+        }
+        BlockPos best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (int radius = 1; radius <= 2; radius++) {
+            for (int xOffset = -radius; xOffset <= radius; xOffset++) {
+                for (int zOffset = -radius; zOffset <= radius; zOffset++) {
+                    if (Math.max(Math.abs(xOffset), Math.abs(zOffset)) != radius) {
+                        continue;
+                    }
+                    BlockPos candidate = pos.offset(xOffset, 0, zOffset);
+                    if (!CitizenTeleportService.isSafeLandingPosition(level, candidate)) {
+                        continue;
+                    }
+                    double distance = candidate.distSqr(pos);
+                    if (best == null || distance < bestDistance) {
+                        best = candidate.immutable();
+                        bestDistance = distance;
+                    }
+                }
+            }
+            if (best != null) {
+                break;
+            }
+        }
+        return best != null ? Optional.of(Vec3.atBottomCenterOf(best)) : Optional.empty();
     }
 }
