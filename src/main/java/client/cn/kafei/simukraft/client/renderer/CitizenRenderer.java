@@ -6,7 +6,6 @@ import common.cn.kafei.simukraft.entity.CitizenEntity;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
@@ -17,15 +16,15 @@ import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix4f;
 
 @SuppressWarnings("null")
-public class CitizenRenderer extends MobRenderer<CitizenEntity, PlayerModel<CitizenEntity>> {
+public class CitizenRenderer extends MobRenderer<CitizenEntity, CitizenModel> {
     private static final ResourceLocation DEFAULT_TEXTURE = ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "textures/entity/male/custom_male_entity_0.png");
-    private final PlayerModel<CitizenEntity> slimModel;
-    private final PlayerModel<CitizenEntity> defaultModel;
+    private final CitizenModel slimModel;
+    private final CitizenModel defaultModel;
 
     public CitizenRenderer(EntityRendererProvider.Context context) {
-        super(context, new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER_SLIM), true), 0.5F);
+        super(context, new CitizenModel(context.bakeLayer(ModelLayers.PLAYER_SLIM), true), 0.5F);
         this.slimModel = this.model;
-        this.defaultModel = new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER), false);
+        this.defaultModel = new CitizenModel(context.bakeLayer(ModelLayers.PLAYER), false);
         this.addLayer(new ItemInHandLayer<>(this, context.getItemInHandRenderer()));
     }
 

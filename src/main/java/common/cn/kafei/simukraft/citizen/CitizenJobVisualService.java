@@ -4,7 +4,6 @@ import common.cn.kafei.simukraft.building.BuilderConstructionService;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.job.CityJobType;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -15,7 +14,6 @@ import java.util.concurrent.ConcurrentMap;
 
 @SuppressWarnings("null")
 public final class CitizenJobVisualService {
-    private static final int SWING_INTERVAL_TICKS = 10;
     private static final CitizenJobVisualRule EMPTY_RULE = new CitizenJobVisualRule(ItemStack.EMPTY, ItemStack.EMPTY, CitizenJobVisualAction.NONE);
     private static final ConcurrentMap<CityJobType, CitizenJobVisualRule> RULES = new ConcurrentHashMap<>();
     private static final ConcurrentMap<UUID, ItemStack> MAIN_HAND_OVERRIDES = new ConcurrentHashMap<>();
@@ -77,17 +75,6 @@ public final class CitizenJobVisualService {
     private static void applyAction(ServerLevel level, CitizenEntity entity, CitizenData data, CitizenJobVisualAction action) {
         boolean active = action == CitizenJobVisualAction.SWING_RIGHT_HAND_WHEN_BUILDING && BuilderConstructionService.hasActiveBuildTask(level, data.uuid());
         entity.setHasActiveVisualTask(active);
-        if (active) {
-            swingRightHand(level, entity);
-        }
-    }
-
-    private static void swingRightHand(ServerLevel level, CitizenEntity entity) {
-        UUID uuid = entity.getUUID();
-        int phase = Math.floorMod(uuid.hashCode(), SWING_INTERVAL_TICKS);
-        if (level.getGameTime() % SWING_INTERVAL_TICKS == phase) {
-            entity.triggerWorkSwing(InteractionHand.MAIN_HAND);
-        }
     }
 
     private static ItemStack normalizeVisualStack(ItemStack stack) {
