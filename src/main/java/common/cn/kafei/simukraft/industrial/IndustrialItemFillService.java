@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-@SuppressWarnings("null")
 public final class IndustrialItemFillService {
     private static final int DEFAULT_TARGET_COUNT = 64;
 
@@ -157,10 +156,6 @@ public final class IndustrialItemFillService {
     private record FillCandidate(IndustrialItemStackSpec spec) {
         private ItemStack stack(ServerLevel level, int count) {
             return spec.stack(Math.max(1, count), level.registryAccess());
-        }
-
-        private ItemStack stack(int count) {
-            return spec.stack(Math.max(1, count));
         }
 
         private boolean matches(ServerLevel level, ItemStack current) {
