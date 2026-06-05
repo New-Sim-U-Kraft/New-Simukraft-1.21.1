@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.entity;
 
 import common.cn.kafei.simukraft.citizen.CitizenWorkStatus;
+import common.cn.kafei.simukraft.commercial.CommercialControlBoxService;
 import common.cn.kafei.simukraft.network.citizen.info.CitizenInfoResponsePacket;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -63,6 +64,9 @@ public class CitizenEntity extends PathfinderMob {
         if (level() instanceof ServerLevel serverLevel && player instanceof ServerPlayer serverPlayer && player.distanceToSqr(this) <= 64.0D) {
             common.cn.kafei.simukraft.citizen.CitizenData data = common.cn.kafei.simukraft.citizen.CitizenService.ensureCitizen(serverLevel, this);
             if (data != null) {
+                if (CommercialControlBoxService.openForWorker(serverLevel, serverPlayer, data)) {
+                    return InteractionResult.sidedSuccess(level().isClientSide());
+                }
                 PacketDistributor.sendToPlayer(serverPlayer, CitizenInfoResponsePacket.from(serverLevel, this, data));
             }
         }

@@ -9,6 +9,8 @@ import common.cn.kafei.simukraft.network.city.chunk.CityChunkSyncPacket;
 import common.cn.kafei.simukraft.network.city.core.CityCoreOpenResponsePacket;
 import common.cn.kafei.simukraft.network.city.map.CityCoreMapResponsePacket;
 import common.cn.kafei.simukraft.network.city.member.CityCoreMembersResponsePacket;
+import common.cn.kafei.simukraft.network.commercial.CommercialControlBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.commercial.CommercialTradeOpenResponsePacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxBoundsResponsePacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.hud.HudSyncPacket;
@@ -110,6 +112,16 @@ public final class ClientboundNetworkBridge {
     /** handleIndustrialControlBoxViewUpdate: 分发工业控制箱视图刷新。 */
     public static void handleIndustrialControlBoxViewUpdate(IndustrialControlBoxViewUpdatePacket packet) {
         HANDLER.get().handleIndustrialControlBoxViewUpdate(packet);
+    }
+
+    /** handleCommercialControlBoxOpenResponse: 分发商业控制箱打开响应。 */
+    public static void handleCommercialControlBoxOpenResponse(CommercialControlBoxOpenResponsePacket packet) {
+        HANDLER.get().handleCommercialControlBoxOpenResponse(packet);
+    }
+
+    /** handleCommercialTradeOpenResponse: 分发 NPC 商业交易界面响应。 */
+    public static void handleCommercialTradeOpenResponse(CommercialTradeOpenResponsePacket packet) {
+        HANDLER.get().handleCommercialTradeOpenResponse(packet);
     }
 
     /** handleNpcHireListResponse: 分发 NPC 雇佣列表响应。 */

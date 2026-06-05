@@ -4,6 +4,9 @@ import common.cn.kafei.simukraft.building.BuilderConstructionService;
 import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenService;
 import common.cn.kafei.simukraft.citizen.CitizenWorkStatus;
+import common.cn.kafei.simukraft.commercial.CommercialConstants;
+import common.cn.kafei.simukraft.commercial.CommercialControlBoxService;
+import common.cn.kafei.simukraft.commercial.CommercialWorkService;
 import common.cn.kafei.simukraft.farmland.FarmlandBoxService;
 import common.cn.kafei.simukraft.industrial.IndustrialConstants;
 import common.cn.kafei.simukraft.industrial.IndustrialControlBoxService;
@@ -170,6 +173,9 @@ public final class CitizenEmploymentService {
         if (workplaceId(IndustrialConstants.HIRE_SOURCE_TYPE, IndustrialConstants.HIRE_ROLE, workplacePos).equals(workplaceId)) {
             return CityJobType.INDUSTRIAL_WORKER;
         }
+        if (workplaceId(CommercialConstants.HIRE_SOURCE_TYPE, CommercialConstants.HIRE_ROLE, workplacePos).equals(workplaceId)) {
+            return CityJobType.COMMERCIAL_WORKER;
+        }
         return null;
     }
 
@@ -193,6 +199,10 @@ public final class CitizenEmploymentService {
         if (jobType == CityJobType.INDUSTRIAL_WORKER || "industrial".equals(normalizedRole) || IndustrialConstants.HIRE_SOURCE_TYPE.equals(normalizedSource)) {
             IndustrialWorkService.clearServerCaches(level.getServer());
             common.cn.kafei.simukraft.industrial.IndustrialControlBoxService.interrupt(level, citizen.uuid(), safeReason);
+        }
+        if (jobType == CityJobType.COMMERCIAL_WORKER || "commercial".equals(normalizedRole) || CommercialConstants.HIRE_SOURCE_TYPE.equals(normalizedSource)) {
+            CommercialWorkService.clearServerCaches(level.getServer());
+            CommercialControlBoxService.interrupt(level, citizen.uuid(), safeReason);
         }
     }
 

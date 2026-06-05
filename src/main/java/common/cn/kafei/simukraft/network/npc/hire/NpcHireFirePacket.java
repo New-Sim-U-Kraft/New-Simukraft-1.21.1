@@ -3,6 +3,9 @@ package common.cn.kafei.simukraft.network.npc.hire;
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenService;
+import common.cn.kafei.simukraft.commercial.CommercialConstants;
+import common.cn.kafei.simukraft.commercial.CommercialControlBoxService;
+import common.cn.kafei.simukraft.network.commercial.CommercialControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.job.CitizenEmploymentService;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import net.minecraft.core.BlockPos;
@@ -13,6 +16,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.Optional;
@@ -60,6 +64,10 @@ public record NpcHireFirePacket(BlockPos sourcePos, String sourceType, String ro
                 return;
             }
             CitizenEmploymentService.fire(level, citizen.uuid(), packet.sourceType(), packet.role(), packet.sourcePos(), packet.role() + "_fired");
+            if (CommercialConstants.HIRE_SOURCE_TYPE.equals(packet.sourceType())) {
+                CommercialControlBoxService.fireWorker(level, packet.sourcePos());
+                PacketDistributor.sendToPlayer(player, CommercialControlBoxOpenResponsePacket.from(CommercialControlBoxService.buildView(level, packet.sourcePos())));
+            }
             InfoToastService.success(player, Component.translatable("message.simukraft.fire_npc.success", citizen.name()));
         }
     }

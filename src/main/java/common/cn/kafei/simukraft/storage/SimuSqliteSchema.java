@@ -29,6 +29,8 @@ public final class SimuSqliteSchema {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS farmland_boxes(box_pos_long INTEGER PRIMARY KEY, crop TEXT, plot_min_long INTEGER, plot_max_long INTEGER, chest_pos_long INTEGER, running INTEGER NOT NULL DEFAULT 0)");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS planning_tasks(task_id TEXT PRIMARY KEY, citizen_id TEXT NOT NULL UNIQUE, city_id TEXT, dimension_id TEXT NOT NULL, box_long INTEGER NOT NULL, min_long INTEGER NOT NULL, max_long INTEGER NOT NULL, operation TEXT NOT NULL, fill_block TEXT, source_block TEXT, material_chest_long INTEGER, replacement_map TEXT NOT NULL DEFAULT '', current_index INTEGER NOT NULL, total_blocks INTEGER NOT NULL, status TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS industrial_boxes(box_pos_long INTEGER PRIMARY KEY, building_id TEXT NOT NULL DEFAULT '', definition_id TEXT NOT NULL DEFAULT '', selected_recipe_id TEXT NOT NULL DEFAULT '', running INTEGER NOT NULL DEFAULT 0, spawn_entity_done INTEGER NOT NULL DEFAULT 0, current_step INTEGER NOT NULL DEFAULT 0, status_key TEXT NOT NULL DEFAULT '', status_text TEXT NOT NULL DEFAULT '', machine_state TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL DEFAULT 0)");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS commercial_boxes(box_pos_long INTEGER PRIMARY KEY, building_id TEXT NOT NULL DEFAULT '', definition_id TEXT NOT NULL DEFAULT '', running INTEGER NOT NULL DEFAULT 1, status_key TEXT NOT NULL DEFAULT '', status_text TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL DEFAULT 0)");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS commercial_stock(box_pos_long INTEGER NOT NULL, item_id TEXT NOT NULL, current_stock INTEGER NOT NULL DEFAULT 0, max_stock INTEGER NOT NULL DEFAULT 0, last_restock_game_time INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(box_pos_long, item_id))");
             addColumnIfMissing(connection, "citizens", "workplace_pos_long", "INTEGER");
             addColumnIfMissing(connection, "building_tasks", "amount", "TEXT NOT NULL DEFAULT ''");
             addColumnIfMissing(connection, "planning_tasks", "material_chest_long", "INTEGER");
@@ -44,6 +46,8 @@ public final class SimuSqliteSchema {
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_building_tasks_dimension ON building_tasks(dimension_id)");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_planning_tasks_dimension ON planning_tasks(dimension_id)");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_industrial_boxes_running ON industrial_boxes(running)");
+            statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_commercial_boxes_running ON commercial_boxes(running)");
+            statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_commercial_stock_box ON commercial_stock(box_pos_long)");
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to initialize Sim-U-Kraft SQLite database", exception);
         }

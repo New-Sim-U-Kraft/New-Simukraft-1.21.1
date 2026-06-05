@@ -8,6 +8,8 @@ import client.cn.kafei.simukraft.client.buildbox.PlannerMaterialSelectionScreenO
 import client.cn.kafei.simukraft.client.citizen.CitizenScreenOpener;
 import client.cn.kafei.simukraft.client.city.ClientCityChunkCache;
 import client.cn.kafei.simukraft.client.city.CityCoreScreenOpener;
+import client.cn.kafei.simukraft.client.commercial.CommercialControlBoxScreenOpener;
+import common.cn.kafei.simukraft.commercial.CommercialTradeUiRoot;
 import client.cn.kafei.simukraft.client.controlbox.ResidentialControlBoxScreenOpener;
 import client.cn.kafei.simukraft.client.farmland.FarmlandBoxScreenOpener;
 import client.cn.kafei.simukraft.client.farmland.FarmlandHoverPreview;
@@ -25,6 +27,8 @@ import common.cn.kafei.simukraft.network.city.core.CityCoreOpenResponsePacket;
 import common.cn.kafei.simukraft.network.city.map.CityCoreMapResponsePacket;
 import common.cn.kafei.simukraft.network.city.member.CityCoreMembersResponsePacket;
 import common.cn.kafei.simukraft.network.clientbound.ClientboundNetworkHandler;
+import common.cn.kafei.simukraft.network.commercial.CommercialControlBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.commercial.CommercialTradeOpenResponsePacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxBoundsResponsePacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.hud.HudSyncPacket;
@@ -136,6 +140,16 @@ public final class ClientboundNetworkHandlerImpl implements ClientboundNetworkHa
     @Override
     public void handleIndustrialControlBoxViewUpdate(IndustrialControlBoxViewUpdatePacket packet) {
         IndustrialControlBoxScreenOpener.refreshIfOpen(packet.view());
+    }
+
+    @Override
+    public void handleCommercialControlBoxOpenResponse(CommercialControlBoxOpenResponsePacket packet) {
+        CommercialControlBoxScreenOpener.open(packet);
+    }
+
+    @Override
+    public void handleCommercialTradeOpenResponse(CommercialTradeOpenResponsePacket packet) {
+        CommercialTradeUiRoot.refreshActive(packet);
     }
 
     @Override

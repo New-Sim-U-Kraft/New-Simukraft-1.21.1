@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.registry;
 
 import common.cn.kafei.simukraft.SimuKraft;
+import common.cn.kafei.simukraft.block.CommercialControlBoxBlock;
 import common.cn.kafei.simukraft.block.CityCoreBlock;
 import common.cn.kafei.simukraft.block.FarmlandBoxBlock;
 import common.cn.kafei.simukraft.block.IndustrialControlBoxBlock;
@@ -28,7 +29,7 @@ public final class ModBlocks {
     public static final DeferredBlock<Block> BUILD_BOX = registerBlock("build_box", common.cn.kafei.simukraft.block.BuildBoxBlock::new);
     public static final DeferredBlock<Block> CHEESE_BLOCK = registerBlock("cheese_block", ModBlocks::cheeseBlock);
     public static final DeferredBlock<Block> CITY_CORE = registerBlock("city_core", CityCoreBlock::new);
-    public static final DeferredBlock<Block> COMMERCIAL_CONTROL_BOX = registerBlock("commercial_control_box", ModBlocks::controlBox);
+    public static final DeferredBlock<Block> COMMERCIAL_CONTROL_BOX = registerBlock("commercial_control_box", CommercialControlBoxBlock::new);
     public static final DeferredBlock<Block> GREEN_LIGHT_BLOCK = registerBlock("green_light_block", ModBlocks::lightBlock);
     public static final DeferredBlock<Block> INDUSTRIAL_CONTROL_BOX = registerBlock("industrial_control_box", IndustrialControlBoxBlock::new);
     public static final DeferredBlock<Block> LOGISTICS_CLIENT_BOX = registerBlock("logistics_client_box", ModBlocks::controlBox);
