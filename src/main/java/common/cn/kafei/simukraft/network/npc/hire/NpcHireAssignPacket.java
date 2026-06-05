@@ -3,6 +3,8 @@ package common.cn.kafei.simukraft.network.npc.hire;
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenService;
+import common.cn.kafei.simukraft.commercial.CommercialConstants;
+import common.cn.kafei.simukraft.commercial.CommercialControlBoxService;
 import common.cn.kafei.simukraft.industrial.IndustrialConstants;
 import common.cn.kafei.simukraft.industrial.IndustrialControlBoxService;
 import common.cn.kafei.simukraft.job.CitizenEmploymentService;
@@ -60,6 +62,9 @@ public record NpcHireAssignPacket(BlockPos sourcePos, String sourceType, String 
             CitizenEmploymentService.hireForSource(level, citizen.uuid(), packet.sourceType(), packet.role(), packet.sourcePos(), "");
             if (IndustrialConstants.HIRE_SOURCE_TYPE.equals(packet.sourceType())) {
                 IndustrialControlBoxService.synchronizeAssignedWorkerMetadata(level, packet.sourcePos());
+            }
+            if (CommercialConstants.HIRE_SOURCE_TYPE.equals(packet.sourceType())) {
+                CommercialControlBoxService.synchronizeAssignedWorkerMetadata(level, packet.sourcePos());
             }
             SimuKraft.LOGGER.info("Simukraft: Hired citizen {} ({}) as {} for {} at {}", citizen.name(), citizen.uuid(), packet.role(), packet.sourceType(), packet.sourcePos());
             InfoToastService.success(player, Component.translatable("message.simukraft.hire_npc.success", citizen.name()));

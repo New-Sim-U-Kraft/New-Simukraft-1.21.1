@@ -19,6 +19,7 @@ public final class SimuSqliteStorage {
     private final FarmlandBoxSqliteRepository farmlandBoxes;
     private final PlanningTaskSqliteRepository planningTasks;
     private final IndustrialBoxSqliteRepository industrialBoxes;
+    private final CommercialSqliteRepository commercial;
 
     private SimuSqliteStorage(SimuSqliteDatabase database) {
         this.database = database;
@@ -30,6 +31,7 @@ public final class SimuSqliteStorage {
         this.farmlandBoxes = new FarmlandBoxSqliteRepository(database);
         this.planningTasks = new PlanningTaskSqliteRepository(database);
         this.industrialBoxes = new IndustrialBoxSqliteRepository(database);
+        this.commercial = new CommercialSqliteRepository(database);
     }
 
     public static SimuSqliteStorage open(MinecraftServer server) {
@@ -228,6 +230,58 @@ public final class SimuSqliteStorage {
         SimuSqliteStorage storage = openSafely(level);
         if (storage != null) {
             storage.industrialBoxes.delete(boxPosLong);
+        }
+    }
+
+    public static CompoundTag loadCommercialBoxes(ServerLevel level) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null ? storage.commercial.loadBoxes() : null;
+    }
+
+    public static void saveCommercialBoxes(ServerLevel level, CompoundTag tag) {
+        SimuSqliteStorage storage = openSafely(level);
+        if (storage != null && tag != null) {
+            storage.commercial.saveBoxes(tag);
+        }
+    }
+
+    public static void saveCommercialBox(ServerLevel level, CompoundTag boxTag) {
+        SimuSqliteStorage storage = openSafely(level);
+        if (storage != null && boxTag != null) {
+            storage.commercial.upsertBox(boxTag);
+        }
+    }
+
+    public static void deleteCommercialBox(ServerLevel level, long boxPosLong) {
+        SimuSqliteStorage storage = openSafely(level);
+        if (storage != null) {
+            storage.commercial.deleteBox(boxPosLong);
+        }
+    }
+
+    public static CompoundTag loadCommercialStock(ServerLevel level) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null ? storage.commercial.loadStock() : null;
+    }
+
+    public static void saveCommercialStock(ServerLevel level, CompoundTag tag) {
+        SimuSqliteStorage storage = openSafely(level);
+        if (storage != null && tag != null) {
+            storage.commercial.saveStock(tag);
+        }
+    }
+
+    public static void saveCommercialStockEntry(ServerLevel level, CompoundTag stockTag) {
+        SimuSqliteStorage storage = openSafely(level);
+        if (storage != null && stockTag != null) {
+            storage.commercial.upsertStockEntry(stockTag);
+        }
+    }
+
+    public static void deleteCommercialStockAtBox(ServerLevel level, long boxPosLong) {
+        SimuSqliteStorage storage = openSafely(level);
+        if (storage != null) {
+            storage.commercial.deleteStockAtBox(boxPosLong);
         }
     }
 

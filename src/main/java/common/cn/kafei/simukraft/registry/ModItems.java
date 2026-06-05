@@ -14,6 +14,7 @@ public final class ModItems {
 
     public static final DeferredHolder<Item, Item> MANIFEST = ITEMS.register("manifest", ManifestItem::new);
     public static final DeferredHolder<Item, Item> PORTABLE_CITY_CORE = ITEMS.register("portable_city_core", PortableCityCoreItem::new);
+    public static final DeferredHolder<Item, Item> GOLD_COIN = ITEMS.register("gold_coin", () -> new Item(new Item.Properties()));
 
     private ModItems() {
     }

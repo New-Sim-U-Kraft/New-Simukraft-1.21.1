@@ -9,6 +9,8 @@ import common.cn.kafei.simukraft.network.city.chunk.CityChunkSyncPacket;
 import common.cn.kafei.simukraft.network.city.core.CityCoreOpenResponsePacket;
 import common.cn.kafei.simukraft.network.city.map.CityCoreMapResponsePacket;
 import common.cn.kafei.simukraft.network.city.member.CityCoreMembersResponsePacket;
+import common.cn.kafei.simukraft.network.commercial.CommercialControlBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.commercial.CommercialTradeOpenResponsePacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxBoundsResponsePacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.hud.HudSyncPacket;
@@ -81,6 +83,14 @@ public interface ClientboundNetworkHandler {
 
     /** handleIndustrialControlBoxViewUpdate: 处理工业控制箱视图刷新。 */
     default void handleIndustrialControlBoxViewUpdate(IndustrialControlBoxViewUpdatePacket packet) {
+    }
+
+    /** handleCommercialControlBoxOpenResponse: 处理商业控制箱打开响应。 */
+    default void handleCommercialControlBoxOpenResponse(CommercialControlBoxOpenResponsePacket packet) {
+    }
+
+    /** handleCommercialTradeOpenResponse: 处理 NPC 商业交易界面响应。 */
+    default void handleCommercialTradeOpenResponse(CommercialTradeOpenResponsePacket packet) {
     }
 
     /** handleNpcHireListResponse: 处理 NPC 雇佣列表响应。 */

@@ -45,6 +45,26 @@ public final class EconomyService {
         return true;
     }
 
+    /** withdrawCityFunds: 从城市资金扣款并按需记录财政流水。 */
+    public static boolean withdrawCityFunds(ServerLevel level, UUID cityId, ServerPlayer actor, double amount, String reason) {
+        return withdrawCityFunds(level, cityId, actor, amount, reason, true);
+    }
+
+    /** withdrawCityFunds: 从城市资金扣款并允许调用方控制是否写入流水。 */
+    public static boolean withdrawCityFunds(ServerLevel level, UUID cityId, ServerPlayer actor, double amount, String reason, boolean recordLedger) {
+        double normalized = normalizeAmount(amount);
+        if (level == null || cityId == null || normalized <= 0.0D) {
+            return false;
+        }
+        if (!CityService.withdrawFunds(level, cityId, normalized)) {
+            return false;
+        }
+        if (recordLedger) {
+            FinanceLedgerService.record(level, cityId, actor, normalized, getCityBalance(level, cityId), FinanceTransactionData.Type.EXPENSE, reason);
+        }
+        return true;
+    }
+
     public static double normalizeAmount(double amount) {
         if (!Double.isFinite(amount)) {
             return 0.0D;

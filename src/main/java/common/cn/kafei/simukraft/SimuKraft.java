@@ -12,6 +12,10 @@ import common.cn.kafei.simukraft.building.BuilderConstructionService;
 import common.cn.kafei.simukraft.building.BuildingIntegrityService;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.building.ResidentialBedPoiService;
+import common.cn.kafei.simukraft.commercial.CommercialBoxManager;
+import common.cn.kafei.simukraft.commercial.CommercialDefinitionLoader;
+import common.cn.kafei.simukraft.commercial.CommercialStockManager;
+import common.cn.kafei.simukraft.commercial.CommercialWorkService;
 import common.cn.kafei.simukraft.command.SimuKraftCommand;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.economy.ResidentialRentService;
@@ -35,6 +39,7 @@ import common.cn.kafei.simukraft.registry.ModEntityAttributes;
 import common.cn.kafei.simukraft.registry.ModFluidTypes;
 import common.cn.kafei.simukraft.registry.ModFluids;
 import common.cn.kafei.simukraft.registry.ModItems;
+import common.cn.kafei.simukraft.registry.ModMenuTypes;
 import common.cn.kafei.simukraft.registry.ModRecipeSerializers;
 import common.cn.kafei.simukraft.registry.ModSoundEvents;
 import net.neoforged.bus.api.IEventBus;
@@ -61,6 +66,7 @@ public final class SimuKraft {
         ModFluids.register(modEventBus);
         ModItems.register(modEventBus);
         ModBlocks.register(modEventBus);
+        ModMenuTypes.register(modEventBus);
         ModRecipeSerializers.register(modEventBus);
         ModCreativeModeTabs.register(modEventBus);
         ModEntities.register(modEventBus);
@@ -142,6 +148,7 @@ public final class SimuKraft {
             BuilderConstructionService.tick(level);
             PlannerWorkService.tick(level);
             IndustrialWorkService.tick(level);
+            CommercialWorkService.tick(level);
             PopulationGrowthService.tick(level);
             ResidentialRentService.tick(level);
             FarmlandFarmingService.tick(level);
@@ -153,6 +160,8 @@ public final class SimuKraft {
                 CitizenManager.get(level).saveToSqlite(level);
                 FarmlandBoxManager.get(level).saveToSqlite(level);
                 IndustrialBoxManager.get(level).saveToSqlite(level);
+                CommercialBoxManager.get(level).saveToSqlite(level);
+                CommercialStockManager.get(level).saveToSqlite(level);
             }
         });
     }
@@ -162,16 +171,20 @@ public final class SimuKraft {
             BuilderConstructionService.flush(level);
             PlannerWorkService.flush(level);
             IndustrialWorkService.flush(level);
+            CommercialWorkService.flush(level);
             CityManager.get(level).saveToSqlite(level);
             CityChunkManager.get(level).saveToSqlite(level);
             CityPoiManager.get(level).saveToSqlite(level);
             CitizenManager.get(level).saveToSqlite(level);
             FarmlandBoxManager.get(level).saveToSqlite(level);
             IndustrialBoxManager.get(level).saveToSqlite(level);
+            CommercialBoxManager.get(level).saveToSqlite(level);
+            CommercialStockManager.get(level).saveToSqlite(level);
         });
         BuilderConstructionService.clearServerCaches(event.getServer());
         PlannerWorkService.clearServerCaches(event.getServer());
         IndustrialWorkService.clearServerCaches(event.getServer());
+        CommercialWorkService.clearServerCaches(event.getServer());
         FarmlandFarmingService.clearServerCaches(event.getServer());
         PlacedBuildingService.clearServerCaches(event.getServer());
         ResidentialBedPoiService.clearServerCaches(event.getServer());
@@ -181,6 +194,7 @@ public final class SimuKraft {
         CitizenWanderService.clearServerCaches(event.getServer());
         ResidentialRentService.clearServerCaches(event.getServer());
         HudSyncService.clearServerCaches(event.getServer());
+        CommercialDefinitionLoader.clearCache();
         WorkMaterialPolicy.clearCache();
     }
 }

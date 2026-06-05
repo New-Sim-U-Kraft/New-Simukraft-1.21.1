@@ -1,5 +1,6 @@
 package client.cn.kafei.simukraft;
 
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import client.cn.kafei.simukraft.client.bridge.ClientInteractionHandlerImpl;
 import client.cn.kafei.simukraft.client.buildbox.BuildingBoundsRenderer;
 import client.cn.kafei.simukraft.client.fluid.ClientFluidExtensions;
@@ -12,6 +13,7 @@ import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.clientbridge.ClientInteractionBridge;
 import common.cn.kafei.simukraft.network.clientbound.ClientboundNetworkBridge;
 import common.cn.kafei.simukraft.registry.ModEntities;
+import common.cn.kafei.simukraft.registry.ModMenuTypes;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -20,6 +22,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
@@ -62,5 +65,11 @@ public final class ClientModBusSetup {
     @SubscribeEvent
     public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
         SimuKraftKeyMappings.register(event);
+    }
+
+    /** onRegisterMenuScreens: 注册客户端容器界面。 */
+    @SubscribeEvent
+    public static void onRegisterMenuScreens(RegisterMenuScreensEvent event) {
+        event.register(ModMenuTypes.COMMERCIAL_TRADE.get(), ModularUIContainerScreen::new);
     }
 }

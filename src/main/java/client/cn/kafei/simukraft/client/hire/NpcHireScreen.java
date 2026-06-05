@@ -3,6 +3,7 @@ package client.cn.kafei.simukraft.client.hire;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import client.cn.kafei.simukraft.client.buildbox.BuildBoxScreenOpener;
+import client.cn.kafei.simukraft.client.commercial.CommercialControlBoxScreenOpener;
 import client.cn.kafei.simukraft.client.industrial.IndustrialControlBoxScreenOpener;
 import client.cn.kafei.simukraft.client.ui.SimuKraftFlexLayout;
 import client.cn.kafei.simukraft.client.citizen.CitizenAvatarFactory;
@@ -15,6 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ProgressBar;
 import common.cn.kafei.simukraft.citizen.CitizenLevelService;
 import common.cn.kafei.simukraft.citizen.CitizenSkillSnapshot;
+import common.cn.kafei.simukraft.commercial.CommercialConstants;
 import common.cn.kafei.simukraft.job.CityJobType;
 import common.cn.kafei.simukraft.industrial.IndustrialConstants;
 import common.cn.kafei.simukraft.network.npc.hire.NpcHireAssignPacket;
@@ -455,6 +457,10 @@ public final class NpcHireScreen {
             IndustrialControlBoxScreenOpener.request(sourcePos);
             return;
         }
+        if (CommercialConstants.HIRE_SOURCE_TYPE.equalsIgnoreCase(sourceType)) {
+            CommercialControlBoxScreenOpener.request(sourcePos);
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft != null) {
             minecraft.setScreen(null);
@@ -467,6 +473,9 @@ public final class NpcHireScreen {
         }
         if (IndustrialConstants.HIRE_ROLE.equalsIgnoreCase(role)) {
             return "gui.simukraft.industrial.hire_title";
+        }
+        if (CommercialConstants.HIRE_ROLE.equalsIgnoreCase(role)) {
+            return "gui.simukraft.commercial.hire_title";
         }
         return "gui.hire_builder.title";
     }
@@ -491,6 +500,5 @@ public final class NpcHireScreen {
         }
     }
 }
-
 
 
