@@ -1,0 +1,94 @@
+{
+  "buildingId": "SimuFriedChicken",
+  "buildingName": "肯打鸡",
+  "jobType": "SimuFriedChickenOwner",
+  "jobName": "肯打鸡服务员",
+  "shopMode": "MIXED",
+  "heldItem": "simukraft:cheese_burger",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "restockTime": 101,
+  "requireMaterialsForSale": true,
+  "materials": [
+    {
+      "item": "simukraft:cheese_chunk",
+      "count": 0,
+      "consume": true
+    },
+    {
+      "item": "minecraft:bread",
+      "count": 0,
+      "consume": true
+    },
+    {
+      "item": "minecraft:beef",
+      "count": 0,
+      "consume": true
+    },
+    {
+      "item": "minecraft:potato",
+      "count": 0,
+      "consume": true
+    }
+  ],
+  "trades": [
+    {
+      "item": "simukraft:cheese_burger",
+      "sellPrice": 2.0,
+      "maxStock": 32,
+      "restockAmount": 16,
+      "retail": true,
+      "requiredMaterials": [
+        {
+          "item": "minecraft:bread",
+          "count": 1
+        },
+        {
+          "item": "simukraft:cheese_chunk",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "item": "simukraft:hamburger",
+      "sellPrice": 1.0,
+      "maxStock": 32,
+      "restockAmount": 16,
+      "retail": true,
+      "requiredMaterials": [
+        {
+          "item": "minecraft:bread",
+          "count": 1
+        },
+        {
+          "item": "minecraft:beef",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "item": "simukraft:french_fries",
+      "sellPrice": 0.5,
+      "maxStock": 32,
+      "restockAmount": 16,
+      "retail": true,
+      "requiredMaterials": [
+        {
+          "item": "minecraft:potato",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "buyTrades": [],
+  "hasLunchBreak": false,
+  "messages": {
+    "welcome": "欢迎光临肯打鸡！",
+    "noStock": "今天的商品卖完啦，明天再来吧~",
+    "restocked": "肯打鸡补货完成啦，大家快来吃吧！",
+    "workStart": "又是新的一天，肯打鸡营业开始啦！",
+    "workEnd": "肯打鸡打烊了，大家明天再来吧！"
+  }
+}

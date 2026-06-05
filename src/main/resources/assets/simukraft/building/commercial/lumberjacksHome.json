@@ -1,0 +1,168 @@
+{
+  "buildingId": "lumberjacksHome",
+  "buildingName": "伐木工小屋",
+  "jobType": "lumberjack",
+  "jobName": "伐木工",
+  "shopMode": "PLAYER_SELL",
+  "heldItem": "minecraft:iron_axe",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "restockTime": 101,
+  "requireMaterialsForSale": false,
+  "trades": [
+    {
+      "item": "minecraft:oak_log",
+      "sellPrice": 8.96,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:spruce_log",
+      "sellPrice": 8.96,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:birch_log",
+      "sellPrice": 8.96,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:jungle_log",
+      "sellPrice": 8.96,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:acacia_log",
+      "sellPrice": 8.96,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:cherry_log",
+      "sellPrice": 8.96,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:dark_oak_log",
+      "sellPrice": 8.96,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:mangrove_log",
+      "sellPrice": 8.96,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:stripped_oak_log",
+      "sellPrice": 9.35,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:stripped_spruce_log",
+      "sellPrice": 9.35,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:stripped_birch_log",
+      "sellPrice": 9.35,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:stripped_jungle_log",
+      "sellPrice": 9.35,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:stripped_acacia_log",
+      "sellPrice": 9.35,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:stripped_cherry_log",
+      "sellPrice": 9.35,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:stripped_dark_oak_log",
+      "sellPrice": 9.35,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    },
+    {
+      "item": "minecraft:stripped_mangrove_log",
+      "sellPrice": 9.35,
+      "maxStock": 256,
+      "restockAmount": 128,
+      "retail": false
+    }
+  ],
+  "buyTrades": [
+    {
+      "item": "minecraft:oak_sapling",
+      "buyPrice": 0.53,
+      "maxBuyAmount": 64
+    },
+    {
+      "item": "minecraft:spruce_sapling",
+      "buyPrice": 0.53,
+      "maxBuyAmount": 64
+    },
+    {
+      "item": "minecraft:birch_sapling",
+      "buyPrice": 0.53,
+      "maxBuyAmount": 64
+    },
+    {
+      "item": "minecraft:jungle_sapling",
+      "buyPrice": 52.94,
+      "maxBuyAmount": 64
+    },
+    {
+      "item": "minecraft:cherry_sapling",
+      "buyPrice": 0.53,
+      "maxBuyAmount": 64
+    },
+    {
+      "item": "minecraft:dark_oak_sapling",
+      "buyPrice": 0.53,
+      "maxBuyAmount": 64
+    }
+  ],
+  "hasLunchBreak": true,
+  "messages": {
+    "welcome": "伐木工开始售卖木头了！",
+    "noStock": "伐木工没有砍到树，下次再来吧。",
+    "restocked": "伐木工满载而归，开始售卖木头了~",
+    "workStart": "伐木工上班了，快来买木头吧！",
+    "workEnd": "伐木工下班了，停止售卖木头！"
+  }
+}

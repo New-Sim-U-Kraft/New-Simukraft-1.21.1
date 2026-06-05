@@ -1,0 +1,75 @@
+{
+  "buildingId": "JJJ",
+  "buildingName": "鸡肉农场",
+  "jobType": "chicken_butcher",
+  "jobName": "养鸡人",
+  "heldItem": "minecraft:golden_axe",
+  "workTime": {
+    "start": 0,
+    "end": 12000
+  },
+  "materials": [],
+  "products": [
+    {
+      "item": "minecraft:chicken",
+      "baseAmount": 1,
+      "randomRange": 1,
+      "probability": 0.2
+    }
+  ],
+  "recipes": [
+    {
+      "recipeId": "chicken_meat",
+      "recipeName": "鸡肉生产",
+      "heldItem": "minecraft:golden_axe",
+      "materials": [],
+      "products": [
+        {
+          "item": "minecraft:chicken",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 0.3
+        }
+      ]
+    },
+    {
+      "recipeId": "egg_production",
+      "recipeName": "鸡蛋生产",
+      "heldItem": "minecraft:egg",
+      "materials": [],
+      "products": [
+        {
+          "item": "minecraft:egg",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 0.4
+        }
+      ]
+    },
+    {
+      "recipeId": "feather_collection",
+      "recipeName": "羽毛收集",
+      "heldItem": "minecraft:feather",
+      "materials": [],
+      "products": [
+        {
+          "item": "minecraft:feather",
+          "baseAmount": 1,
+          "randomRange": 3,
+          "probability": 0.5
+        }
+      ]
+    }
+  ],
+  "spawnEntity": {
+    "enabled": true,
+    "type": "minecraft:chicken",
+    "count": 5
+  },
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：工作完成，产物已放入箱子",
+    "chestFull": "§c{npcName} {jobName}：工作完成，但箱子已满！",
+    "xpGained": "{npcName} 完成了一天的工作，获得5点经验值"
+  }
+}

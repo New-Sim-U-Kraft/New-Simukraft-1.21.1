@@ -1,0 +1,9 @@
+name:养牛农场
+size:9 x 3 x 9
+amount:12.0元
+author:Xiaoliang小亮
+description:可以生产牛肉、皮革和牛奶
+tags:price_low,material_low,stage_early
+job_type:cowFarmer
+job_name:养牛工人
+held_item:minecraft:golden_axe

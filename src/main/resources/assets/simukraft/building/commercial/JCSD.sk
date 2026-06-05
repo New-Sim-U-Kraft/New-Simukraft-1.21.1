@@ -1,0 +1,7 @@
+name:建材商店
+size:12 x 9 x 6
+amount:15.20元
+author:XiaoLiang
+description:你可以在商店里进行交易，你可以买卖模拟大都市里所有需要的建材方块。
+tags:price_low,material_low,stage_early
+job_type:building_material_merchant

@@ -47,8 +47,6 @@ public final class CitizenNavigationService {
     private static final double STALLED_SOFT_SKIP_DISTANCE = 2.25D;
     private static final double ACTION_START_DISTANCE = 0.65D;
     private static final double CORNER_ARRIVAL_DISTANCE = 0.30D;
-    private static final double CORNER_SLOWDOWN_DISTANCE = 1.35D;
-    private static final double CORNER_MAX_SPEED = 0.55D;
     private static final double SEGMENT_LOOKAHEAD_BLOCKS = 1.15D;
     private static final double CORNER_LOOKAHEAD_BLOCKS = 0.55D;
     private static final int STALLED_SOFT_SKIP_TICKS = 20;
@@ -735,9 +733,6 @@ public final class CitizenNavigationService {
             if (crowdYieldTimedOut) {
                 speed *= 0.55D;
             }
-            if (requiresWaypointCentering(waypointIndex, waypoint.mode()) && horizontalDistanceSqr(citizen.position(), waypoint.position()) <= CORNER_SLOWDOWN_DISTANCE * CORNER_SLOWDOWN_DISTANCE) {
-                speed = Math.min(speed, CORNER_MAX_SPEED);
-            }
             citizen.getMoveControl().setWantedPosition(commandTarget.x, commandTarget.y, commandTarget.z, speed);
             if (shouldTriggerJump(citizen, waypointIndex, waypoint)) {
                 citizen.getJumpControl().jump();
@@ -928,12 +923,6 @@ public final class CitizenNavigationService {
                 case JUMP, FALL -> 1.05D;
                 default -> 0.72D;
             };
-        }
-
-        private double horizontalDistanceSqr(Vec3 from, Vec3 to) {
-            double dx = from.x - to.x;
-            double dz = from.z - to.z;
-            return dx * dx + dz * dz;
         }
 
         private double clamp(double value, double min, double max) {

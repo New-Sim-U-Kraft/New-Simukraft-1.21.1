@@ -30,6 +30,7 @@ public final class BuildingCatalog {
     }
 
     public static List<BuildingDefinition> listBuildings(String category) {
+        BuildingBuiltinResourceService.ensureCopied(rootDirectory());
         Path categoryDir = categoryDirectory(category);
         if (!Files.isDirectory(categoryDir)) {
             return List.of();

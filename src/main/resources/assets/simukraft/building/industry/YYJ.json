@@ -1,0 +1,31 @@
+{
+  "buildingId": "YYJ",
+  "buildingName": "羊毛农场",
+  "jobType": "shepherd",
+  "jobName": "牧羊人",
+  "heldItem": "minecraft:shears",
+  "workTime": {
+    "start": 0,
+    "end": 12000
+  },
+  "materials": [],
+  "products": [
+    {
+      "item": "minecraft:white_wool",
+      "baseAmount": 1,
+      "randomRange": 1,
+      "probability": 0.2
+    }
+  ],
+  "spawnEntity": {
+    "enabled": true,
+    "type": "minecraft:sheep",
+    "count": 5
+  },
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：工作完成，产物已放入箱子",
+    "chestFull": "§c{npcName} {jobName}：工作完成，但箱子已满！",
+    "xpGained": "{npcName} 完成了一天的工作，获得5点经验值"
+  }
+}

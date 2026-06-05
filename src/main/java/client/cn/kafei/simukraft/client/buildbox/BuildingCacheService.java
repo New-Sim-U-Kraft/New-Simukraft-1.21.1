@@ -3,6 +3,7 @@ package client.cn.kafei.simukraft.client.buildbox;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import common.cn.kafei.simukraft.SimuKraft;
+import common.cn.kafei.simukraft.building.BuildingBuiltinResourceService;
 import net.minecraft.client.Minecraft;
 
 import java.io.IOException;
@@ -40,6 +41,7 @@ public final class BuildingCacheService {
 
     public static void reload() {
         synchronized (BuildingCacheService.class) {
+            BuildingBuiltinResourceService.ensureCopied(rootDirectory());
             CACHE.clear();
             for (String category : categories()) {
                 CACHE.put(category, scanCategory(category));

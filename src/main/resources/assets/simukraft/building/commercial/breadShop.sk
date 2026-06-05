@@ -1,0 +1,7 @@
+name:面包店
+size:14 x 8 x 12
+amount:8.64元
+author:枫烨
+description:提供小麦后可制成面包，向市民售卖~
+tags:price_low,material_low,stage_early
+job_type:breadShopOwner

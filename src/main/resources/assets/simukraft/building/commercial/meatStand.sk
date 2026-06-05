@@ -1,0 +1,7 @@
+name:肉摊
+size:9 x 5 x 6
+amount:7.8元
+author:赤叶枫烨
+description:小型肉摊，您需要提供生鸡肉给摊主，它会售卖给市民熟鸡肉......
+tags:price_low,material_low,stage_early
+job_type:meatStandOwner

@@ -1,0 +1,9 @@
+name:羊毛农场
+size:9 x 3 x 9
+amount:12.0元
+author:Xiaoliang小亮
+description:生产羊毛的地方
+tags:price_low,material_low,stage_early
+job_type:woolFarmer
+job_name:牧羊人
+held_item:minecraft:shears

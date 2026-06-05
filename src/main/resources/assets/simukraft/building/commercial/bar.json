@@ -1,0 +1,24 @@
+{
+  "buildingId": "bar",
+  "buildingName": "酒馆（开发中，无功能）",
+  "jobType": "beerMaker",
+  "jobName": "调酒师",
+  "shopMode": "PLAYER_SELL",
+  "heldItem": "minecraft:potion",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "restockTime": 101,
+  "requireMaterialsForSale": false,
+  "trades": [],
+  "buyTrades": [],
+  "hasLunchBreak": true,
+  "messages": {
+    "welcome": "欢迎光临！",
+    "noStock": "库存不足！",
+    "restocked": "补货完成！",
+    "workStart": "开始工作！",
+    "workEnd": "工作结束！"
+  }
+}

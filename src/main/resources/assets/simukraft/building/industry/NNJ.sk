@@ -1,0 +1,9 @@
+name:牛肉农场
+size:9 x 9 x 3
+amount:12.00元
+author:XiaoLiang
+description:可以生产牛肉，你可以用来当做肉铺的牛肉提供农场
+tags:price_low,material_low,stage_early
+job_type:butcher
+job_name:屠夫
+held_item:minecraft:golden_axe

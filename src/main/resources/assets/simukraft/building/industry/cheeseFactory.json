@@ -1,0 +1,86 @@
+{
+  "buildingId": "cheeseFactory",
+  "buildingName": "奶酪工厂",
+  "jobType": "cheeseMaker",
+  "jobName": "奶酪厂工人",
+  "heldItem": "simukraft:cheese_chunk",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "recipes": [
+    {
+      "recipeId": "cheeseFactory_default",
+      "recipeName": "奶酪生产",
+      "heldItem": "minecraft:milk_bucket",
+      "materials": [
+        {
+          "item": "minecraft:milk_bucket",
+          "count": 1,
+          "consume": true
+        }
+      ],
+      "products": [
+        {
+          "item": "simukraft:cheese_chunk",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 1.0
+        },
+        {
+          "item": "minecraft:bucket",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 1.0,
+          "ignoreMultiplier": true
+        },
+        {
+          "item": "simukraft:cheese_chunk",
+          "baseAmount": 1,
+          "randomRange": 5,
+          "probability": 0.1
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "item": "minecraft:milk_bucket",
+      "consume": true,
+      "amount": 1
+    }
+  ],
+  "products": [
+    {
+      "item": "simukraft:cheese_chunk",
+      "baseAmount": 1,
+      "randomRange": 2,
+      "probability": 1.0
+    },
+    {
+      "item": "minecraft:bucket",
+      "baseAmount": 1,
+      "randomRange": 1,
+      "probability": 1.0,
+      "ignoreMultiplier": true
+    },
+    {
+      "item": "simukraft:cheese_chunk",
+      "baseAmount": 1,
+      "randomRange": 5,
+      "probability": 0.1
+    }
+  ],
+  "spawnEntity": {
+    "enabled": false,
+    "type": "minecraft:sheep",
+    "count": 5
+  },
+  "hasLunchBreak": true,
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：生产完成",
+    "chestFull": "§c{npcName} {jobName}：箱子已满！",
+    "xpGained": "{npcName} 获得经验值"
+  }
+}

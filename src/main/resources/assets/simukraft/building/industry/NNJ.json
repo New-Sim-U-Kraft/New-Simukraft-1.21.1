@@ -1,0 +1,61 @@
+{
+  "buildingId": "NNJ",
+  "buildingName": "牛肉农场",
+  "jobType": "butcher",
+  "jobName": "屠夫",
+  "heldItem": "minecraft:golden_axe",
+  "workTime": {
+    "start": 0,
+    "end": 12000
+  },
+  "materials": [],
+  "products": [
+    {
+      "item": "minecraft:beef",
+      "baseAmount": 1,
+      "randomRange": 1,
+      "probability": 0.2
+    }
+  ],
+  "recipes": [
+    {
+      "recipeId": "beef_production",
+      "recipeName": "牛肉生产",
+      "heldItem": "minecraft:golden_axe",
+      "materials": [],
+      "products": [
+        {
+          "item": "minecraft:beef",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 0.4
+        }
+      ]
+    },
+    {
+      "recipeId": "leather_production",
+      "recipeName": "皮革生产",
+      "heldItem": "minecraft:shears",
+      "materials": [],
+      "products": [
+        {
+          "item": "minecraft:leather",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 0.3
+        }
+      ]
+    }
+  ],
+  "spawnEntity": {
+    "enabled": true,
+    "type": "minecraft:cow",
+    "count": 5
+  },
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：工作完成，产物已放入箱子",
+    "chestFull": "§c{npcName} {jobName}：工作完成，但箱子已满！",
+    "xpGained": "{npcName} 完成了一天的工作，获得5点经验值"
+  }
+}

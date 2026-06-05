@@ -1,0 +1,98 @@
+{
+  "buildingId": "sugerFactory",
+  "buildingName": "制糖厂",
+  "jobType": "sugerMaker",
+  "jobName": "制糖工人",
+  "heldItem": "minecraft:sugar",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "recipes": [
+    {
+      "recipeId": "sugarcane2suger",
+      "recipeName": "甘蔗制糖",
+      "heldItem": "minecraft:sugar_cane",
+      "materials": [
+        {
+          "item": "minecraft:sugar_cane",
+          "count": 1,
+          "consume": true
+        }
+      ],
+      "products": [
+        {
+          "item": "minecraft:sugar",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 1.0
+        },
+        {
+          "item": "minecraft:sugar",
+          "baseAmount": 1,
+          "randomRange": 3,
+          "probability": 0.1
+        }
+      ]
+    },
+    {
+      "recipeId": "beet2suger",
+      "recipeName": "甜菜制糖",
+      "heldItem": "minecraft:beetroot",
+      "materials": [
+        {
+          "item": "minecraft:beetroot",
+          "count": 1,
+          "consume": true
+        }
+      ],
+      "products": [
+        {
+          "item": "minecraft:sugar",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 1.0
+        },
+        {
+          "item": "minecraft:sugar",
+          "baseAmount": 1,
+          "randomRange": 3,
+          "probability": 0.1
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "item": "minecraft:sugar_cane",
+      "consume": true,
+      "amount": 1
+    }
+  ],
+  "products": [
+    {
+      "item": "minecraft:sugar",
+      "baseAmount": 1,
+      "randomRange": 1,
+      "probability": 1.0
+    },
+    {
+      "item": "minecraft:sugar",
+      "baseAmount": 1,
+      "randomRange": 3,
+      "probability": 0.1
+    }
+  ],
+  "spawnEntity": {
+    "enabled": false,
+    "type": "minecraft:sheep",
+    "count": 5
+  },
+  "hasLunchBreak": true,
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：生产完成",
+    "chestFull": "§c{npcName} {jobName}：箱子已满！",
+    "xpGained": "{npcName} 获得经验值"
+  }
+}

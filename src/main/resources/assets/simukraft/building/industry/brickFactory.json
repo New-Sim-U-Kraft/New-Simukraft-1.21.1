@@ -1,0 +1,70 @@
+{
+  "buildingId": "brickFactory",
+  "buildingName": "砖厂",
+  "jobType": "brickMaker",
+  "jobName": "制砖人",
+  "heldItem": "minecraft:brick",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "recipes": [
+    {
+      "recipeId": "dirt2brick",
+      "recipeName": "泥土制红砖",
+      "heldItem": "minecraft:brick",
+      "materials": [
+        {
+          "item": "minecraft:dirt",
+          "count": 4,
+          "consume": true
+        },
+        {
+          "item": "minecraft:glass_bottle",
+          "count": 1,
+          "consume": false
+        }
+      ],
+      "products": [
+        {
+          "item": "minecraft:brick",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 1.0
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "item": "minecraft:dirt",
+      "consume": true,
+      "amount": 4
+    },
+    {
+      "item": "minecraft:glass_bottle",
+      "consume": false,
+      "amount": 1
+    }
+  ],
+  "products": [
+    {
+      "item": "minecraft:brick",
+      "baseAmount": 1,
+      "randomRange": 2,
+      "probability": 1.0
+    }
+  ],
+  "spawnEntity": {
+    "enabled": false,
+    "type": "minecraft:sheep",
+    "count": 5
+  },
+  "hasLunchBreak": true,
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：生产完成",
+    "chestFull": "§c{npcName} {jobName}：箱子已满！",
+    "xpGained": "{npcName} 获得经验值"
+  }
+}

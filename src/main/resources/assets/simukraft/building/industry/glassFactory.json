@@ -1,0 +1,91 @@
+{
+  "buildingId": "glassFactory",
+  "buildingName": "玻璃工厂",
+  "jobType": "glassMaker",
+  "jobName": "玻璃厂工人",
+  "heldItem": "minecraft:glass",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "recipes": [
+    {
+      "recipeId": "sand2glass",
+      "recipeName": "玻璃生产",
+      "heldItem": "minecraft:glass",
+      "materials": [
+        {
+          "item": "minecraft:sand",
+          "count": 1,
+          "consume": true
+        }
+      ],
+      "products": [
+        {
+          "item": "minecraft:glass",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 1.0
+        }
+      ]
+    },
+    {
+      "recipeId": "sand2tintedGlass",
+      "recipeName": "遮光玻璃生产",
+      "heldItem": "minecraft:amethyst_shard",
+      "materials": [
+        {
+          "item": "minecraft:amethyst_shard",
+          "count": 1,
+          "consume": true
+        },
+        {
+          "item": "minecraft:sand",
+          "count": 1,
+          "consume": true
+        }
+      ],
+      "products": [
+        {
+          "item": "minecraft:tinted_glass",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 1.0
+        },
+        {
+          "item": "minecraft:tinted_glass",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 0.5
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "item": "minecraft:sand",
+      "consume": true,
+      "amount": 1
+    }
+  ],
+  "products": [
+    {
+      "item": "minecraft:glass",
+      "baseAmount": 1,
+      "randomRange": 1,
+      "probability": 1.0
+    }
+  ],
+  "spawnEntity": {
+    "enabled": false,
+    "type": "minecraft:sheep",
+    "count": 5
+  },
+  "hasLunchBreak": true,
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：生产完成",
+    "chestFull": "§c{npcName} {jobName}：箱子已满！",
+    "xpGained": "{npcName} 获得经验值"
+  }
+}

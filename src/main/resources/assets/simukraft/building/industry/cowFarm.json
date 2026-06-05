@@ -1,0 +1,82 @@
+{
+  "buildingId": "cowFarm",
+  "buildingName": "养牛农场",
+  "jobType": "cowFarmer",
+  "jobName": "养牛工人",
+  "heldItem": "minecraft:golden_axe",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "recipes": [
+    {
+      "recipeId": "beef_produce",
+      "recipeName": "牛肉生产",
+      "heldItem": "minecraft:golden_axe",
+      "materials": [],
+      "products": [
+        {
+          "item": "minecraft:beef",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 0.1
+        }
+      ]
+    },
+    {
+      "recipeId": "leather_produce",
+      "recipeName": "皮革生产",
+      "heldItem": "minecraft:golden_axe",
+      "materials": [],
+      "products": [
+        {
+          "item": "minecraft:leather",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 0.2
+        }
+      ]
+    },
+    {
+      "recipeId": "milk_produce",
+      "recipeName": "牛奶生产",
+      "heldItem": "minecraft:bucket",
+      "materials": [
+        {
+          "item": "minecraft:bucket",
+          "count": 1,
+          "consume": true
+        }
+      ],
+      "products": [
+        {
+          "item": "minecraft:milk_bucket",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 0.2,
+          "ignoreMultiplier": true
+        }
+      ]
+    }
+  ],
+  "products": [
+    {
+      "item": "minecraft:beef",
+      "baseAmount": 1,
+      "randomRange": 1,
+      "probability": 0.1
+    }
+  ],
+  "spawnEntity": {
+    "enabled": true,
+    "type": "minecraft:cow",
+    "count": 5
+  },
+  "hasLunchBreak": true,
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：生产完成",
+    "chestFull": "§c{npcName} {jobName}：箱子已满！",
+    "xpGained": "{npcName} 获得经验值"
+  }
+}

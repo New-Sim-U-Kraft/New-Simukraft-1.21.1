@@ -1,0 +1,45 @@
+{
+  "buildingId": "meatStand",
+  "buildingName": "肉摊",
+  "jobType": "meatStandOwner",
+  "jobName": "肉摊屠夫",
+  "shopMode": "NPC_SELL",
+  "heldItem": "minecraft:chicken",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "restockTime": 101,
+  "requireMaterialsForSale": true,
+  "materials": [
+    {
+      "item": "minecraft:chicken",
+      "count": 0,
+      "consume": true
+    }
+  ],
+  "trades": [
+    {
+      "item": "minecraft:cooked_chicken",
+      "sellPrice": 0.5,
+      "maxStock": 32,
+      "restockAmount": 16,
+      "retail": true,
+      "requiredMaterials": [
+        {
+          "item": "minecraft:chicken",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "buyTrades": [],
+  "hasLunchBreak": false,
+  "messages": {
+    "welcome": "肉摊开张~",
+    "noStock": "肉摊库存不足了，明天再来吧！",
+    "restocked": "新鲜的肉到货了，快来买吧！",
+    "workStart": "肉摊开张~",
+    "workEnd": "肉摊关业了！"
+  }
+}

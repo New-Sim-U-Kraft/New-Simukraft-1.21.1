@@ -1,0 +1,70 @@
+{
+  "buildingId": "mill",
+  "buildingName": "磨坊",
+  "jobType": "miller",
+  "jobName": "磨坊工人",
+  "heldItem": "minecraft:wheat",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "recipes": [
+    {
+      "recipeId": "wheat2cookie",
+      "recipeName": "曲奇生产",
+      "heldItem": "minecraft:wheat",
+      "materials": [
+        {
+          "item": "minecraft:wheat",
+          "count": 3,
+          "consume": true
+        },
+        {
+          "item": "minecraft:sugar",
+          "count": 1,
+          "consume": true
+        }
+      ],
+      "products": [
+        {
+          "item": "minecraft:cookie",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 1.0
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "item": "minecraft:wheat",
+      "consume": true,
+      "amount": 3
+    },
+    {
+      "item": "minecraft:sugar",
+      "consume": true,
+      "amount": 1
+    }
+  ],
+  "products": [
+    {
+      "item": "minecraft:cookie",
+      "baseAmount": 1,
+      "randomRange": 2,
+      "probability": 1.0
+    }
+  ],
+  "spawnEntity": {
+    "enabled": false,
+    "type": "minecraft:sheep",
+    "count": 5
+  },
+  "hasLunchBreak": true,
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：生产完成",
+    "chestFull": "§c{npcName} {jobName}：箱子已满！",
+    "xpGained": "{npcName} 获得经验值"
+  }
+}

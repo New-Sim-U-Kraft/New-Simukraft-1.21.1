@@ -1,0 +1,7 @@
+name:水果店
+size:17 x 5 x 12
+amount:9.9元
+author:七平方米
+description:向市民售卖西瓜和南瓜的店~
+tags:price_low,material_medium,stage_early
+job_type:fruitSeller

@@ -1,0 +1,31 @@
+{
+  "buildingId": "YRJ",
+  "buildingName": "羊肉农场",
+  "jobType": "sheep_butcher",
+  "jobName": "养羊人",
+  "heldItem": "minecraft:golden_axe",
+  "workTime": {
+    "start": 0,
+    "end": 12000
+  },
+  "materials": [],
+  "products": [
+    {
+      "item": "minecraft:mutton",
+      "baseAmount": 1,
+      "randomRange": 1,
+      "probability": 0.2
+    }
+  ],
+  "spawnEntity": {
+    "enabled": true,
+    "type": "minecraft:sheep",
+    "count": 5
+  },
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：工作完成，产物已放入箱子",
+    "chestFull": "§c{npcName} {jobName}：工作完成，但箱子已满！",
+    "xpGained": "{npcName} 完成了一天的工作，获得5点经验值"
+  }
+}

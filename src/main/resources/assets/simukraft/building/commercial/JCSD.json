@@ -1,0 +1,178 @@
+{
+  "buildingId": "JCSD",
+  "buildingName": "建材商店",
+  "jobType": "building_material_merchant",
+  "jobName": "建材商人",
+  "shopMode": "PLAYER_SELL",
+  "heldItem": "minecraft:stone_bricks",
+  "workTime": {
+    "start": 0,
+    "end": 12000
+  },
+  "restockTime": 3,
+  "trades": [
+    {
+      "item": "minecraft:oak_planks",
+      "sellPrice": 2.24,
+      "maxStock": 512,
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:oak_log",
+      "sellPrice": 8.96,
+      "maxStock": 512,
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "sellPrice": 1.02,
+      "maxStock": 512,
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:stone",
+      "sellPrice": 1.63,
+      "maxStock": 512,
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:glass",
+      "sellPrice": 2.54,
+      "maxStock": 512,      
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:white_wool",
+      "sellPrice": 1.76,
+      "maxStock": 512,
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:bricks",
+      "sellPrice": 3.63,
+      "maxStock": 512,
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:stone_bricks",
+      "sellPrice": 4.71,
+      "maxStock": 512, 
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:oak_fence",
+      "sellPrice": 2.16,
+      "maxStock": 512,
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:sandstone",
+      "sellPrice": 2.5,
+      "maxStock": 512,
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:quartz_block",
+      "sellPrice": 9.8,
+      "maxStock": 512,
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:white_concrete",
+      "sellPrice": 11.5,
+      "maxStock": 512,
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:terracotta",
+      "sellPrice": 10.0,
+      "maxStock": 512,
+      "restockAmount": 256
+    },
+    {
+      "item": "minecraft:sand",
+      "sellPrice": 1.2,
+      "maxStock": 512,
+      "restockAmount": 256
+    }
+  ],
+  "buyTrades": [
+    {
+      "item": "minecraft:oak_planks",
+      "buyPrice": 1.79,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:oak_log",
+      "buyPrice": 7.16,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "buyPrice": 0.81,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:stone",
+      "buyPrice": 1.30,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:glass",
+      "buyPrice": 2.03,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:white_wool",
+      "buyPrice": 1.40,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:bricks",
+      "buyPrice": 2.90,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:stone_bricks",
+      "buyPrice": 3.76,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:oak_fence",
+      "buyPrice": 1.72,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:sandstone",
+      "buyPrice": 2.0,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:quartz_block",
+      "buyPrice": 7.84,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:white_concrete",
+      "buyPrice": 9.2,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:terracotta",
+      "buyPrice": 8.0,
+      "maxBuyAmount": 256
+    },
+    {
+      "item": "minecraft:sand",
+      "buyPrice": 0.96,
+      "maxBuyAmount": 256
+    }
+  ],
+  "messages": {
+    "welcome": "欢迎光临建材商店！我们收购各种建筑材料！",
+    "noStock": "我们的库存已经满了，暂时不收这种材料。",
+    "restocked": "我们的库存有空间了，继续收购建材！",
+    "workStart": "建材商店开门了，开始收购建材！",
+    "workEnd": "建材商店打烊了，明天再来卖材料吧！"
+  }
+}

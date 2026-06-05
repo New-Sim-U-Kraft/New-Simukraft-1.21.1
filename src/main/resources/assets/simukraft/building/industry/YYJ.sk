@@ -1,0 +1,9 @@
+name:羊毛农场
+size:9 x 9 x 3
+amount:12.00元
+author:XiaoLiang
+description:可以生产羊毛，你可以用来当做建筑材料和建材商店卖类物品。
+tags:price_low,material_low,stage_early
+job_type:shepherd
+job_name:牧羊人
+held_item:minecraft:shears

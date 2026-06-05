@@ -1,0 +1,54 @@
+{
+  "buildingId": "fruitShop",
+  "buildingName": "水果店",
+  "jobType": "fruitSeller",
+  "jobName": "水果店店员",
+  "shopMode": "NPC_SELL",
+  "heldItem": "minecraft:melon_slice",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "restockTime": 101,
+  "requireMaterialsForSale": true,
+  "materials": [
+    {
+      "item": "minecraft:melon_slice",
+      "count": 0,
+      "consume": true
+    },
+    {
+      "item": "minecraft:pumpkin",
+      "count": 0,
+      "consume": true
+    }
+  ],
+  "trades": [
+    {
+      "item": "minecraft:melon_slice",
+      "sellPrice": 0.2,
+      "maxStock": 128,
+      "restockAmount": 16,
+      "retail": true,
+      "requiredMaterial": "minecraft:melon_slice",
+      "requiredMaterialCount": 1
+    },
+    {
+      "item": "minecraft:pumpkin",
+      "sellPrice": 1.0,
+      "maxStock": 64,
+      "restockAmount": 16,
+      "retail": true,
+      "requiredMaterial": "minecraft:pumpkin",
+      "requiredMaterialCount": 1
+    }
+  ],
+  "buyTrades": [],
+  "messages": {
+    "welcome": "水果店开张啦，快来买新鲜的瓜果吧！",
+    "noStock": "水果店库存不足，明天再来吧！",
+    "restocked": "水果店补货完成，快来买吧~",
+    "workStart": "水果店开张啦，快来买新鲜的瓜果吧！",
+    "workEnd": "水果店打烊啦，明天再来吧！"
+  }
+}

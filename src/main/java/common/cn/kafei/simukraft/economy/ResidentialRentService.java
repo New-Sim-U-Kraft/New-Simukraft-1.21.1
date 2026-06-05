@@ -35,8 +35,7 @@ import java.util.concurrent.ConcurrentMap;
 public final class ResidentialRentService {
     private static final long TICKS_PER_RENT_DAY = 24_000L;
     private static final long MONEY_COLLECT_DELAY_TICKS = 60L;
-    private static final int MORNING_START = 0;
-    private static final int MORNING_END_EXCLUSIVE = 1_200;
+    private static final long RENT_COLLECTION_WINDOW_TICKS = 1_200L;
     private static final ConcurrentMap<String, Long> LAST_COLLECTED_RENT_DAY = new ConcurrentHashMap<>();
     private static final ConcurrentMap<String, Long> LAST_PROCESSED_LEVEL_RENT_DAY = new ConcurrentHashMap<>();
     private static final ConcurrentMap<String, PendingIncomeNotice> PENDING_INCOME_NOTICES = new ConcurrentHashMap<>();
@@ -49,7 +48,7 @@ public final class ResidentialRentService {
             return;
         }
         processPendingIncomeNotices(level);
-        if (!isMorning(level)) {
+        if (!isRentCollectionWindow(level)) {
             return;
         }
         long rentDay = rentDay(level);
@@ -189,13 +188,13 @@ public final class ResidentialRentService {
         return SaveScopedCacheKey.playerKey(player) + "|income_notice";
     }
 
-    private static boolean isMorning(ServerLevel level) {
-        long time = Math.floorMod(level.getDayTime(), TICKS_PER_RENT_DAY);
-        return time >= MORNING_START && time < MORNING_END_EXCLUSIVE;
+    private static boolean isRentCollectionWindow(ServerLevel level) {
+        long time = Math.floorMod(level.getGameTime(), TICKS_PER_RENT_DAY);
+        return time < RENT_COLLECTION_WINDOW_TICKS;
     }
 
     private static long rentDay(ServerLevel level) {
-        return Math.max(1L, level.getDayTime() / TICKS_PER_RENT_DAY + 1L);
+        return Math.max(1L, level.getGameTime() / TICKS_PER_RENT_DAY + 1L);
     }
 
     private static boolean isResidential(PlacedBuildingRecord building) {

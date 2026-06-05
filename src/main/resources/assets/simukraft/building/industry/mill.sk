@@ -1,0 +1,9 @@
+name:磨坊
+size:24 x 35 x 19
+amount:90.2元
+author:枫烨
+description:模拟杯村改大赛获奖作品：磨坊，可以用糖和小麦制作曲奇~
+tags:price_high,material_medium,stage_late
+job_type:miller
+job_name:磨坊工人
+held_item:minecraft:wheat

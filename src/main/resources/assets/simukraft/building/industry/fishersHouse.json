@@ -1,0 +1,81 @@
+{
+  "buildingId": "fishersHouse",
+  "buildingName": "渔人小屋",
+  "jobType": "fisher",
+  "jobName": "渔人",
+  "heldItem": "minecraft:fishing_rod",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "recipes": [
+    {
+      "recipeId": "_default",
+      "recipeName": "鳕鱼生产",
+      "heldItem": "minecraft:fishing_rod",
+      "materials": [],
+      "products": [
+        {
+          "item": "minecraft:cod",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 0.1
+        }
+      ]
+    },
+    {
+      "recipeId": "building_recipe2",
+      "recipeName": "鲑鱼生产",
+      "heldItem": "minecraft:fishing_rod",
+      "materials": [],
+      "products": [
+        {
+          "item": "minecraft:salmon",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 0.1
+        }
+      ]
+    },
+    {
+      "recipeId": "fishersHouse_recipe3",
+      "recipeName": "混合生产",
+      "heldItem": "minecraft:fishing_rod",
+      "materials": [],
+      "products": [
+        {
+          "item": "minecraft:salmon",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 0.05
+        },
+        {
+          "item": "minecraft:cod",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 0.05
+        }
+      ]
+    }
+  ],
+  "products": [
+    {
+      "item": "minecraft:cod",
+      "baseAmount": 1,
+      "randomRange": 1,
+      "probability": 0.1
+    }
+  ],
+  "spawnEntity": {
+    "enabled": false,
+    "type": "minecraft:sheep",
+    "count": 5
+  },
+  "hasLunchBreak": true,
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：生产完成",
+    "chestFull": "§c{npcName} {jobName}：箱子已满！",
+    "xpGained": "{npcName} 获得经验值"
+  }
+}

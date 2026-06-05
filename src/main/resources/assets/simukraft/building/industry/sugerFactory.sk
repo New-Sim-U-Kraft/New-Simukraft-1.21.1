@@ -1,0 +1,9 @@
+name:制糖厂
+size:12 x 10 x 8
+amount:18.5元
+author:枫烨
+description:用甘蔗或者甜菜制作糖
+tags:price_low,material_medium,stage_middle
+job_type:sugerMaker
+job_name:制糖工人
+held_item:minecraft:sugar

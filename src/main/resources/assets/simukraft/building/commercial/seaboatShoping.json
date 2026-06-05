@@ -1,0 +1,50 @@
+{
+  "buildingId": "seaboatShoping",
+  "buildingName": "海船之商（水产店）",
+  "jobType": "fishSeller",
+  "jobName": "水产店老板",
+  "shopMode": "MIXED",
+  "heldItem": "minecraft:cooked_cod",
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "restockTime": 101,
+  "requireMaterialsForSale": true,
+  "materials": [
+    {
+      "item": "minecraft:cod",
+      "count": 0,
+      "consume": true
+    },
+    {
+      "item": "minecraft:salmon",
+      "count": 0,
+      "consume": true
+    }
+  ],
+  "trades": [
+    {
+      "item": "minecraft:cooked_cod",
+      "sellPrice": 0.5,
+      "maxStock": 64,
+      "restockAmount": 16,
+      "retail": true
+    },
+    {
+      "item": "minecraft:cooked_salmon",
+      "sellPrice": 50.0,
+      "maxStock": 64,
+      "restockAmount": 16,
+      "retail": true
+    }
+  ],
+  "buyTrades": [],
+  "messages": {
+    "welcome": "海船之商开业了，快来买鱼吧！",
+    "noStock": "今天的烤鱼卖完了，明天再来吧！",
+    "restocked": "海船之商开业了，快来买鱼吧！",
+    "workStart": "海船之商开业了，快来买鱼吧！",
+    "workEnd": "海船之商关门了，明天再来吧！"
+  }
+}

@@ -1,0 +1,9 @@
+name:奶酪工厂
+size:18 x 10 x 20
+amount:51.84元
+author:枫烨
+description:通过牛奶（至少20桶）生产奶酪，建议配置牛奶和牛奶桶的物流循环
+tags:price_high,material_medium,stage_middle
+job_type:cheeseMaker
+job_name:奶酪厂工人
+held_item:simukraft:cheese_chunk
