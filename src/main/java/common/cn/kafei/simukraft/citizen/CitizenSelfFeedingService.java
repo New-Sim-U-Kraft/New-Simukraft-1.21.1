@@ -82,14 +82,15 @@ public final class CitizenSelfFeedingService {
         if (citizen.workStatusType() == CitizenWorkStatus.RESTING || citizen.workStatusType() == CitizenWorkStatus.DEAD) {
             return false;
         }
-        if (citizen.hunger() > START_HUNGER_THRESHOLD) {
+        CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
+        if (entity == null || entity.getHungerValue() > START_HUNGER_THRESHOLD) {
             return false;
         }
         Long cooldown = runtime.cooldowns.get(citizen.uuid());
         if (cooldown != null && cooldown > gameTime) {
             return false;
         }
-        return CitizenTeleportService.findCitizenEntity(level, citizen.uuid()) != null;
+        return true;
     }
 
     private static void start(ServerLevel level, CitizenManager manager, CitizenData citizen, LevelRuntime runtime, long gameTime) {
@@ -118,7 +119,7 @@ public final class CitizenSelfFeedingService {
             finish(level, manager, citizen, feeding, false);
             return;
         }
-        if (citizen.hunger() > START_HUNGER_THRESHOLD && feeding.phase != Phase.EATING) {
+        if (entity.getHungerValue() > START_HUNGER_THRESHOLD && feeding.phase != Phase.EATING) {
             finish(level, manager, citizen, feeding, true);
             return;
         }
@@ -188,8 +189,7 @@ public final class CitizenSelfFeedingService {
                                     FeedingRuntime feeding, ItemStack foodStack, long gameTime) {
         feeding.phase = Phase.EATING;
         feeding.nextTick = gameTime + EAT_VISUAL_TICKS;
-        citizen.setHunger(FULL_HUNGER);
-        entity.setHunger((int) FULL_HUNGER);
+        entity.setHunger(FULL_HUNGER);
         setStatus(level, manager, citizen, EATING_FOOD_STATUS, CommercialFoodMarketService.foodDetailKey(feeding.plan));
         CitizenJobVisualService.setMainHandOverride(citizen.uuid(), foodStack);
         level.playSound(null, entity.blockPosition(), SoundEvents.GENERIC_EAT, SoundSource.NEUTRAL, 0.8F, 1.0F);
@@ -259,14 +259,15 @@ public final class CitizenSelfFeedingService {
 
     /** clearStaleFoodStatus: 清理已吃饱 NPC 身上残留的买饭临时状态。 */
     private static boolean clearStaleFoodStatus(ServerLevel level, CitizenManager manager, CitizenData citizen) {
-        if (citizen.hunger() <= START_HUNGER_THRESHOLD
+        CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
+        double hunger = entity != null ? entity.getHungerValue() : citizen.hunger();
+        if (hunger <= START_HUNGER_THRESHOLD
                 || !isSelfFeedingStatus(citizen.statusLabel()) && !isFoodNeedDetail(citizen.workNeedDetail())) {
             return false;
         }
         citizen.setStatusLabel(restorableStatusLabel(citizen.statusLabel()));
         citizen.setWorkNeedDetail(restorableWorkNeedDetail(citizen.workNeedDetail()));
         manager.saveCitizenNow(citizen.uuid());
-        CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
         if (entity != null) {
             manager.syncEntity(entity);
         }

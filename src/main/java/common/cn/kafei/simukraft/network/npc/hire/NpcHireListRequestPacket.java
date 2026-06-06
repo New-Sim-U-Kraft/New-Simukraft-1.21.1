@@ -4,6 +4,8 @@ import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.citizen.CitizenLevelService;
 import common.cn.kafei.simukraft.citizen.CitizenService;
 import common.cn.kafei.simukraft.citizen.CitizenSkillSnapshot;
+import common.cn.kafei.simukraft.citizen.CitizenTeleportService;
+import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.job.CitizenEmploymentService;
 import common.cn.kafei.simukraft.job.CityJobMobilityService;
 import common.cn.kafei.simukraft.job.CityJobType;
@@ -53,13 +55,14 @@ public record NpcHireListRequestPacket(BlockPos sourcePos, String sourceType, St
                     .filter(data -> NpcHireAccessValidator.isHireCandidateForSource(data, access))
                     .map(data -> {
                         CitizenSkillSnapshot skill = CitizenLevelService.snapshot(data, requestedJobType);
+                        CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, data.uuid());
                         return new NpcHireListResponsePacket.HireCandidate(
                                 data.uuid(),
                                 data.name(),
                                 data.gender(),
                                 data.age(),
                                 data.health(),
-                                data.hunger(),
+                                entity != null ? entity.getHungerValue() : data.hunger(),
                                 data.skinPath(),
                                 data.jobType().name(),
                                 data.workStatus(),

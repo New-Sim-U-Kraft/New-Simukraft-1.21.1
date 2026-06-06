@@ -39,8 +39,6 @@ public final class CommercialControlBoxScreenOpener {
     private static final int ACTION_HEIGHT = 22;
     private static final int INTEGRITY_HEIGHT = 18;
     private static final float TEXT_ROLL_SPEED = 0.25F;
-    private static BlockPos openedBoxPos;
-
     private CommercialControlBoxScreenOpener() {
     }
 
@@ -55,7 +53,7 @@ public final class CommercialControlBoxScreenOpener {
         if (minecraft == null) {
             return;
         }
-        openedBoxPos = packet.boxPos().immutable();
+        packet.boxPos().immutable();
         syncDisplayedBounds(packet);
         minecraft.execute(() -> minecraft.setScreen(new CommercialControlBoxScreen(createUi(packet), Component.empty())));
     }
@@ -261,13 +259,11 @@ public final class CommercialControlBoxScreenOpener {
 
     private static void demolish(CommercialControlBoxOpenResponsePacket packet) {
         BuildingBoundsRenderer.setBuildingBoundsVisible(packet.boxPos(), null, false);
-        openedBoxPos = null;
         Minecraft.getInstance().setScreen(null);
         PacketDistributor.sendToServer(new CommercialControlBoxDemolishPacket(packet.boxPos()));
     }
 
     private static void close() {
-        openedBoxPos = null;
         Minecraft.getInstance().setScreen(null);
     }
 
@@ -281,7 +277,6 @@ public final class CommercialControlBoxScreenOpener {
             super.removed();
             Minecraft minecraft = Minecraft.getInstance();
             if (!(minecraft.screen instanceof CommercialControlBoxScreen)) {
-                openedBoxPos = null;
             }
         }
     }

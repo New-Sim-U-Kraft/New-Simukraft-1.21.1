@@ -286,7 +286,7 @@ public final class CitizenManager extends SavedData {
         data.setName(entity.getCitizenName());
         data.setSkinPath(entity.getSkinPath());
         data.setStatusLabel(entity.getStatusLabel());
-        data.setHunger(entity.getHunger());
+        data.setHunger(entity.getHungerValue());
         data.setAge(entity.getAge());
         data.setLifespan(entity.getLifespan());
         data.setSick(entity.isSick());
@@ -304,17 +304,31 @@ public final class CitizenManager extends SavedData {
         // 通过 UUID 错开居民状态更新时间，避免所有居民同一 tick 一起写库。
         if (level.getGameTime() % 200L == Math.floorMod(data.uuid().getLeastSignificantBits(), 200L)) {
             RandomSource random = level.random;
-            data.setHunger(data.hunger() - 0.05D);
+            CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, data.uuid());
+            double hunger;
+            boolean dataChanged = false;
+            if (entity != null) {
+                entity.setHunger(entity.getHungerValue() - 0.05D);
+                hunger = entity.getHungerValue();
+            } else {
+                data.setHunger(data.hunger() - 0.05D);
+                hunger = data.hunger();
+                dataChanged = true;
+            }
             boolean hasAssignedWork = data.workplaceId() != null && data.jobType() != null && data.jobType() != common.cn.kafei.simukraft.job.CityJobType.UNEMPLOYED;
             boolean isWorkingCitizen = data.workStatusType() == CitizenWorkStatus.WORKING;
-            if (data.hunger() < 6.0D) {
+            if (hunger < 6.0D) {
                 data.setStatus("hungry");
                 data.setHappiness(data.happiness() - 0.1D);
+                dataChanged = true;
             } else if (!hasAssignedWork && !isWorkingCitizen && random.nextInt(40) == 0) {
                 data.setStatus("idle");
+                dataChanged = true;
             }
-            saveCitizenIncremental(data);
-            markDirtySoon();
+            if (dataChanged) {
+                saveCitizenIncremental(data);
+                markDirtySoon();
+            }
         }
     }
 
@@ -325,7 +339,7 @@ public final class CitizenManager extends SavedData {
         entity.setSkinPath(data.skinPath());
         entity.setWorkStatus(data.workStatus());
         entity.setStatusLabel(data.statusLabel());
-        entity.setHunger((int) Math.round(data.hunger()));
+        entity.initializeHungerFromData(data.hunger());
         if (data.age() >= 0) {
             entity.setAge(data.age());
         }

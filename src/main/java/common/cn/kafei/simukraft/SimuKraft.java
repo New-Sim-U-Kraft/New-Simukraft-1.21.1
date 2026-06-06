@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft;
 
 import com.mojang.logging.LogUtils;
 import common.cn.kafei.simukraft.citizen.CitizenDeathService;
+import common.cn.kafei.simukraft.citizen.CitizenDroppedFoodService;
 import common.cn.kafei.simukraft.citizen.CitizenManager;
 import common.cn.kafei.simukraft.citizen.CitizenHomeRestService;
 import common.cn.kafei.simukraft.citizen.CitizenSelfFeedingService;
@@ -192,6 +193,7 @@ public final class SimuKraft {
         PlacedBuildingService.clearServerCaches(event.getServer());
         ResidentialBedPoiService.clearServerCaches(event.getServer());
         CitizenHomeRestService.clearServerCaches(event.getServer());
+        CitizenDroppedFoodService.clearServerCaches(event.getServer());
         CitizenSelfFeedingService.clearServerCaches(event.getServer());
         CommercialFoodMarketService.clearServerCaches(event.getServer());
         CityJobAssignmentService.clearServerCaches(event.getServer());

@@ -1,5 +1,9 @@
 package common.cn.kafei.simukraft.entity;
 
+import common.cn.kafei.simukraft.citizen.CitizenData;
+import common.cn.kafei.simukraft.citizen.CitizenDroppedFoodService;
+import common.cn.kafei.simukraft.citizen.CitizenService;
+import common.cn.kafei.simukraft.citizen.CitizenTeleportService;
 import common.cn.kafei.simukraft.citizen.CitizenWorkStatus;
 import common.cn.kafei.simukraft.commercial.CommercialControlBoxService;
 import common.cn.kafei.simukraft.network.citizen.info.CitizenInfoResponsePacket;
@@ -40,7 +44,10 @@ public class CitizenEntity extends PathfinderMob {
     private static final EntityDataAccessor<Boolean> DATA_IS_CHILD = SynchedEntityData.defineId(CitizenEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_HAS_ACTIVE_TASK = SynchedEntityData.defineId(CitizenEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> DATA_WORK_SWING_PULSE = SynchedEntityData.defineId(CitizenEntity.class, EntityDataSerializers.INT);
+    private static final String TAG_HUNGER = "Hunger";
     private static final int WORK_SWING_DURATION_TICKS = 6;
+    private double hunger = 20.0D;
+    private boolean hungerInitialized;
     private int lastWorkSwingPulse = -1;
     private int workSwingStartTick = -WORK_SWING_DURATION_TICKS;
 
@@ -62,7 +69,7 @@ public class CitizenEntity extends PathfinderMob {
             return InteractionResult.PASS;
         }
         if (level() instanceof ServerLevel serverLevel && player instanceof ServerPlayer serverPlayer && player.distanceToSqr(this) <= 64.0D) {
-            common.cn.kafei.simukraft.citizen.CitizenData data = common.cn.kafei.simukraft.citizen.CitizenService.ensureCitizen(serverLevel, this);
+            CitizenData data = CitizenService.ensureCitizen(serverLevel, this);
             if (data != null) {
                 if (CommercialControlBoxService.openForWorker(serverLevel, serverPlayer, data)) {
                     return InteractionResult.sidedSuccess(level().isClientSide());
@@ -107,11 +114,12 @@ public class CitizenEntity extends PathfinderMob {
         }
         if (level() instanceof ServerLevel serverLevel) {
             // 同 UUID 重复实体只保留一个，防止未加载区块中的旧实体回来后复制居民。
-            if (common.cn.kafei.simukraft.citizen.CitizenTeleportService.reconcileLoadedCitizenEntities(serverLevel, getUUID(), null) != this) {
+            if (CitizenTeleportService.reconcileLoadedCitizenEntities(serverLevel, getUUID(), null) != this) {
                 return;
             }
             // 实体每 tick 确保自己有 CitizenData，数据缺失时会自动补全。
-            common.cn.kafei.simukraft.citizen.CitizenService.ensureCitizen(serverLevel, this);
+            CitizenData data = CitizenService.ensureCitizen(serverLevel, this);
+            CitizenDroppedFoodService.tryEatNearbyFood(serverLevel, this, data);
         }
     }
 
@@ -171,7 +179,7 @@ public class CitizenEntity extends PathfinderMob {
         compound.putString("CitizenName", getCitizenName());
         compound.putString("SkinPath", getSkinPath());
         compound.putString("StatusLabel", getStatusLabel());
-        compound.putInt("Hunger", getHunger());
+        compound.putDouble(TAG_HUNGER, getHungerValue());
         compound.putInt("Age", getAge());
         compound.putInt("Lifespan", getLifespan());
         compound.putBoolean("IsSick", isSick());
@@ -184,7 +192,11 @@ public class CitizenEntity extends PathfinderMob {
         setCitizenName(compound.getString("CitizenName"));
         setSkinPath(compound.getString("SkinPath"));
         setStatusLabel(compound.getString("StatusLabel"));
-        setHunger(compound.contains("Hunger") ? compound.getInt("Hunger") : 20);
+        if (compound.contains(TAG_HUNGER)) {
+            setHungerInternal(compound.getDouble(TAG_HUNGER), true);
+        } else {
+            setHungerInternal(20.0D, false);
+        }
         setAge(compound.contains("Age") ? compound.getInt("Age") : -1);
         setLifespan(compound.contains("Lifespan") ? compound.getInt("Lifespan") : -1);
         setSick(compound.getBoolean("IsSick"));
@@ -252,7 +264,29 @@ public class CitizenEntity extends PathfinderMob {
     }
 
     public void setHunger(int hunger) {
-        this.entityData.set(DATA_HUNGER, Math.clamp(hunger, 0, 20));
+        setHunger((double) hunger);
+    }
+
+    public double getHungerValue() {
+        return level().isClientSide() ? getHunger() : hunger;
+    }
+
+    public void setHunger(double hunger) {
+        setHungerInternal(hunger, true);
+    }
+
+    // initializeHungerFromData：仅旧数据/新生成实体缺少实体 NBT 饱食度时，才用 CitizenData 兜底初始化。
+    public void initializeHungerFromData(double hunger) {
+        if (!hungerInitialized) {
+            setHungerInternal(hunger, true);
+        }
+    }
+
+    private void setHungerInternal(double hunger, boolean initialized) {
+        double normalized = Math.clamp(hunger, 0.0D, 20.0D);
+        this.hunger = normalized;
+        this.entityData.set(DATA_HUNGER, Math.clamp((int) Math.round(normalized), 0, 20));
+        this.hungerInitialized = initialized;
     }
 
     public int getAge() {

@@ -44,7 +44,7 @@ public record CitizenInfoResponsePacket(UUID citizenId, String name, String gend
                 data.age(),
                 data.lifespan(),
                 data.health(),
-                data.hunger(),
+                entity.getHungerValue(),
                 data.sick(),
                 data.child(),
                 data.workStatus(),
