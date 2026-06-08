@@ -3,6 +3,26 @@ package common.cn.kafei.simukraft.config;
 import java.util.List;
 
 public final class MaterialConfigDefaults {
+    public static final List<String> ALL_MODE_BLOCK_BLACKLIST = List.of(
+            "minecraft:bedrock",
+            "minecraft:command_block",
+            "minecraft:chain_command_block",
+            "minecraft:repeating_command_block",
+            "minecraft:barrier",
+            "minecraft:structure_block",
+            "minecraft:structure_void",
+            "minecraft:jigsaw",
+            "simukraft:build_box",
+            "simukraft:city_core",
+            "simukraft:residential_control_box",
+            "simukraft:commercial_control_box",
+            "simukraft:industrial_control_box",
+            "simukraft:other_control_box",
+            "simukraft:logistics_client_box",
+            "simukraft:logistics_server_box",
+            "simukraft:nsuk_farmland_box"
+    );
+
     public static final List<String> BASIC_MATERIALS = List.of(
             "minecraft:iron_block",
             "minecraft:gold_block",

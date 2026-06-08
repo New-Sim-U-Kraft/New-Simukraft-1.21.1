@@ -48,7 +48,9 @@ public final class CityJobMobilityService {
             SimuKraft.LOGGER.warn("Simukraft: Unable to move hired citizen {}, entity not found near workplace {}", citizenId, workplacePos);
             return;
         }
-        Vec3 target = CitizenWorkplaceMoveService.targetNearWorkplace(level, workplacePos)
+        Vec3 target = (jobType == CityJobType.COMMERCIAL_WORKER
+                ? CitizenWorkplaceMoveService.targetAdjacentToWorkplace(level, workplacePos)
+                : CitizenWorkplaceMoveService.targetNearWorkplace(level, workplacePos))
                 .orElse(Vec3.atBottomCenterOf(workplacePos.above()));
         boolean selfFeeding = CitizenSelfFeedingService.isSelfFeeding(level, citizenId);
         if (!selfFeeding) {

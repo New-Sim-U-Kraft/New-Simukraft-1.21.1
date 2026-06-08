@@ -21,6 +21,7 @@ import common.cn.kafei.simukraft.commercial.CommercialFoodMarketService;
 import common.cn.kafei.simukraft.commercial.CommercialStockManager;
 import common.cn.kafei.simukraft.commercial.CommercialWorkService;
 import common.cn.kafei.simukraft.command.SimuKraftCommand;
+import common.cn.kafei.simukraft.config.ClientConfig;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.economy.ResidentialRentService;
 import common.cn.kafei.simukraft.farmland.FarmlandBoxManager;
@@ -35,6 +36,7 @@ import common.cn.kafei.simukraft.network.hud.HudSyncService;
 import common.cn.kafei.simukraft.job.CityJobAssignmentService;
 import common.cn.kafei.simukraft.material.WorkMaterialPolicy;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
+import common.cn.kafei.simukraft.protection.NpcBlockProtectionPolicy;
 import common.cn.kafei.simukraft.path.CitizenWanderService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import common.cn.kafei.simukraft.registry.ModCreativeModeTabs;
@@ -46,6 +48,7 @@ import common.cn.kafei.simukraft.registry.ModItems;
 import common.cn.kafei.simukraft.registry.ModMenuTypes;
 import common.cn.kafei.simukraft.registry.ModRecipeSerializers;
 import common.cn.kafei.simukraft.registry.ModSoundEvents;
+import common.cn.kafei.simukraft.storage.SimuSqliteStorage;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
@@ -58,6 +61,8 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
 
 @Mod(SimuKraft.MOD_ID)
@@ -76,6 +81,7 @@ public final class SimuKraft {
         ModEntities.register(modEventBus);
         ModEntityAttributes.register(modEventBus);
         ModSoundEvents.register(modEventBus);
+        modContainer.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         modContainer.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
         modEventBus.register(ModNetwork.class);
         modEventBus.addListener(this::onConfigLoading);
@@ -97,16 +103,17 @@ public final class SimuKraft {
     }
 
     private void onConfigLoading(ModConfigEvent.Loading event) {
-        clearMaterialPolicyIfServerConfig(event);
+        clearServerConfigCaches(event);
     }
 
     private void onConfigReloading(ModConfigEvent.Reloading event) {
-        clearMaterialPolicyIfServerConfig(event);
+        clearServerConfigCaches(event);
     }
 
-    private void clearMaterialPolicyIfServerConfig(ModConfigEvent event) {
+    private void clearServerConfigCaches(ModConfigEvent event) {
         if (event.getConfig().getSpec() == ServerConfig.SPEC) {
             WorkMaterialPolicy.clearCache();
+            NpcBlockProtectionPolicy.clearCache();
         }
     }
 
@@ -160,16 +167,12 @@ public final class SimuKraft {
             HudSyncService.tick(level);
             CityPermissionInviteService.tick(level);
             if (level.getGameTime() % 1200L == 0L) {
-                CityManager.get(level).saveToSqlite(level);
-                CityChunkManager.get(level).saveToSqlite(level);
-                CityPoiManager.get(level).saveToSqlite(level);
-                CitizenManager.get(level).saveToSqlite(level);
-                FarmlandBoxManager.get(level).saveToSqlite(level);
-                IndustrialBoxManager.get(level).saveToSqlite(level);
-                CommercialBoxManager.get(level).saveToSqlite(level);
-                CommercialStockManager.get(level).saveToSqlite(level);
+                saveDimensionSqlite(level);
             }
         });
+        if (event.getServer().overworld().getGameTime() % 1200L == 0L) {
+            saveGlobalSqlite(event.getServer());
+        }
     }
 
     private void onServerStopping(ServerStoppingEvent event) {
@@ -178,15 +181,9 @@ public final class SimuKraft {
             PlannerWorkService.flush(level);
             IndustrialWorkService.flush(level);
             CommercialWorkService.flush(level);
-            CityManager.get(level).saveToSqlite(level);
-            CityChunkManager.get(level).saveToSqlite(level);
-            CityPoiManager.get(level).saveToSqlite(level);
-            CitizenManager.get(level).saveToSqlite(level);
-            FarmlandBoxManager.get(level).saveToSqlite(level);
-            IndustrialBoxManager.get(level).saveToSqlite(level);
-            CommercialBoxManager.get(level).saveToSqlite(level);
-            CommercialStockManager.get(level).saveToSqlite(level);
+            saveDimensionSqlite(level);
         });
+        saveGlobalSqlite(event.getServer());
         BuilderConstructionService.clearServerCaches(event.getServer());
         PlannerWorkService.clearServerCaches(event.getServer());
         IndustrialWorkService.clearServerCaches(event.getServer());
@@ -205,5 +202,22 @@ public final class SimuKraft {
         HudSyncService.clearServerCaches(event.getServer());
         CommercialDefinitionLoader.clearCache();
         WorkMaterialPolicy.clearCache();
+        NpcBlockProtectionPolicy.clearCache();
+        SimuSqliteStorage.clearServerCache(event.getServer());
+    }
+
+    private void saveDimensionSqlite(ServerLevel level) {
+        CityChunkManager.get(level).saveToSqlite(level);
+        CityPoiManager.get(level).saveToSqlite(level);
+        FarmlandBoxManager.get(level).saveToSqlite(level);
+        IndustrialBoxManager.get(level).saveToSqlite(level);
+        CommercialBoxManager.get(level).saveToSqlite(level);
+        CommercialStockManager.get(level).saveToSqlite(level);
+    }
+
+    private void saveGlobalSqlite(MinecraftServer server) {
+        ServerLevel storageLevel = server.overworld();
+        CityManager.get(storageLevel).saveToSqlite(storageLevel);
+        CitizenManager.get(storageLevel).saveToSqlite(storageLevel);
     }
 }

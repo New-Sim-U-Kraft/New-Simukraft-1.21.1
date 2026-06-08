@@ -3,6 +3,7 @@ package client.cn.kafei.simukraft;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import client.cn.kafei.simukraft.client.bridge.ClientInteractionHandlerImpl;
 import client.cn.kafei.simukraft.client.buildbox.BuildingBoundsRenderer;
+import client.cn.kafei.simukraft.client.config.SimuKraftConfigScreen;
 import client.cn.kafei.simukraft.client.fluid.ClientFluidExtensions;
 import client.cn.kafei.simukraft.client.input.SimuKraftKeyMappings;
 import client.cn.kafei.simukraft.client.network.ClientboundNetworkHandlerImpl;
@@ -24,7 +25,6 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
-import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
 
@@ -46,7 +46,8 @@ public final class ClientModBusSetup {
         NeoForge.EVENT_BUS.addListener(BuildingBoundsRenderer::onRender);
         NeoForge.EVENT_BUS.addListener(TwoPointSelectionRenderer::onRender);
         NeoForge.EVENT_BUS.addListener(NpcPathDebugRenderer::onRender);
-        ModLoadingContext.get().getActiveContainer().registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
+        ModLoadingContext.get().getActiveContainer().registerExtensionPoint(IConfigScreenFactory.class,
+                (container, parent) -> SimuKraftConfigScreen.createRoot(parent));
     }
 
     /** onRegisterRenderers: 注册客户端实体渲染器。 */

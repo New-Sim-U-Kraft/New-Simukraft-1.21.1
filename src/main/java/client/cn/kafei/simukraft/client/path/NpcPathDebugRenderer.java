@@ -12,6 +12,7 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import common.cn.kafei.simukraft.network.path.NpcPathDebugRequestPacket;
 import common.cn.kafei.simukraft.network.path.NpcPathDebugSyncPacket;
+import common.cn.kafei.simukraft.config.ClientConfig;
 import common.cn.kafei.simukraft.path.MovementMode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
@@ -195,7 +196,7 @@ public final class NpcPathDebugRenderer {
 
     private static void toggleVisible() {
         visible = !visible;
-        if (visible) {
+        if (visible && ClientConfig.pathDebugRequestOnToggle()) {
             PacketDistributor.sendToServer(new NpcPathDebugRequestPacket(true));
         }
         showActionBar(Component.translatable(visible ? "message.simukraft.path_debug.enabled" : "message.simukraft.path_debug.disabled"));

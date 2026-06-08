@@ -3,7 +3,6 @@ package common.cn.kafei.simukraft.citizen;
 import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
-import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.job.CityJobType;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
@@ -35,6 +34,8 @@ public final class CitizenHomeRestService {
     private static final String HOME_REST_MARKER = "home_rest";
     private static final int HOME_TARGET_SEARCH_RADIUS = 4;
     private static final int HOME_ANCHOR_SEARCH_RADIUS = 8;
+    private static final int REST_START_TIME = 13000;
+    private static final int REST_END_TIME = 0;
     // 记录本晚已经处理过的居民，避免每 40 tick 反复传送造成抖动。
     private static final ConcurrentMap<String, Set<UUID>> RESTED_CITIZENS_BY_LEVEL = new ConcurrentHashMap<>();
 
@@ -122,8 +123,8 @@ public final class CitizenHomeRestService {
     // isRestTime：统一夜间休息窗口，建筑师、规划师、农民和回家服务共用同一判定。
     public static boolean isRestTime(ServerLevel level) {
         int time = (int) Math.floorMod(level.getDayTime(), 24000L);
-        int start = ServerConfig.builderRestStartTime();
-        int end = ServerConfig.builderRestEndTime();
+        int start = REST_START_TIME;
+        int end = REST_END_TIME;
         if (start == end) {
             return false;
         }

@@ -22,6 +22,9 @@ public final class CitizenWorkplaceMoveService {
             {1, 1}, {1, -1}, {-1, 1}, {-1, -1},
             {2, 0}, {-2, 0}, {0, 2}, {0, -2}
     };
+    private static final int[][] CONTROL_BOX_STAND_OFFSETS = {
+            {1, 0}, {-1, 0}, {0, 1}, {0, -1}
+    };
 
     private CitizenWorkplaceMoveService() {
     }
@@ -67,10 +70,30 @@ public final class CitizenWorkplaceMoveService {
                 return targetNearWorkplace(level, buildBoxPos);
             }
         }
+        if (citizen.jobType() == CityJobType.COMMERCIAL_WORKER && citizen.workplacePos() != null) {
+            return targetAdjacentToWorkplace(level, citizen.workplacePos());
+        }
         if (citizen.workplacePos() != null) {
             return targetNearWorkplace(level, citizen.workplacePos());
         }
         return Optional.empty();
+    }
+
+    // targetAdjacentToWorkplace：商业控制箱岗位只允许紧邻四格落点，避免职员隔墙站到建筑外侧。
+    public static Optional<Vec3> targetAdjacentToWorkplace(ServerLevel level, BlockPos pos) {
+        if (level == null || pos == null) {
+            return Optional.empty();
+        }
+        for (int yOffset : WORKPLACE_Y_OFFSETS) {
+            for (int[] offset : CONTROL_BOX_STAND_OFFSETS) {
+                Vec3 landing = safeLanding(level, pos.offset(offset[0], yOffset, offset[1]));
+                if (landing != null) {
+                    return Optional.of(landing);
+                }
+            }
+        }
+        Vec3 topLanding = safeLanding(level, pos.above());
+        return Optional.ofNullable(topLanding);
     }
 
     // targetNearWorkplace：优先选择岗位方块周围的安全脚底点，避免把 NPC 放到工作盒顶上或旧路径外侧。

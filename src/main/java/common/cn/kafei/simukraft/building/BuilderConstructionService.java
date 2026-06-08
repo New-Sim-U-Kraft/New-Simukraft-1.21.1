@@ -20,6 +20,7 @@ import common.cn.kafei.simukraft.job.CityJobType;
 import common.cn.kafei.simukraft.material.WorkMaterialCache;
 import common.cn.kafei.simukraft.material.WorkMaterialNotificationService;
 import common.cn.kafei.simukraft.material.WorkMaterialResult;
+import common.cn.kafei.simukraft.protection.NpcBlockProtectionPolicy;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import common.cn.kafei.simukraft.storage.SimuSqliteStorage;
 import common.cn.kafei.simukraft.util.SaveScopedCacheKey;
@@ -104,7 +105,8 @@ public final class BuilderConstructionService {
         if (level == null || citizenId == null) {
             return;
         }
-        runtime(level).tasksByCitizen.remove(citizenId);
+        TaskRuntime removed = runtime(level).tasksByCitizen.remove(citizenId);
+        waitForPendingSave(removed);
         SimuSqliteStorage.deleteBuildingTask(level, citizenId);
     }
 
@@ -139,6 +141,7 @@ public final class BuilderConstructionService {
         }
         TaskRuntime removed = runtime(level).tasksByCitizen.remove(citizenId);
         if (removed != null) {
+            waitForPendingSave(removed);
             CitizenService.findCitizen(level, citizenId)
                     .filter(citizen -> !citizen.dead())
                     .ifPresent(citizen -> flushPendingBuilderXp(level, citizen, removed));
@@ -170,6 +173,7 @@ public final class BuilderConstructionService {
             return;
         }
         runtime.tasksByCitizen.values().forEach(taskRuntime -> {
+            waitForPendingSave(taskRuntime);
             CitizenService.findCitizen(level, taskRuntime.task.citizenId())
                     .filter(citizen -> !citizen.dead())
                     .ifPresent(citizen -> flushPendingBuilderXp(level, citizen, taskRuntime));
@@ -228,8 +232,15 @@ public final class BuilderConstructionService {
             BuildingBlockData block = cached.blocks().get(index);
             BlockPos worldPos = block.relativePos();
             BlockState targetState = block.state();
-            if (level.getBlockState(worldPos).equals(targetState)) {
+            BlockState currentState = level.getBlockState(worldPos);
+            if (currentState.equals(targetState)) {
                 index++;
+                continue;
+            }
+            if (NpcBlockProtectionPolicy.isProtected(currentState)) {
+                NpcBlockProtectionPolicy.logSkipped("builder", level, worldPos, currentState);
+                index++;
+                placed++;
                 continue;
             }
             WorkMaterialResult materialResult = BuilderMaterialService.tryConsumeForBlock(level, taskRuntime.materialCache, targetState);
@@ -492,19 +503,39 @@ public final class BuilderConstructionService {
         }
         taskRuntime.saveInFlight = true;
         // 保存使用快照，防止 IO 线程读取到 taskRuntime 正在变化的中间状态。
-        CompletableFuture.runAsync(() -> SimuSqliteStorage.saveBuildingTask(level, snapshot), IO_EXECUTOR)
+        CompletableFuture<Void> saveFuture = CompletableFuture.runAsync(() -> SimuSqliteStorage.saveBuildingTask(level, snapshot), IO_EXECUTOR);
+        taskRuntime.saveFuture = saveFuture;
+        saveFuture
                 .whenComplete((unused, throwable) -> {
                     taskRuntime.saveInFlight = false;
                     if (throwable != null) {
                         SimuKraft.LOGGER.error("Simukraft: Failed to persist building task {}", snapshot.taskId(), throwable);
                         return;
                     }
-                    taskRuntime.lastSavedIndex = snapshot.currentBlockIndex();
-                    taskRuntime.lastSavedAt = snapshot.updatedAt();
                     if (snapshot.equals(taskRuntime.task)) {
+                        taskRuntime.lastSavedIndex = snapshot.currentBlockIndex();
+                        taskRuntime.lastSavedAt = snapshot.updatedAt();
                         taskRuntime.dirty = false;
+                    } else {
+                        taskRuntime.dirty = true;
+                        persistTaskAsync(level, taskRuntime, taskRuntime.task);
                     }
                 });
+    }
+
+    private static void waitForPendingSave(TaskRuntime taskRuntime) {
+        if (taskRuntime == null) {
+            return;
+        }
+        CompletableFuture<Void> saveFuture = taskRuntime.saveFuture;
+        if (saveFuture == null || saveFuture.isDone()) {
+            return;
+        }
+        try {
+            saveFuture.join();
+        } catch (CompletionException exception) {
+            SimuKraft.LOGGER.error("Simukraft: Failed while waiting for pending building task save {}", taskRuntime.task.taskId(), exception);
+        }
     }
 
     private static void primeStructureLoad(BuildingTaskData task) {
@@ -773,6 +804,7 @@ public final class BuilderConstructionService {
         private final WorkMaterialCache materialCache;
         private volatile boolean dirty;
         private volatile boolean saveInFlight;
+        private volatile CompletableFuture<Void> saveFuture = CompletableFuture.completedFuture(null);
         private volatile int lastSavedIndex;
         private volatile long lastSavedAt;
         private volatile String lastPhaseKey = "";

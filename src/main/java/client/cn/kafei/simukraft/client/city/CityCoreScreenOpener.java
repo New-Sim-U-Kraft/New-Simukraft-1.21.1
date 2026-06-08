@@ -67,6 +67,7 @@ public final class CityCoreScreenOpener {
     private static final int BUTTON_HEIGHT = 24;
     private static final int BACK_BUTTON_WIDTH = 52;
     private static final int BACK_BUTTON_HEIGHT = 20;
+    private static volatile CityChunkMapElement activeMapElement;
 
     private CityCoreScreenOpener() {
     }
@@ -89,14 +90,24 @@ public final class CityCoreScreenOpener {
 
     public static void openMap(CityCoreMapResponsePacket packet) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null || !(minecraft.screen instanceof com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen)) {
+        if (minecraft == null) {
             return;
         }
         Set<Long> chunks = packet.chunks().stream()
                 .map(chunk -> ChunkPos.asLong(chunk.chunkX(), chunk.chunkZ()))
                 .collect(Collectors.toUnmodifiableSet());
-        ClientCityChunkCache.getInstance().updateCurrentCity(packet.cityId(), chunks, packet.pos(), packet.cityName());
-        minecraft.execute(() -> minecraft.setScreen(new com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen(createUi(packet), Component.empty())));
+        minecraft.execute(() -> {
+            if (!(minecraft.screen instanceof com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen)) {
+                return;
+            }
+            ClientCityChunkCache.getInstance().updateCurrentCity(packet.cityId(), chunks, packet.pos(), packet.cityName());
+            CityChunkMapElement mapElement = activeMapElement;
+            if (mapElement != null && mapElement.matches(packet.pos())) {
+                mapElement.updatePacket(packet);
+                return;
+            }
+            minecraft.setScreen(new com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen(createUi(packet), Component.empty()));
+        });
     }
 
     private static ModularUI createUi(CityCoreMapResponsePacket packet) {
@@ -700,7 +711,7 @@ public final class CityCoreScreenOpener {
         private static final int OTHER_CHUNK_FILL_COLOR = 0x55FF8800;
         private static final int GRID_COLOR = 0x40000000;
         private static final int CORE_MARKER_COLOR = 0xFF4080FF;
-        private final CityCoreMapResponsePacket packet;
+        private volatile CityCoreMapResponsePacket packet;
         private final ClientCityChunkCache cache = ClientCityChunkCache.getInstance();
         private final SimuMapManager mapManager = SimuMapManager.getInstance();
         private double zoomLevel = 4.0D;
@@ -732,12 +743,24 @@ public final class CityCoreScreenOpener {
             addEventListener(UIEvents.MOUSE_WHEEL, this::onMouseWheel);
             addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
             addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragUpdate);
+            activeMapElement = this;
         }
 
         @Override
         protected void onRemoved() {
+            if (activeMapElement == this) {
+                activeMapElement = null;
+            }
             releaseMapConsumer();
             super.onRemoved();
+        }
+
+        private boolean matches(BlockPos pos) {
+            return packet.pos().equals(pos);
+        }
+
+        private void updatePacket(CityCoreMapResponsePacket packet) {
+            this.packet = packet;
         }
 
         @Override

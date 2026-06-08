@@ -5,51 +5,65 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 import java.util.List;
 public final class ServerConfig {
     public static final ModConfigSpec SPEC;
-    private static final ModConfigSpec.DoubleValue CITY_CHUNK_PRICE;
-    private static final ModConfigSpec.IntValue POPULATION_GROWTH_INTERVAL_TICKS;
-    private static final ModConfigSpec.IntValue POPULATION_GROWTH_MAX_PER_INTERVAL;
-    private static final ModConfigSpec.DoubleValue BUILDER_BLOCKS_PER_SECOND;
-    private static final ModConfigSpec.IntValue NPC_MAX_LEVEL;
-    private static final ModConfigSpec.BooleanValue BUILDER_XP_GAIN;
-    private static final ModConfigSpec.IntValue BUILDER_XP_PER_BLOCK;
-    private static final ModConfigSpec.BooleanValue MATERIALS_CREATIVE_MODE;
-    private static final ModConfigSpec.BooleanValue MATERIALS_EXPERT_MODE;
-    private static final ModConfigSpec.BooleanValue MATERIALS_CATEGORY_MATCHING;
-    private static final ModConfigSpec.ConfigValue<List<? extends String>> BASIC_MATERIALS;
-    private static final ModConfigSpec.ConfigValue<List<? extends String>> MATERIAL_CATEGORY_GROUPS;
-    private static final ModConfigSpec.ConfigValue<List<? extends String>> EXPERT_MODE_SKIP_LIST;
-    private static final ModConfigSpec.IntValue MATERIAL_WARNING_COOLDOWN_SECONDS;
-    private static final ModConfigSpec.BooleanValue BUILDER_PAUSE_AT_NIGHT;
-    private static final ModConfigSpec.IntValue BUILDER_REST_START_TIME;
-    private static final ModConfigSpec.IntValue BUILDER_REST_END_TIME;
-    private static final ModConfigSpec.IntValue PATH_MAX_LOADED_CITIZEN_ENTITIES;
-    private static final ModConfigSpec.IntValue PATH_MAX_ACTIVE_CITIZENS;
-    private static final ModConfigSpec.IntValue PATH_MAX_NEW_REQUESTS_PER_TICK;
-    private static final ModConfigSpec.IntValue PATH_WORKER_THREADS;
-    private static final ModConfigSpec.IntValue PATH_LOCAL_RADIUS_BLOCKS;
-    private static final ModConfigSpec.IntValue PATH_FAR_MOVEMENT_TELEPORT_DISTANCE;
-    private static final ModConfigSpec.IntValue PATH_REPATH_COOLDOWN_TICKS;
-    private static final ModConfigSpec.IntValue PATH_CACHE_TTL_TICKS;
-    private static final ModConfigSpec.BooleanValue PATH_DEBUG;
-    private static final ModConfigSpec.IntValue BUILDING_INTEGRITY_AUTO_DEMOLISH_THRESHOLD_PERCENT;
-    private static final ModConfigSpec.IntValue BUILDING_INTEGRITY_CHECK_INTERVAL_TICKS;
-    private static final ModConfigSpec.DoubleValue BUILDING_INTEGRITY_REPAIR_MONEY_PER_BLOCK;
-    private static final ModConfigSpec.IntValue FARM_AREA_RADIUS;
-    private static final ModConfigSpec.IntValue FARM_WORK_INTERVAL_TICKS;
-    private static final ModConfigSpec.IntValue FARM_ACTIONS_PER_CYCLE;
-    private static final ModConfigSpec.DoubleValue PLANNER_BLOCKS_PER_SECOND;
-    private static final ModConfigSpec.IntValue PLANNER_MAX_VOLUME;
-    private static final ModConfigSpec.DoubleValue PLANNER_MONEY_PER_BLOCK_REMOVE;
-    private static final ModConfigSpec.DoubleValue PLANNER_MONEY_PER_BLOCK_FILL;
-    private static final ModConfigSpec.DoubleValue PLANNER_MONEY_PER_BLOCK_REPLACE;
-    private static final ModConfigSpec.BooleanValue PLANNER_XP_GAIN;
-    private static final ModConfigSpec.IntValue PLANNER_XP_PER_BLOCK;
-    private static final ModConfigSpec.BooleanValue PLANNER_PAUSE_AT_NIGHT;
+    public static final ModConfigSpec.DoubleValue CITY_CHUNK_PRICE;
+    public static final ModConfigSpec.IntValue POPULATION_GROWTH_INTERVAL_TICKS;
+    public static final ModConfigSpec.IntValue POPULATION_GROWTH_MAX_PER_INTERVAL;
+    public static final ModConfigSpec.BooleanValue ENABLE_BLACKLIST_PROTECTION;
+    public static final ModConfigSpec.BooleanValue LOG_BLACKLIST_SKIPPED_BLOCKS;
+    public static final ModConfigSpec.DoubleValue BUILDER_BLOCKS_PER_SECOND;
+    public static final ModConfigSpec.IntValue NPC_MAX_LEVEL;
+    public static final ModConfigSpec.BooleanValue BUILDER_XP_GAIN;
+    public static final ModConfigSpec.IntValue BUILDER_XP_PER_BLOCK;
+    public static final ModConfigSpec.BooleanValue MATERIALS_CREATIVE_MODE;
+    public static final ModConfigSpec.BooleanValue MATERIALS_EXPERT_MODE;
+    public static final ModConfigSpec.BooleanValue MATERIALS_CATEGORY_MATCHING;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> BASIC_MATERIALS;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> MATERIAL_CATEGORY_GROUPS;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> EXPERT_MODE_SKIP_LIST;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> ALL_MODE_BLOCK_BLACKLIST;
+    public static final ModConfigSpec.IntValue MATERIAL_WARNING_COOLDOWN_SECONDS;
+    public static final ModConfigSpec.BooleanValue BUILDER_PAUSE_AT_NIGHT;
+    public static final ModConfigSpec.IntValue PATH_MAX_LOADED_CITIZEN_ENTITIES;
+    public static final ModConfigSpec.IntValue PATH_MAX_ACTIVE_CITIZENS;
+    public static final ModConfigSpec.IntValue PATH_MAX_NEW_REQUESTS_PER_TICK;
+    public static final ModConfigSpec.IntValue PATH_WORKER_THREADS;
+    public static final ModConfigSpec.IntValue PATH_LOCAL_RADIUS_BLOCKS;
+    public static final ModConfigSpec.IntValue PATH_FAR_MOVEMENT_TELEPORT_DISTANCE;
+    public static final ModConfigSpec.IntValue PATH_REPATH_COOLDOWN_TICKS;
+    public static final ModConfigSpec.IntValue PATH_CACHE_TTL_TICKS;
+    public static final ModConfigSpec.BooleanValue PATH_DEBUG;
+    public static final ModConfigSpec.IntValue BUILDING_INTEGRITY_AUTO_DEMOLISH_THRESHOLD_PERCENT;
+    public static final ModConfigSpec.IntValue BUILDING_INTEGRITY_CHECK_INTERVAL_TICKS;
+    public static final ModConfigSpec.DoubleValue BUILDING_INTEGRITY_REPAIR_MONEY_PER_BLOCK;
+    public static final ModConfigSpec.IntValue FARM_AREA_RADIUS;
+    public static final ModConfigSpec.IntValue FARM_WORK_INTERVAL_TICKS;
+    public static final ModConfigSpec.IntValue FARM_ACTIONS_PER_CYCLE;
+    public static final ModConfigSpec.DoubleValue PLANNER_BLOCKS_PER_SECOND;
+    public static final ModConfigSpec.IntValue PLANNER_MAX_VOLUME;
+    public static final ModConfigSpec.DoubleValue PLANNER_MONEY_PER_BLOCK_REMOVE;
+    public static final ModConfigSpec.DoubleValue PLANNER_MONEY_PER_BLOCK_FILL;
+    public static final ModConfigSpec.DoubleValue PLANNER_MONEY_PER_BLOCK_REPLACE;
+    public static final ModConfigSpec.BooleanValue PLANNER_XP_GAIN;
+    public static final ModConfigSpec.IntValue PLANNER_XP_PER_BLOCK;
+    public static final ModConfigSpec.BooleanValue PLANNER_PAUSE_AT_NIGHT;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
         builder.push("economy");
         CITY_CHUNK_PRICE = builder.defineInRange("cityChunkPrice", 10.0D, 0.0D, 1_000_000.0D);
+        builder.pop();
+        builder.push("general");
+        ENABLE_BLACKLIST_PROTECTION = builder
+                .comment(
+                        "Whether NPC block blacklist protection is enabled.",
+                        "When disabled, planners and builders may replace or remove all otherwise editable blocks."
+                )
+                .translation("config.simukraft.general.enableBlacklistProtection")
+                .define("enableBlacklistProtection", true);
+        LOG_BLACKLIST_SKIPPED_BLOCKS = builder
+                .comment("Whether skipped blacklist blocks are written to the server log.")
+                .translation("config.simukraft.general.logBlacklistSkippedBlocks")
+                .define("logSkippedBlocks", true);
         builder.pop();
         builder.push("population");
         POPULATION_GROWTH_INTERVAL_TICKS = builder.defineInRange("growthIntervalTicks", 24_000, 20, 2_400_000);
@@ -64,14 +78,8 @@ public final class ServerConfig {
                 .translation("config.simukraft.construction.builderBlocksPerSecond")
                 .defineInRange("builderBlocksPerSecond", 1.0D, 0.1D, 20.0D);
         BUILDER_PAUSE_AT_NIGHT = builder
-                .comment("Whether builder tasks pause during the configured night/rest time.")
+                .comment("Whether builder tasks pause during the fixed night/rest time.")
                 .define("builderPauseAtNight", true);
-        BUILDER_REST_START_TIME = builder
-                .comment("Day time when builders stop working. Minecraft night starts around 13000.")
-                .defineInRange("builderRestStartTime", 13000, 0, 23999);
-        BUILDER_REST_END_TIME = builder
-                .comment("Day time when builders resume working. Minecraft morning starts around 0.")
-                .defineInRange("builderRestEndTime", 0, 0, 23999);
         builder.pop();
         builder.push("npc_leveling");
         NPC_MAX_LEVEL = builder
@@ -142,6 +150,16 @@ public final class ServerConfig {
                 .translation("config.simukraft.materials.expertModeSkipList")
                 .defineListAllowEmpty("expertModeSkipList",
                         () -> MaterialConfigDefaults.EXPERT_MODE_SKIP_LIST,
+                        () -> "minecraft:bedrock",
+                        ServerConfig::isStringEntry);
+        ALL_MODE_BLOCK_BLACKLIST = builder
+                .comment(
+                        "Blocks protected from builder and planner destruction in every material mode.",
+                        "Format: modid:block_name"
+                )
+                .translation("config.simukraft.materials.allModeBlockBlacklist")
+                .defineListAllowEmpty("allModeBlockBlacklist",
+                        () -> MaterialConfigDefaults.ALL_MODE_BLOCK_BLACKLIST,
                         () -> "minecraft:bedrock",
                         ServerConfig::isStringEntry);
         MATERIAL_WARNING_COOLDOWN_SECONDS = builder
@@ -270,6 +288,14 @@ public final class ServerConfig {
         return POPULATION_GROWTH_MAX_PER_INTERVAL.get();
     }
 
+    public static boolean blacklistProtectionEnabled() {
+        return ENABLE_BLACKLIST_PROTECTION.get();
+    }
+
+    public static boolean logBlacklistSkippedBlocks() {
+        return LOG_BLACKLIST_SKIPPED_BLOCKS.get();
+    }
+
     public static double builderBlocksPerSecond() {
         return BUILDER_BLOCKS_PER_SECOND.get();
     }
@@ -288,14 +314,6 @@ public final class ServerConfig {
 
     public static boolean builderPauseAtNight() {
         return BUILDER_PAUSE_AT_NIGHT.get();
-    }
-
-    public static int builderRestStartTime() {
-        return BUILDER_REST_START_TIME.get();
-    }
-
-    public static int builderRestEndTime() {
-        return BUILDER_REST_END_TIME.get();
     }
 
     public static boolean materialsCreativeMode() {
@@ -320,6 +338,10 @@ public final class ServerConfig {
 
     public static List<String> expertModeSkipList() {
         return copyStringList(EXPERT_MODE_SKIP_LIST.get());
+    }
+
+    public static List<String> allModeBlockBlacklist() {
+        return copyStringList(ALL_MODE_BLOCK_BLACKLIST.get());
     }
 
     public static int materialWarningCooldownTicks() {

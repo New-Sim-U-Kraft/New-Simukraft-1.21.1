@@ -15,6 +15,7 @@ import common.cn.kafei.simukraft.job.CityJobType;
 import common.cn.kafei.simukraft.material.GenericContainerAccess;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
 import common.cn.kafei.simukraft.path.MovementIntent;
+import common.cn.kafei.simukraft.protection.NpcBlockProtectionPolicy;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import common.cn.kafei.simukraft.storage.SimuSqliteStorage;
 import common.cn.kafei.simukraft.util.SaveScopedCacheKey;
@@ -456,6 +457,10 @@ public final class PlannerWorkService {
             return true;
         }
         if (state.is(ModBlocks.BUILD_BOX.get()) || state.is(ModBlocks.CITY_CORE.get())) {
+            return true;
+        }
+        if (NpcBlockProtectionPolicy.isProtected(state)) {
+            NpcBlockProtectionPolicy.logSkipped("planner", level, pos, state);
             return true;
         }
         return GenericContainerAccess.isContainer(level, pos);

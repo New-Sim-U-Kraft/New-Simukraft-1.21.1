@@ -97,6 +97,9 @@ public final class CommercialControlBoxService {
         if (level == null || player == null || boxPos == null) {
             return false;
         }
+        if (!CommercialTradeAccessValidator.canUseTradeMenu(level, player, boxPos, worker.uuid())) {
+            return false;
+        }
         return CommercialTradeMenuProvider.open(player, buildTradeView(level, boxPos, worker.uuid()));
     }
 

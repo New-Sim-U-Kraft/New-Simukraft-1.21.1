@@ -3,6 +3,7 @@ package client.cn.kafei.simukraft.client;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import common.cn.kafei.simukraft.city.CityPermissionLevel;
+import common.cn.kafei.simukraft.config.ClientConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -39,7 +40,7 @@ public final class ClientHUDOverlay {
 
     public static void render(RenderGuiEvent.Post event) {
         Minecraft minecraft = Objects.requireNonNull(Minecraft.getInstance());
-        if (minecraft.player == null || minecraft.screen != null || minecraft.gui.getDebugOverlay().showDebugScreen()) {
+        if (!ClientConfig.hudEnabled() || minecraft.player == null || minecraft.screen != null || minecraft.gui.getDebugOverlay().showDebugScreen()) {
             return;
         }
 
