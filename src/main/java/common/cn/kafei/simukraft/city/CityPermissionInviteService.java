@@ -20,6 +20,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+@SuppressWarnings("null")
 public final class CityPermissionInviteService {
     private static final long INVITE_TTL_MILLIS = 5L * 60L * 1000L;
     private static final ConcurrentMap<UUID, PermissionInvite> INVITES = new ConcurrentHashMap<>();

@@ -25,12 +25,15 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.FlexWrap;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+@SuppressWarnings("null")
 final class SimuKraftConfigWidgets {
     static final int WINDOW_BG = 0xE6202020;
     static final int PANEL_BG = 0xCC2A2A2A;
@@ -44,6 +47,8 @@ final class SimuKraftConfigWidgets {
     static final int TEXT_MUTED = 0xFFAAAAAA;
     static final int TEXT_HIGHLIGHT = 0xFF88CCFF;
     static final float TEXT_ROLL_SPEED = 0.35F;
+    private static final int SCREEN_MARGIN = 20;
+    private static final int NARROW_SCREEN_WIDTH = 420;
 
     private SimuKraftConfigWidgets() {
     }
@@ -64,10 +69,15 @@ final class SimuKraftConfigWidgets {
             layout.alignItems(AlignItems.CENTER);
             layout.justifyContent(AlignContent.CENTER);
         });
-        var mcWindow = net.minecraft.client.Minecraft.getInstance().getWindow();
+        var mcWindow = Minecraft.getInstance().getWindow();
         root.addChild(SimuKraftUiTheme.createShellPanel(mcWindow.getGuiScaledWidth(), mcWindow.getGuiScaledHeight()));
         root.addChild(window);
         return root;
+    }
+
+    /** window: 根据当前 GUI 缩放后的可用尺寸创建窗口，避免高缩放时超出屏幕。 */
+    static UIElement window(int preferredWidth, int preferredHeight, int minWidth, int minHeight) {
+        return window(windowWidth(preferredWidth, minWidth), windowHeight(preferredHeight, minHeight));
     }
 
     /** window: 创建可填充内容的旧版窗口面板。 */
@@ -79,6 +89,18 @@ final class SimuKraftConfigWidgets {
             layout.flexDirection(FlexDirection.COLUMN);
             layout.alignItems(AlignItems.STRETCH);
         });
+    }
+
+    static int windowWidth(int preferredWidth, int minWidth) {
+        return scaledDimension(preferredWidth, minWidth, Minecraft.getInstance().getWindow().getGuiScaledWidth());
+    }
+
+    static int windowHeight(int preferredHeight, int minHeight) {
+        return scaledDimension(preferredHeight, minHeight, Minecraft.getInstance().getWindow().getGuiScaledHeight());
+    }
+
+    static boolean isNarrowScreen() {
+        return Minecraft.getInstance().getWindow().getGuiScaledWidth() < NARROW_SCREEN_WIDTH;
     }
 
     /** panel: 创建旧版深色边框面板。 */
@@ -162,6 +184,20 @@ final class SimuKraftConfigWidgets {
         return row;
     }
 
+    /** footerRow: 创建可换行页脚，高缩放窄屏时按钮会自动折到下一行。 */
+    static UIElement footerRow(int height, int gap) {
+        return new UIElement().layout(layout -> {
+            layout.widthPercent(100);
+            layout.height(height);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.flexWrap(FlexWrap.WRAP);
+            layout.alignItems(AlignItems.CENTER);
+            layout.justifyContent(AlignContent.CENTER);
+            layout.gapAll(gap);
+            layout.flexShrink(0);
+        });
+    }
+
     /** section: 创建分组标题。 */
     static UIElement section(Component title) {
         UIElement group = new UIElement().layout(layout -> {
@@ -171,6 +207,22 @@ final class SimuKraftConfigWidgets {
             layout.flexShrink(0);
         });
         group.addChild(label(title, Horizontal.LEFT, TEXT_HIGHLIGHT, 16, TextWrap.HIDE));
+        group.addChild(new UIElement().style(style -> style.backgroundTexture(new ColorRectTexture(0xFF4A5A6A))).layout(layout -> {
+            layout.widthPercent(100);
+            layout.height(1);
+        }));
+        return group;
+    }
+
+    /** compactSection: 创建紧凑分组标题，用于顶部空间较紧的材料编辑页。 */
+    static UIElement compactSection(Component title) {
+        UIElement group = new UIElement().layout(layout -> {
+            layout.widthPercent(100);
+            layout.height(18);
+            layout.flexDirection(FlexDirection.COLUMN);
+            layout.flexShrink(0);
+        });
+        group.addChild(label(title, Horizontal.LEFT, TEXT_HIGHLIGHT, 13, TextWrap.HIDE));
         group.addChild(new UIElement().style(style -> style.backgroundTexture(new ColorRectTexture(0xFF4A5A6A))).layout(layout -> {
             layout.widthPercent(100);
             layout.height(1);
@@ -233,10 +285,10 @@ final class SimuKraftConfigWidgets {
         field.setText(value == null ? "" : value, false);
         field.setTextResponder(responder);
         field.layout(layout -> {
-            layout.width(92);
+            layout.width(controlWidth(92, 64));
             layout.height(22);
             layout.paddingAll(2);
-            layout.flexShrink(0);
+            layout.flexShrink(1);
         });
         field.style(style -> style.backgroundTexture(new GuiTextureGroup(new ColorRectTexture(0xFF101010), new ColorBorderTexture(1, 0xFF808080))));
         field.textFieldStyle(style -> style.textColor(TEXT_TITLE)
@@ -304,11 +356,27 @@ final class SimuKraftConfigWidgets {
         });
         selector.selectorStyle(style -> style.maxItemCount(Math.min(6, Math.max(1, values.size()))).closeAfterSelect(true));
         selector.layout(layout -> {
-            layout.width(132);
+            layout.width(controlWidth(132, 84));
             layout.height(22);
-            layout.flexShrink(0);
+            layout.flexShrink(1);
         });
         return selector;
+    }
+
+    private static int controlWidth(int preferredWidth, int minWidth) {
+        int availableWidth = Math.max(1, Minecraft.getInstance().getWindow().getGuiScaledWidth() - SCREEN_MARGIN - 170);
+        int boundedMin = Math.min(Math.max(1, minWidth), availableWidth);
+        return clamp(preferredWidth, boundedMin, Math.max(boundedMin, availableWidth));
+    }
+
+    private static int scaledDimension(int preferred, int min, int scaledScreenDimension) {
+        int available = Math.max(1, scaledScreenDimension - SCREEN_MARGIN);
+        int boundedMin = Math.min(Math.max(1, min), available);
+        return clamp(Math.max(1, preferred), boundedMin, available);
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     /** split: 创建带持久化比例的水平分栏。 */

@@ -6,6 +6,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.Locale;
 
+@SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 public final class ClientHUDConfig {
     public enum Anchor {

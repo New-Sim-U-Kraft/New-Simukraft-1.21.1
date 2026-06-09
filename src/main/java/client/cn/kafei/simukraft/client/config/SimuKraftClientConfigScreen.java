@@ -16,9 +16,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+@SuppressWarnings("null")
 public final class SimuKraftClientConfigScreen {
     private static final int WINDOW_WIDTH = 280;
     private static final int WINDOW_HEIGHT = 240;
+    private static final int MIN_WINDOW_WIDTH = 220;
+    private static final int MIN_WINDOW_HEIGHT = 220;
     private static final int HEADER_HEIGHT = 36;
 
     private SimuKraftClientConfigScreen() {
@@ -31,7 +34,7 @@ public final class SimuKraftClientConfigScreen {
 
     /** createUi: 按旧版小窗口样式组装客户端配置。 */
     private static UIElement createUi(Screen parent) {
-        UIElement window = SimuKraftConfigWidgets.window(WINDOW_WIDTH, WINDOW_HEIGHT);
+        UIElement window = SimuKraftConfigWidgets.window(WINDOW_WIDTH, WINDOW_HEIGHT, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
         window.addChild(SimuKraftConfigWidgets.header(Component.translatable("gui.simukraft.config.client"), HEADER_HEIGHT));
         UIElement body = SimuKraftConfigWidgets.column(12, 6);
 

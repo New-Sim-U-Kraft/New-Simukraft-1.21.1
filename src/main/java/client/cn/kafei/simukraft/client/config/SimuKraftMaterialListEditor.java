@@ -24,11 +24,16 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+@SuppressWarnings("null")
 final class SimuKraftMaterialListEditor {
     private static final int ROW_HEIGHT = 32;
     private static final int ICON_SIZE = 18;
     private static final int DELETE_WIDTH = 24;
     private static final int MAX_SEARCH_RESULTS = 16;
+    private static final int HINT_HEIGHT = 22;
+    private static final int SEARCH_AREA_HEIGHT = 48;
+    private static final int CONTROL_ROW_HEIGHT = 22;
+    private static final int CONTROL_HEIGHT = 20;
 
     private final CopyOnWriteArrayList<String> items;
     private final CopyOnWriteArrayList<String> availableItems;
@@ -51,9 +56,9 @@ final class SimuKraftMaterialListEditor {
 
     /** build: 组装搜索、添加和可滚动材料列表。 */
     private UIElement build(Component title, Component hint) {
-        UIElement root = SimuKraftConfigWidgets.column(8, 6);
-        root.addChild(SimuKraftConfigWidgets.section(title));
-        root.addChild(SimuKraftConfigWidgets.label(hint, Horizontal.LEFT, SimuKraftConfigWidgets.TEXT_MUTED, 28, TextWrap.WRAP));
+        UIElement root = SimuKraftConfigWidgets.column(6, 4);
+        root.addChild(SimuKraftConfigWidgets.compactSection(title));
+        root.addChild(SimuKraftConfigWidgets.label(hint, Horizontal.LEFT, SimuKraftConfigWidgets.TEXT_MUTED, HINT_HEIGHT, TextWrap.WRAP));
         root.addChild(searchAndAddArea());
         root.addChild(SimuKraftConfigWidgets.scroller(listColumn));
         refreshList();
@@ -63,10 +68,10 @@ final class SimuKraftMaterialListEditor {
     private UIElement searchAndAddArea() {
         UIElement area = new UIElement().layout(layout -> {
             layout.widthPercent(100);
-            layout.height(54);
+            layout.height(SEARCH_AREA_HEIGHT);
             layout.flexDirection(FlexDirection.COLUMN);
             layout.alignItems(AlignItems.STRETCH);
-            layout.gapAll(6);
+            layout.gapAll(4);
             layout.flexShrink(0);
         });
         area.addChild(controlRow(Component.translatable("gui.simukraft.config.material.filter"), filterBox()));
@@ -77,15 +82,15 @@ final class SimuKraftMaterialListEditor {
     private UIElement controlRow(Component label, UIElement control) {
         UIElement row = new UIElement().layout(layout -> {
             layout.widthPercent(100);
-            layout.height(24);
+            layout.height(CONTROL_ROW_HEIGHT);
             layout.flexDirection(FlexDirection.ROW);
             layout.alignItems(AlignItems.CENTER);
             layout.gapAll(6);
             layout.flexShrink(0);
         });
-        row.addChild(SimuKraftConfigWidgets.label(label, Horizontal.LEFT, SimuKraftConfigWidgets.TEXT_MUTED, 22, TextWrap.HIDE).layout(layout -> {
+        row.addChild(SimuKraftConfigWidgets.label(label, Horizontal.LEFT, SimuKraftConfigWidgets.TEXT_MUTED, CONTROL_HEIGHT, TextWrap.HIDE).layout(layout -> {
             layout.width(44);
-            layout.height(22);
+            layout.height(CONTROL_HEIGHT);
             layout.flexShrink(0);
         }));
         row.addChild(control);
@@ -96,7 +101,7 @@ final class SimuKraftMaterialListEditor {
     private UIElement filterBox() {
         UIElement row = new UIElement().layout(layout -> {
             layout.flex(1);
-            layout.height(24);
+            layout.height(CONTROL_ROW_HEIGHT);
             layout.flexDirection(FlexDirection.ROW);
             layout.alignItems(AlignItems.CENTER);
             layout.gapAll(6);
@@ -108,12 +113,12 @@ final class SimuKraftMaterialListEditor {
         filterField.textFieldStyle(style -> style.placeholder(Component.translatable("gui.simukraft.config.search")));
         filterField.layout(layout -> {
             layout.flex(1);
-            layout.height(22);
+            layout.height(CONTROL_HEIGHT);
         });
         row.addChild(filterField);
         row.addChild(SimuKraftConfigWidgets.button(Component.translatable("gui.simukraft.config.material.clear"), this::clearFilter, true).layout(layout -> {
             layout.width(48);
-            layout.height(22);
+            layout.height(CONTROL_HEIGHT);
             layout.flexShrink(0);
         }));
         return row;

@@ -8,6 +8,7 @@ import common.cn.kafei.simukraft.protection.NpcBlockProtectionPolicy;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+@SuppressWarnings("null")
 final class SimuKraftServerConfigDraft {
     double cityChunkPrice;
     boolean blacklistProtection;

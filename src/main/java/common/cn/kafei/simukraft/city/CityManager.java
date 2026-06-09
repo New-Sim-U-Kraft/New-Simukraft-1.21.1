@@ -196,7 +196,6 @@ public final class CityManager extends SavedData {
         return true;
     }
 
-    @SuppressWarnings("unused")
     public boolean deleteCity(UUID cityId, UUID operatorId, CityChunkManager chunkManager) {
         return deleteCity(cityId, operatorId, chunkManager, null);
     }
@@ -220,7 +219,6 @@ public final class CityManager extends SavedData {
         return true;
     }
 
-    @SuppressWarnings("unused")
     public Optional<CityMemberData> getMember(UUID cityId, UUID playerId) {
         CityData city = cities.get(cityId);
         return city == null ? Optional.empty() : city.member(playerId);

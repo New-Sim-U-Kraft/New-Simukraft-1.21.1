@@ -2,21 +2,18 @@ package client.cn.kafei.simukraft.client.config;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import dev.vfyjxf.taffy.style.AlignContent;
-import dev.vfyjxf.taffy.style.AlignItems;
-import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+@SuppressWarnings("null")
 final class SimuKraftMaterialConfigPage {
     private static final int LIST_WIDTH = 420;
     private static final int CATEGORY_WIDTH = 600;
     private static final int WINDOW_HEIGHT = 520;
     private static final int MIN_WIDTH = 360;
     private static final int MIN_HEIGHT = 300;
-    private static final int SCREEN_MARGIN = 20;
-    private static final int HEADER_HEIGHT = 36;
+    private static final int HEADER_HEIGHT = 24;
     private static final int FOOTER_HEIGHT = 42;
 
     private SimuKraftMaterialConfigPage() {
@@ -74,7 +71,7 @@ final class SimuKraftMaterialConfigPage {
     }
 
     private static UIElement createUi(Screen parent, SimuKraftServerConfigDraft draft, int preferredWidth, Component title, UIElement editor) {
-        UIElement window = SimuKraftConfigWidgets.window(windowWidth(preferredWidth), windowHeight());
+        UIElement window = SimuKraftConfigWidgets.window(preferredWidth, WINDOW_HEIGHT, MIN_WIDTH, MIN_HEIGHT);
         window.addChild(SimuKraftConfigWidgets.header(title, HEADER_HEIGHT));
         window.addChild(editor.layout(layout -> {
             layout.widthPercent(100);
@@ -85,15 +82,7 @@ final class SimuKraftMaterialConfigPage {
     }
 
     private static UIElement footer(Screen parent, SimuKraftServerConfigDraft draft) {
-        UIElement footer = new UIElement().layout(layout -> {
-            layout.widthPercent(100);
-            layout.height(FOOTER_HEIGHT);
-            layout.flexDirection(FlexDirection.ROW);
-            layout.alignItems(AlignItems.CENTER);
-            layout.justifyContent(AlignContent.CENTER);
-            layout.gapAll(8);
-            layout.flexShrink(0);
-        });
+        UIElement footer = SimuKraftConfigWidgets.footerRow(FOOTER_HEIGHT, 8);
         footer.addChild(footerButton("gui.simukraft.config.save", () -> {
             draft.saveToLive();
             Minecraft.getInstance().setScreen(SimuKraftServerConfigScreen.createMaterialsTab(parent, draft));
@@ -105,20 +94,11 @@ final class SimuKraftMaterialConfigPage {
     private static UIElement footerButton(String key, Runnable action) {
         return SimuKraftConfigWidgets.button(Component.translatable(key), action, true).layout(layout -> {
             layout.width(76);
+            layout.minWidth(60);
+            layout.maxWidth(96);
             layout.height(26);
-            layout.flexShrink(0);
+            layout.flexGrow(1);
+            layout.flexShrink(1);
         });
-    }
-
-    private static int windowWidth(int preferredWidth) {
-        int scaledWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
-        int availableWidth = Math.max(MIN_WIDTH, scaledWidth - SCREEN_MARGIN);
-        return Math.min(preferredWidth, availableWidth);
-    }
-
-    private static int windowHeight() {
-        int scaledHeight = Minecraft.getInstance().getWindow().getGuiScaledHeight();
-        int availableHeight = Math.max(MIN_HEIGHT, scaledHeight - SCREEN_MARGIN);
-        return Math.min(WINDOW_HEIGHT, availableHeight);
     }
 }

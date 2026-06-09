@@ -6,7 +6,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Tab;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
-import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.client.Minecraft;
@@ -15,15 +14,17 @@ import net.minecraft.network.chat.Component;
 
 import java.util.List;
 
+@SuppressWarnings("null")
 public final class SimuKraftServerConfigScreen {
     private static final int WINDOW_WIDTH = 600;
     private static final int MIN_WINDOW_WIDTH = 360;
     private static final int WINDOW_HEIGHT = 520;
     private static final int MIN_WINDOW_HEIGHT = 300;
-    private static final int SCREEN_MARGIN = 20;
     private static final int HEADER_HEIGHT = 36;
     private static final int FOOTER_HEIGHT = 42;
+    private static final int WRAPPED_FOOTER_HEIGHT = 70;
     private static final int TAB_HEADER_HEIGHT = 24;
+    private static final int TAB_COUNT = 5;
 
     private SimuKraftServerConfigScreen() {
     }
@@ -49,18 +50,21 @@ public final class SimuKraftServerConfigScreen {
 
     /** createUi: 组装旧版五 Tab 服务端配置页。 */
     private static UIElement createUi(Screen parent, SimuKraftServerConfigDraft draft, String selectedTabKey) {
-        int windowHeight = windowHeight();
-        UIElement window = SimuKraftConfigWidgets.window(windowWidth(), windowHeight);
+        int windowWidth = SimuKraftConfigWidgets.windowWidth(WINDOW_WIDTH, MIN_WINDOW_WIDTH);
+        int windowHeight = SimuKraftConfigWidgets.windowHeight(WINDOW_HEIGHT, MIN_WINDOW_HEIGHT);
+        int footerHeight = footerHeight(windowWidth);
+        UIElement window = SimuKraftConfigWidgets.window(windowWidth, windowHeight);
         window.addChild(SimuKraftConfigWidgets.header(Component.translatable("gui.simukraft.config.server"), HEADER_HEIGHT));
-        window.addChild(tabs(parent, draft, windowHeight, selectedTabKey));
-        window.addChild(footer(parent, draft));
+        window.addChild(tabs(parent, draft, windowWidth, windowHeight, footerHeight, selectedTabKey));
+        window.addChild(footer(parent, draft, footerHeight));
         return SimuKraftConfigWidgets.screenRoot(window);
     }
 
     /** tabs: 创建旧版五页签。 */
-    private static TabView tabs(Screen parent, SimuKraftServerConfigDraft draft, int windowHeight, String selectedTabKey) {
-        int tabViewHeight = tabViewHeight(windowHeight);
+    private static TabView tabs(Screen parent, SimuKraftServerConfigDraft draft, int windowWidth, int windowHeight, int footerHeight, String selectedTabKey) {
+        int tabViewHeight = tabViewHeight(windowHeight, footerHeight);
         int tabContentHeight = tabContentHeight(tabViewHeight);
+        int tabWidth = tabWidth(windowWidth);
         TabView tabs = new TabView();
         tabs.layout(layout -> {
             layout.widthPercent(100);
@@ -84,43 +88,41 @@ public final class SimuKraftServerConfigScreen {
                 layout.alignItems(AlignItems.STRETCH);
             });
         });
-        Tab general = tab("gui.simukraft.config.tab.general");
+        Tab general = tab("gui.simukraft.config.tab.general", tabWidth);
         tabs.addTab(general, generalPage(draft));
-        tabs.addTab(tab("gui.simukraft.config.tab.npc"), npcPage(draft));
-        tabs.addTab(tab("gui.simukraft.config.tab.planner"), plannerPage(draft));
-        tabs.addTab(tab("gui.simukraft.config.tab.builder"), builderPage(draft));
-        Tab materials = tab("gui.simukraft.config.tab.materials");
+        tabs.addTab(tab("gui.simukraft.config.tab.npc", tabWidth), npcPage(draft));
+        tabs.addTab(tab("gui.simukraft.config.tab.planner", tabWidth), plannerPage(draft));
+        tabs.addTab(tab("gui.simukraft.config.tab.builder", tabWidth), builderPage(draft));
+        Tab materials = tab("gui.simukraft.config.tab.materials", tabWidth);
         tabs.addTab(materials, materialsPage(parent, draft));
         tabs.selectTab("gui.simukraft.config.tab.materials".equals(selectedTabKey) ? materials : general);
         return tabs;
     }
 
-    private static int windowHeight() {
-        int scaledHeight = Minecraft.getInstance().getWindow().getGuiScaledHeight();
-        int availableHeight = Math.max(MIN_WINDOW_HEIGHT, scaledHeight - SCREEN_MARGIN);
-        return Math.min(WINDOW_HEIGHT, availableHeight);
+    private static int footerHeight(int windowWidth) {
+        return windowWidth < 292 ? WRAPPED_FOOTER_HEIGHT : FOOTER_HEIGHT;
     }
 
-    private static int windowWidth() {
-        int scaledWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
-        int availableWidth = Math.max(MIN_WINDOW_WIDTH, scaledWidth - SCREEN_MARGIN);
-        return Math.min(WINDOW_WIDTH, availableWidth);
+    private static int tabWidth(int windowWidth) {
+        int availableWidth = Math.max(1, (windowWidth - 4) / TAB_COUNT);
+        int minWidth = Math.min(40, availableWidth);
+        return Math.max(minWidth, Math.min(64, availableWidth));
     }
 
-    private static int tabViewHeight(int windowHeight) {
-        return Math.max(180, windowHeight - HEADER_HEIGHT - FOOTER_HEIGHT - 4);
+    private static int tabViewHeight(int windowHeight, int footerHeight) {
+        return Math.max(1, windowHeight - HEADER_HEIGHT - footerHeight - 4);
     }
 
     private static int tabContentHeight(int tabViewHeight) {
-        return Math.max(120, tabViewHeight - TAB_HEADER_HEIGHT - 8);
+        return Math.max(1, tabViewHeight - TAB_HEADER_HEIGHT - 8);
     }
 
-    private static Tab tab(String key) {
+    private static Tab tab(String key, int width) {
         Tab tab = new Tab();
         tab.setText(Component.translatable(key));
         tab.textStyle(style -> style.textColor(SimuKraftConfigWidgets.TEXT_TITLE).textShadow(false).textWrap(TextWrap.HIDE));
         tab.layout(layout -> {
-            layout.width(64);
+            layout.width(width);
             layout.height(24);
             layout.flexShrink(0);
         });
@@ -264,16 +266,8 @@ public final class SimuKraftServerConfigScreen {
         return SimuKraftConfigWidgets.scrollColumn(8, 6);
     }
 
-    private static UIElement footer(Screen parent, SimuKraftServerConfigDraft draft) {
-        UIElement footer = new UIElement().layout(layout -> {
-            layout.widthPercent(100);
-            layout.height(FOOTER_HEIGHT);
-            layout.flexDirection(FlexDirection.ROW);
-            layout.alignItems(AlignItems.CENTER);
-            layout.justifyContent(AlignContent.CENTER);
-            layout.gapAll(8);
-            layout.flexShrink(0);
-        });
+    private static UIElement footer(Screen parent, SimuKraftServerConfigDraft draft, int footerHeight) {
+        UIElement footer = SimuKraftConfigWidgets.footerRow(footerHeight, 8);
         footer.addChild(footerButton("gui.simukraft.config.save", () -> draft.saveToLive()));
         footer.addChild(footerButton("gui.simukraft.config.reload", () -> {
             draft.reloadFromLive();
@@ -291,8 +285,11 @@ public final class SimuKraftServerConfigScreen {
     private static UIElement footerButton(String key, Runnable action) {
         return SimuKraftConfigWidgets.button(Component.translatable(key), action, true).layout(layout -> {
             layout.width(64);
+            layout.minWidth(52);
+            layout.maxWidth(76);
             layout.height(26);
-            layout.flexShrink(0);
+            layout.flexGrow(1);
+            layout.flexShrink(1);
         });
     }
 }

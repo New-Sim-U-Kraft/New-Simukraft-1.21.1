@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+@SuppressWarnings("null")
 final class SimuKraftMaterialConfigItems {
     private SimuKraftMaterialConfigItems() {
     }

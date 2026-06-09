@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+@SuppressWarnings("null")
 public final class NpcBlockProtectionPolicy {
     private static final long SKIP_LOG_INTERVAL_TICKS = 200L;
     private static final long LOG_CACHE_TTL_TICKS = 1200L;

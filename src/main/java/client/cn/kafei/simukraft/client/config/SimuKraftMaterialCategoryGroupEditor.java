@@ -25,12 +25,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
+@SuppressWarnings("null")
 final class SimuKraftMaterialCategoryGroupEditor {
     private static final int ROW_HEIGHT = 28;
     private static final int ICON_SIZE = 16;
     private static final int HEADER_COLOR = 0xFFFFAA00;
     private static final int MEMBER_COLOR = 0xFF88AAFF;
     private static final int MAX_SEARCH_RESULTS = 16;
+    private static final int HINT_HEIGHT = 22;
 
     private final CopyOnWriteArrayList<String> groupNames = new CopyOnWriteArrayList<>();
     private final CopyOnWriteArrayList<String> availableItems = new CopyOnWriteArrayList<>(SimuKraftMaterialConfigItems.allItems());
@@ -56,21 +58,41 @@ final class SimuKraftMaterialCategoryGroupEditor {
     }
 
     private UIElement build(Component title, Component hint) {
-        UIElement root = SimuKraftConfigWidgets.column(8, 6);
-        root.addChild(SimuKraftConfigWidgets.section(title));
-        root.addChild(SimuKraftConfigWidgets.label(hint, Horizontal.LEFT, SimuKraftConfigWidgets.TEXT_MUTED, 28, TextWrap.WRAP));
+        UIElement root = SimuKraftConfigWidgets.column(6, 4);
+        root.addChild(SimuKraftConfigWidgets.compactSection(title));
+        root.addChild(SimuKraftConfigWidgets.label(hint, Horizontal.LEFT, SimuKraftConfigWidgets.TEXT_MUTED, HINT_HEIGHT, TextWrap.WRAP));
+        root.addChild(SimuKraftConfigWidgets.isNarrowScreen() ? stackedContent() : splitContent());
+        refreshAll();
+        return root;
+    }
+
+    private UIElement splitContent() {
         UIElement right = SimuKraftConfigWidgets.split(
                 "config.material.category.items.split",
                 50F, 30F, 70F,
                 itemPanel(Component.translatable("gui.simukraft.config.material.headers"), HEADER_COLOR, headerList, this::addHeader),
                 itemPanel(Component.translatable("gui.simukraft.config.material.members"), MEMBER_COLOR, memberList, this::addMember));
-        root.addChild(SimuKraftConfigWidgets.split(
+        return SimuKraftConfigWidgets.split(
                 "config.material.category.group.split",
                 32F, 22F, 48F,
                 groupPanel(),
-                right));
-        refreshAll();
-        return root;
+                right);
+    }
+
+    private UIElement stackedContent() {
+        UIElement column = SimuKraftConfigWidgets.scrollColumn(0, 6);
+        column.addChild(stackedPanel(groupPanel(), 130));
+        column.addChild(stackedPanel(itemPanel(Component.translatable("gui.simukraft.config.material.headers"), HEADER_COLOR, headerList, this::addHeader), 150));
+        column.addChild(stackedPanel(itemPanel(Component.translatable("gui.simukraft.config.material.members"), MEMBER_COLOR, memberList, this::addMember), 150));
+        return SimuKraftConfigWidgets.scroller(column);
+    }
+
+    private UIElement stackedPanel(UIElement panel, int height) {
+        return panel.layout(layout -> {
+            layout.widthPercent(100);
+            layout.height(height);
+            layout.flexShrink(0);
+        });
     }
 
     private UIElement groupPanel() {
