@@ -60,6 +60,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 
 @SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
@@ -76,15 +77,12 @@ public final class CityCoreScreenOpener {
 
     public static void open(CityCoreOpenResponsePacket packet) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null) {
-            return;
-        }
         minecraft.execute(() -> minecraft.setScreen(new com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen(createUi(packet), Component.empty())));
     }
 
     public static void openMembers(CityCoreMembersResponsePacket packet) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null || !(minecraft.screen instanceof com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen)) {
+        if (!(minecraft.screen instanceof com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen)) {
             return;
         }
         minecraft.execute(() -> minecraft.setScreen(new com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen(createUi(packet), Component.empty())));
@@ -92,9 +90,6 @@ public final class CityCoreScreenOpener {
 
     public static void openMap(CityCoreMapResponsePacket packet) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null) {
-            return;
-        }
         Set<Long> chunks = packet.chunks().stream()
                 .map(chunk -> ChunkPos.asLong(chunk.chunkX(), chunk.chunkZ()))
                 .collect(Collectors.toUnmodifiableSet());
@@ -141,11 +136,11 @@ public final class CityCoreScreenOpener {
         return SimuKraftWindowFrame.create(
                 screenSize,
                 Component.translatable("screen.simukraft.city_core.title"),
-                workspace(window.packet, window),
+                workspace(window),
                 CityCoreScreenOpener::close);
     }
 
-    private static UIElement workspace(CityCoreOpenResponsePacket packet, CityCoreWindow window) {
+    private static UIElement workspace(CityCoreWindow window) {
         UIElement body = new UIElement().layout(layout -> {
             layout.widthPercent(100);
             layout.heightPercent(100);
@@ -193,7 +188,7 @@ public final class CityCoreScreenOpener {
             menu.addChild(menuButton("screen.simukraft.city_core.map_title", () -> requestMap(packet)));
         }
         menu.addChild(menuSpacer());
-        menu.addChild(closeButton("screen.simukraft.city_core.close", CityCoreScreenOpener::close));
+        menu.addChild(closeButton(CityCoreScreenOpener::close));
         return menu;
     }
 
@@ -525,9 +520,7 @@ public final class CityCoreScreenOpener {
 
     private static void close() {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft != null) {
-            minecraft.setScreen(null);
-        }
+        minecraft.setScreen(null);
     }
 
     private static Label line(Component component) {
@@ -579,8 +572,8 @@ public final class CityCoreScreenOpener {
         return button;
     }
 
-    private static Button closeButton(String key, Runnable action) {
-        Button button = baseButton(key, action);
+    private static Button closeButton(Runnable action) {
+        Button button = baseButton("screen.simukraft.city_core.close", action);
         button.layout(layout -> {
             layout.width(BACK_BUTTON_WIDTH);
             layout.height(BACK_BUTTON_HEIGHT);
@@ -773,7 +766,7 @@ public final class CityCoreScreenOpener {
         }
 
         @Override
-        public void drawBackgroundAdditional(GUIContext guiContext) {
+        public void drawBackgroundAdditional(@Nonnull GUIContext guiContext) {
             int x = Math.round(getPositionX());
             int y = Math.round(getPositionY());
             int canvasWidth = Math.round(getSizeWidth());
@@ -1078,7 +1071,7 @@ public final class CityCoreScreenOpener {
         }
 
         private void collectBatchClaimChunk(double mouseX, double mouseY) {
-            if (batchClaimChunks.size() >= MAX_BATCH_CLAIM_CHUNKS || !isMouseInsideMap(mouseX, mouseY)) {
+            if (batchClaimChunks.size() >= MAX_BATCH_CLAIM_CHUNKS || isMouseOutsideMap(mouseX, mouseY)) {
                 return;
             }
             int chunkX = screenToChunk(mouseX, mapCenterX(), offsetX, 16.0D * zoomLevel);
@@ -1109,12 +1102,12 @@ public final class CityCoreScreenOpener {
             return (int) Math.floor((screenValue - centerValue - offsetValue) / chunkSize);
         }
 
-        private boolean isMouseInsideMap(double mouseX, double mouseY) {
+        private boolean isMouseOutsideMap(double mouseX, double mouseY) {
             double mapStartX = getPositionX() + MAP_SIDE_PADDING;
             double mapStartY = getPositionY() + MAP_TOP_PADDING;
             double mapWidth = getSizeWidth() - MAP_SIDE_PADDING * 2.0D;
             double mapHeight = getSizeHeight() - MAP_TOP_PADDING - MAP_SIDE_PADDING;
-            return isInside(mouseX, mouseY, mapStartX, mapStartY, mapWidth, mapHeight);
+            return !isInside(mouseX, mouseY, mapStartX, mapStartY, mapWidth, mapHeight);
         }
 
         private double mapCenterX() {
@@ -1134,7 +1127,7 @@ public final class CityCoreScreenOpener {
                 event.stopPropagation();
                 return;
             }
-            if (!isMouseInsideMap(event.x, event.y)) {
+            if (isMouseOutsideMap(event.x, event.y)) {
                 contextMenuVisible = false;
                 return;
             }

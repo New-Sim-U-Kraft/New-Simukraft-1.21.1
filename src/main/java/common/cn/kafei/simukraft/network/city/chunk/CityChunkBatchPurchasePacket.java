@@ -21,6 +21,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nonnull;
 
 @SuppressWarnings("null")
 public record CityChunkBatchPurchasePacket(BlockPos pos, List<ChunkEntry> chunks) implements CustomPacketPayload {
@@ -59,19 +60,21 @@ public record CityChunkBatchPurchasePacket(BlockPos pos, List<ChunkEntry> chunks
     }
 
     // handle：服务端顺序购买多个区块，并只发送一次汇总提示。
+    @SuppressWarnings("resource")
     public static void handle(CityChunkBatchPurchasePacket packet, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player) || !(player.level() instanceof ServerLevel level)) {
+        if (!(context.player() instanceof ServerPlayer player)) {
             return;
         }
-        if (!CityCoreAccessValidator.canAccess(level, player, packet.pos())) {
+        ServerLevel serverLevel = player.serverLevel();
+        if (!CityCoreAccessValidator.canAccess(serverLevel, player, packet.pos())) {
             return;
         }
-        CityService.findCityByCorePos(level, packet.pos()).ifPresent(city -> {
+        CityService.findCityByCorePos(serverLevel, packet.pos()).ifPresent(city -> {
             int purchased = 0;
             int failed = 0;
             Component firstFailure = null;
             for (ChunkEntry chunk : packet.chunks()) {
-                CityClaimService.ClaimResult result = CityClaimService.buyChunk(level, player, city, chunk.chunkX(), chunk.chunkZ());
+                CityClaimService.ClaimResult result = CityClaimService.buyChunk(serverLevel, player, city, chunk.chunkX(), chunk.chunkZ());
                 if (result.success()) {
                     purchased++;
                 } else {
@@ -86,18 +89,18 @@ public record CityChunkBatchPurchasePacket(BlockPos pos, List<ChunkEntry> chunks
                 Component message = failed > 0
                         ? Component.translatable("message.simukraft.city_chunk.batch_claimed_partial", purchased, failed, totalCost)
                         : Component.translatable("message.simukraft.city_chunk.batch_claimed", purchased, totalCost);
-                CityGroupMessageService.successToCity(level, city.cityId(), message);
-                CityChunkSyncService.syncToAll(level);
-                HudSyncService.syncToCityGroup(level, city.cityId(), true);
+                CityGroupMessageService.successToCity(serverLevel, city.cityId(), message);
+                CityChunkSyncService.syncToAll(serverLevel);
+                HudSyncService.syncToCityGroup(serverLevel, city.cityId(), true);
             } else {
                 InfoToastService.warning(player, firstFailure != null ? firstFailure : Component.translatable("message.simukraft.city_chunk.claim_failed"));
             }
-            CityCoreMapRequestPacket.sendMap(level, player, packet.pos());
+            CityCoreMapRequestPacket.sendMap(serverLevel, player, packet.pos());
         });
     }
 
     @Override
-    public Type<? extends CustomPacketPayload> type() {
+    public @Nonnull Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
 

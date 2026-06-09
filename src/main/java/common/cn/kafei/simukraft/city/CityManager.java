@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import javax.annotation.Nonnull;
 
 @SuppressWarnings("null")
 public final class CityManager extends SavedData {
@@ -40,7 +41,7 @@ public final class CityManager extends SavedData {
      * storageLevel: 城市数据是服务器全局数据，统一挂在主世界，避免多维度副本互相覆盖 SQLite。
      */
     private static ServerLevel storageLevel(ServerLevel level) {
-        return level.getServer() != null ? level.getServer().overworld() : level;
+        return level.getServer().overworld();
     }
 
     private static CityManager load(CompoundTag tag, HolderLookup.Provider registries) {
@@ -56,7 +57,7 @@ public final class CityManager extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+    public @Nonnull CompoundTag save(@Nonnull CompoundTag tag, @Nonnull HolderLookup.Provider registries) {
         ListTag cityTags = new ListTag();
         cities.values().forEach(city -> cityTags.add(city.toTag()));
         tag.put("Cities", cityTags);
@@ -195,6 +196,7 @@ public final class CityManager extends SavedData {
         return true;
     }
 
+    @SuppressWarnings("unused")
     public boolean deleteCity(UUID cityId, UUID operatorId, CityChunkManager chunkManager) {
         return deleteCity(cityId, operatorId, chunkManager, null);
     }
@@ -218,6 +220,7 @@ public final class CityManager extends SavedData {
         return true;
     }
 
+    @SuppressWarnings("unused")
     public Optional<CityMemberData> getMember(UUID cityId, UUID playerId) {
         CityData city = cities.get(cityId);
         return city == null ? Optional.empty() : city.member(playerId);
