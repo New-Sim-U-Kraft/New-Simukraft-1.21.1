@@ -1,51 +1,108 @@
 ﻿{
   "id": "fruitShop",
-  "name": "Fruit Shop",
+  "name": "水果店",
   "job": {
     "id": "fruit_seller",
-    "name": "Fruit Seller",
+    "name": "水果店店员",
     "heldItem": "minecraft:melon_slice"
   },
   "containers": {
-    "input": { "type": "structure_pos", "positions": [
-[2, 1, 8], [2, 1, 9]
-] },
-    "output": { "type": "structure_pos", "positions": [
-[2, 1, 8], [2, 1, 9]
-] }
+    "input": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          2,
+          1,
+          8
+        ],
+        [
+          2,
+          1,
+          9
+        ]
+      ]
+    },
+    "output": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          2,
+          1,
+          8
+        ],
+        [
+          2,
+          1,
+          9
+        ]
+      ]
+    }
   },
   "offers": [
     {
       "id": "shop_sells_melon_slice",
       "visibleTo": "mixed",
-      "cost": [{ "money": 0.20 }],
-      "result": [{ "item": "minecraft:melon_slice", "count": 1 }],
+      "cost": [
+        {
+          "money": 0.2
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:melon_slice",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:melon_slice",
         "max": 128,
         "materials": [
-          { "item": "minecraft:melon_slice", "count": 1 }
+          {
+            "item": "minecraft:melon_slice",
+            "count": 1
+          }
         ]
       }
     },
     {
       "id": "shop_sells_pumpkin",
       "visibleTo": "mixed",
-      "cost": [{ "money": 1.00 }],
-      "result": [{ "item": "minecraft:pumpkin", "count": 1 }],
+      "cost": [
+        {
+          "money": 1.0
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:pumpkin",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:pumpkin",
         "max": 64,
         "materials": [
-          { "item": "minecraft:pumpkin", "count": 1 }
+          {
+            "item": "minecraft:pumpkin",
+            "count": 1
+          }
         ]
       }
     },
     {
       "id": "shop_buys_sweet_berries",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:sweet_berries", "count": 16 }],
-      "result": [{ "money": 2.40 }],
+      "cost": [
+        {
+          "item": "minecraft:sweet_berries",
+          "count": 16
+        }
+      ],
+      "result": [
+        {
+          "money": 2.4
+        }
+      ],
       "stock": {
         "item": "minecraft:sweet_berries",
         "max": 256
@@ -54,8 +111,18 @@
     {
       "id": "exchange_pumpkin_for_melon",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:pumpkin", "count": 1 }],
-      "result": [{ "item": "minecraft:melon_slice", "count": 4 }],
+      "cost": [
+        {
+          "item": "minecraft:pumpkin",
+          "count": 1
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:melon_slice",
+          "count": 4
+        }
+      ],
       "stock": {
         "item": "minecraft:melon_slice",
         "max": 128

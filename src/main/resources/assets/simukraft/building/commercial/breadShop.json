@@ -1,38 +1,83 @@
 ﻿{
   "id": "breadShop",
-  "name": "Bread Shop",
+  "name": "面包店",
   "job": {
     "id": "bread_shop_owner",
-    "name": "闈㈠寘搴楄€佹澘",
+    "name": "面包店老板",
     "heldItem": "minecraft:bread"
   },
   "containers": {
-    "input": { "type": "structure_pos", "positions": [
-[4, 1, 3], [5, 1, 3]
-] },
-    "output": { "type": "structure_pos", "positions": [
-[4, 1, 3], [5, 1, 3]
-] }
+    "input": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          4,
+          1,
+          3
+        ],
+        [
+          5,
+          1,
+          3
+        ]
+      ]
+    },
+    "output": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          4,
+          1,
+          3
+        ],
+        [
+          5,
+          1,
+          3
+        ]
+      ]
+    }
   },
   "offers": [
     {
       "id": "shop_sells_bread",
       "visibleTo": "mixed",
-      "cost": [{ "money": 0.25 }],
-      "result": [{ "item": "minecraft:bread", "count": 1 }],
+      "cost": [
+        {
+          "money": 0.25
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:bread",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:bread",
         "max": 64,
         "materials": [
-          { "item": "minecraft:wheat", "count": 3 }
+          {
+            "item": "minecraft:wheat",
+            "count": 3
+          }
         ]
       }
     },
     {
       "id": "shop_sells_cake",
       "visibleTo": "player",
-      "cost": [{ "money": 3.00 }],
-      "result": [{ "item": "minecraft:cake", "count": 1 }],
+      "cost": [
+        {
+          "money": 3.0
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:cake",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:cake",
         "max": 16,
@@ -44,8 +89,17 @@
     {
       "id": "shop_buys_wheat",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:wheat", "count": 16 }],
-      "result": [{ "money": 3.20 }],
+      "cost": [
+        {
+          "item": "minecraft:wheat",
+          "count": 16
+        }
+      ],
+      "result": [
+        {
+          "money": 3.2
+        }
+      ],
       "stock": {
         "item": "minecraft:wheat",
         "max": 256
@@ -54,8 +108,18 @@
     {
       "id": "exchange_wheat_for_bread",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:wheat", "count": 3 }],
-      "result": [{ "item": "minecraft:bread", "count": 1 }],
+      "cost": [
+        {
+          "item": "minecraft:wheat",
+          "count": 3
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:bread",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:bread",
         "max": 64

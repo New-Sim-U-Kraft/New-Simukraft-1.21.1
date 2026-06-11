@@ -1,25 +1,48 @@
 ﻿{
   "id": "bar",
-  "name": "Bar",
+  "name": "酒馆",
   "job": {
     "id": "bartender",
-    "name": "Bartender",
+    "name": "调酒师",
     "heldItem": "minecraft:honey_bottle"
   },
   "containers": {
-    "input": { "type": "structure_pos", "positions": [
-[11, 0, 1]
-] },
-    "output": { "type": "structure_pos", "positions": [
-[11, 0, 1]
-] }
+    "input": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          11,
+          0,
+          1
+        ]
+      ]
+    },
+    "output": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          11,
+          0,
+          1
+        ]
+      ]
+    }
   },
   "offers": [
     {
       "id": "shop_sells_honey_bottle",
       "visibleTo": "mixed",
-      "cost": [{ "money": 2.00 }],
-      "result": [{ "item": "minecraft:honey_bottle", "count": 1 }],
+      "cost": [
+        {
+          "money": 2.0
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:honey_bottle",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:honey_bottle",
         "max": 96,
@@ -31,8 +54,17 @@
     {
       "id": "shop_sells_bread",
       "visibleTo": "mixed",
-      "cost": [{ "money": 0.40 }],
-      "result": [{ "item": "minecraft:bread", "count": 1 }],
+      "cost": [
+        {
+          "money": 0.4
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:bread",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:bread",
         "max": 96,
@@ -44,8 +76,17 @@
     {
       "id": "shop_buys_glass_bottle",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:glass_bottle", "count": 8 }],
-      "result": [{ "money": 1.20 }],
+      "cost": [
+        {
+          "item": "minecraft:glass_bottle",
+          "count": 8
+        }
+      ],
+      "result": [
+        {
+          "money": 1.2
+        }
+      ],
       "stock": {
         "item": "minecraft:glass_bottle",
         "max": 192
@@ -54,8 +95,18 @@
     {
       "id": "exchange_bottles_for_honey",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:glass_bottle", "count": 4 }],
-      "result": [{ "item": "minecraft:honey_bottle", "count": 1 }],
+      "cost": [
+        {
+          "item": "minecraft:glass_bottle",
+          "count": 4
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:honey_bottle",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:honey_bottle",
         "max": 96

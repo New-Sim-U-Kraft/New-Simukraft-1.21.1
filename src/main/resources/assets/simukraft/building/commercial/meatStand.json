@@ -1,9 +1,9 @@
 ﻿{
   "id": "meatStand",
-  "name": "鑲夋憡",
+  "name": "肉摊",
   "job": {
     "id": "meat_stand_owner",
-    "name": "鑲夋憡灞犲か",
+    "name": "肉摊老板",
     "heldItem": "minecraft:cooked_chicken"
   },
   "containers": {

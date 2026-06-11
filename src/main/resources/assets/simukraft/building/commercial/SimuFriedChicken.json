@@ -1,64 +1,123 @@
 ﻿{
   "id": "SimuFriedChicken",
-  "name": "Simu Fried Chicken",
+  "name": "肯打鸡",
   "job": {
     "id": "fried_chicken_owner",
-    "name": "鑲墦楦℃湇鍔″憳",
+    "name": "肯打鸡服务员",
     "heldItem": "minecraft:cooked_chicken"
   },
   "containers": {
-    "input": { "type": "structure_pos", "positions": [
-[4, 1, 5]
-] },
-    "output": { "type": "structure_pos", "positions": [
-[4, 1, 5]
-] }
+    "input": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          4,
+          1,
+          5
+        ]
+      ]
+    },
+    "output": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          4,
+          1,
+          5
+        ]
+      ]
+    }
   },
   "offers": [
     {
       "id": "shop_sells_cooked_chicken",
       "visibleTo": "mixed",
-      "cost": [{ "money": 2.00 }],
-      "result": [{ "item": "minecraft:cooked_chicken", "count": 1 }],
+      "cost": [
+        {
+          "money": 2.0
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:cooked_chicken",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:cooked_chicken",
         "max": 64,
         "materials": [
-          { "item": "minecraft:chicken", "count": 1 }
+          {
+            "item": "minecraft:chicken",
+            "count": 1
+          }
         ]
       }
     },
     {
       "id": "shop_sells_bread",
       "visibleTo": "mixed",
-      "cost": [{ "money": 1.00 }],
-      "result": [{ "item": "minecraft:bread", "count": 1 }],
+      "cost": [
+        {
+          "money": 1.0
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:bread",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:bread",
         "max": 64,
         "materials": [
-          { "item": "minecraft:wheat", "count": 3 }
+          {
+            "item": "minecraft:wheat",
+            "count": 3
+          }
         ]
       }
     },
     {
       "id": "shop_sells_baked_potato",
       "visibleTo": "mixed",
-      "cost": [{ "money": 0.50 }],
-      "result": [{ "item": "minecraft:baked_potato", "count": 1 }],
+      "cost": [
+        {
+          "money": 0.5
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:baked_potato",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:baked_potato",
         "max": 64,
         "materials": [
-          { "item": "minecraft:potato", "count": 1 }
+          {
+            "item": "minecraft:potato",
+            "count": 1
+          }
         ]
       }
     },
     {
       "id": "shop_buys_chicken",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:chicken", "count": 8 }],
-      "result": [{ "money": 12.80 }],
+      "cost": [
+        {
+          "item": "minecraft:chicken",
+          "count": 8
+        }
+      ],
+      "result": [
+        {
+          "money": 12.8
+        }
+      ],
       "stock": {
         "item": "minecraft:chicken",
         "max": 128
@@ -67,8 +126,17 @@
     {
       "id": "shop_buys_potato",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:potato", "count": 16 }],
-      "result": [{ "money": 4.80 }],
+      "cost": [
+        {
+          "item": "minecraft:potato",
+          "count": 16
+        }
+      ],
+      "result": [
+        {
+          "money": 4.8
+        }
+      ],
       "stock": {
         "item": "minecraft:potato",
         "max": 256
@@ -77,8 +145,18 @@
     {
       "id": "exchange_chicken_for_cooked_chicken",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:chicken", "count": 1 }],
-      "result": [{ "item": "minecraft:cooked_chicken", "count": 1 }],
+      "cost": [
+        {
+          "item": "minecraft:chicken",
+          "count": 1
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:cooked_chicken",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:cooked_chicken",
         "max": 64
@@ -87,8 +165,18 @@
     {
       "id": "exchange_potato_for_baked_potato",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:potato", "count": 1 }],
-      "result": [{ "item": "minecraft:baked_potato", "count": 1 }],
+      "cost": [
+        {
+          "item": "minecraft:potato",
+          "count": 1
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:baked_potato",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:baked_potato",
         "max": 64

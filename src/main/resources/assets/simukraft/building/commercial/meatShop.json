@@ -1,9 +1,9 @@
 ﻿{
   "id": "meatShop",
-  "name": "鑲夐摵",
+  "name": "肉店",
   "job": {
     "id": "meat_shop_owner",
-    "name": "灞犲か",
+    "name": "肉店老板",
     "heldItem": "minecraft:cooked_beef"
   },
   "containers": {

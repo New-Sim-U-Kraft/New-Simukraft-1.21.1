@@ -73,6 +73,26 @@ public final class SimuKraftCommand {
                                                 .executes(context -> addFundsToPlayerCity(
                                                         context.getSource(),
                                                         DoubleArgumentType.getDouble(context, "amount"),
+                                                        EntityArgument.getPlayer(context, "player"))))))
+                        .then(Commands.literal("remove")
+                                .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01D))
+                                        .executes(context -> removeFundsFromSelfCity(
+                                                context.getSource(),
+                                                DoubleArgumentType.getDouble(context, "amount")))
+                                        .then(Commands.argument("player", EntityArgument.player())
+                                                .executes(context -> removeFundsFromPlayerCity(
+                                                        context.getSource(),
+                                                        DoubleArgumentType.getDouble(context, "amount"),
+                                                        EntityArgument.getPlayer(context, "player"))))))
+                        .then(Commands.literal("set")
+                                .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.0D))
+                                        .executes(context -> setFundsForSelfCity(
+                                                context.getSource(),
+                                                DoubleArgumentType.getDouble(context, "amount")))
+                                        .then(Commands.argument("player", EntityArgument.player())
+                                                .executes(context -> setFundsForPlayerCity(
+                                                        context.getSource(),
+                                                        DoubleArgumentType.getDouble(context, "amount"),
                                                         EntityArgument.getPlayer(context, "player")))))))
                 .then(Commands.literal("citizens")
                         .requires(source -> source.hasPermission(2))
@@ -351,6 +371,86 @@ public final class SimuKraftCommand {
         source.sendSuccess(() -> Component.translatable(
                 "message.simukraft.command.city_funds.added",
                 amountText,
+                city.get().cityName(),
+                targetPlayer.getGameProfile().getName(),
+                balanceText
+        ), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int removeFundsFromSelfCity(CommandSourceStack source, double amount) {
+        ServerPlayer sourcePlayer = source.getPlayer();
+        if (sourcePlayer == null) {
+            source.sendFailure(Component.translatable("message.simukraft.command.city_funds.player_required"));
+            return 0;
+        }
+        return removeFundsFromPlayerCity(source, amount, sourcePlayer);
+    }
+
+    private static int removeFundsFromPlayerCity(CommandSourceStack source, double amount, ServerPlayer targetPlayer) {
+        if (targetPlayer == null) {
+            source.sendFailure(Component.translatable("message.simukraft.command.city_funds.player_required"));
+            return 0;
+        }
+        double normalizedAmount = EconomyService.normalizeAmount(amount);
+        if (normalizedAmount <= 0.0D) {
+            source.sendFailure(Component.translatable("message.simukraft.command.city_funds.invalid_amount"));
+            return 0;
+        }
+        ServerLevel level = targetPlayer.serverLevel();
+        Optional<CityData> city = CityService.findPlayerCity(level, targetPlayer.getUUID());
+        if (city.isEmpty()) {
+            source.sendFailure(Component.translatable("message.simukraft.command.city_funds.no_city", targetPlayer.getGameProfile().getName()));
+            return 0;
+        }
+        ServerPlayer actor = source.getPlayer();
+        if (!EconomyService.withdrawCityFunds(level, city.get().cityId(), actor, normalizedAmount, "command_remove_funds")) {
+            source.sendFailure(Component.translatable("message.simukraft.command.city_funds.failed"));
+            return 0;
+        }
+        syncCityMembersHud(level, city.get());
+        double balance = EconomyService.getCityBalance(level, city.get().cityId());
+        String amountText = String.format(Locale.ROOT, "%.2f", normalizedAmount);
+        String balanceText = String.format(Locale.ROOT, "%.2f", balance);
+        source.sendSuccess(() -> Component.translatable(
+                "message.simukraft.command.city_funds.removed",
+                amountText,
+                city.get().cityName(),
+                targetPlayer.getGameProfile().getName(),
+                balanceText
+        ), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int setFundsForSelfCity(CommandSourceStack source, double amount) {
+        ServerPlayer sourcePlayer = source.getPlayer();
+        if (sourcePlayer == null) {
+            source.sendFailure(Component.translatable("message.simukraft.command.city_funds.player_required"));
+            return 0;
+        }
+        return setFundsForPlayerCity(source, amount, sourcePlayer);
+    }
+
+    private static int setFundsForPlayerCity(CommandSourceStack source, double amount, ServerPlayer targetPlayer) {
+        if (targetPlayer == null) {
+            source.sendFailure(Component.translatable("message.simukraft.command.city_funds.player_required"));
+            return 0;
+        }
+        double normalizedAmount = EconomyService.normalizeAmount(amount);
+        ServerLevel level = targetPlayer.serverLevel();
+        Optional<CityData> city = CityService.findPlayerCity(level, targetPlayer.getUUID());
+        if (city.isEmpty()) {
+            source.sendFailure(Component.translatable("message.simukraft.command.city_funds.no_city", targetPlayer.getGameProfile().getName()));
+            return 0;
+        }
+        if (!CityService.setFunds(level, city.get().cityId(), normalizedAmount)) {
+            source.sendFailure(Component.translatable("message.simukraft.command.city_funds.failed"));
+            return 0;
+        }
+        syncCityMembersHud(level, city.get());
+        String balanceText = String.format(Locale.ROOT, "%.2f", normalizedAmount);
+        source.sendSuccess(() -> Component.translatable(
+                "message.simukraft.command.city_funds.set",
                 city.get().cityName(),
                 targetPlayer.getGameProfile().getName(),
                 balanceText

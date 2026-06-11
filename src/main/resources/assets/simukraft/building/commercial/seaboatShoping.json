@@ -1,51 +1,118 @@
 ﻿{
   "id": "seaboatShoping",
-  "name": "娴疯埗涔嬪晢",
+  "name": "海舶之商",
   "job": {
     "id": "fish_seller",
-    "name": "姘翠骇搴楄€佹澘",
+    "name": "水产店老板",
     "heldItem": "minecraft:cooked_cod"
   },
   "containers": {
-    "input": { "type": "structure_pos", "positions": [
-[13, 3, 2], [14, 3, 2], [2, 6, 4]
-] },
-    "output": { "type": "structure_pos", "positions": [
-[13, 3, 2], [14, 3, 2], [2, 6, 4]
-] }
+    "input": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          13,
+          3,
+          2
+        ],
+        [
+          14,
+          3,
+          2
+        ],
+        [
+          2,
+          6,
+          4
+        ]
+      ]
+    },
+    "output": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          13,
+          3,
+          2
+        ],
+        [
+          14,
+          3,
+          2
+        ],
+        [
+          2,
+          6,
+          4
+        ]
+      ]
+    }
   },
   "offers": [
     {
       "id": "shop_sells_cooked_cod",
       "visibleTo": "mixed",
-      "cost": [{ "money": 0.50 }],
-      "result": [{ "item": "minecraft:cooked_cod", "count": 1 }],
+      "cost": [
+        {
+          "money": 0.5
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:cooked_cod",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:cooked_cod",
         "max": 64,
         "materials": [
-          { "item": "minecraft:cod", "count": 1 }
+          {
+            "item": "minecraft:cod",
+            "count": 1
+          }
         ]
       }
     },
     {
       "id": "shop_sells_cooked_salmon",
       "visibleTo": "mixed",
-      "cost": [{ "money": 50.00 }],
-      "result": [{ "item": "minecraft:cooked_salmon", "count": 1 }],
+      "cost": [
+        {
+          "money": 50.0
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:cooked_salmon",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:cooked_salmon",
         "max": 64,
         "materials": [
-          { "item": "minecraft:salmon", "count": 1 }
+          {
+            "item": "minecraft:salmon",
+            "count": 1
+          }
         ]
       }
     },
     {
       "id": "shop_buys_cod",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:cod", "count": 8 }],
-      "result": [{ "money": 3.20 }],
+      "cost": [
+        {
+          "item": "minecraft:cod",
+          "count": 8
+        }
+      ],
+      "result": [
+        {
+          "money": 3.2
+        }
+      ],
       "stock": {
         "item": "minecraft:cod",
         "max": 128
@@ -54,8 +121,17 @@
     {
       "id": "shop_buys_salmon",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:salmon", "count": 8 }],
-      "result": [{ "money": 5.60 }],
+      "cost": [
+        {
+          "item": "minecraft:salmon",
+          "count": 8
+        }
+      ],
+      "result": [
+        {
+          "money": 5.6
+        }
+      ],
       "stock": {
         "item": "minecraft:salmon",
         "max": 128
@@ -64,8 +140,18 @@
     {
       "id": "exchange_cod_for_cooked_cod",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:cod", "count": 1 }],
-      "result": [{ "item": "minecraft:cooked_cod", "count": 1 }],
+      "cost": [
+        {
+          "item": "minecraft:cod",
+          "count": 1
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:cooked_cod",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:cooked_cod",
         "max": 64
@@ -74,8 +160,18 @@
     {
       "id": "exchange_salmon_for_cooked_salmon",
       "visibleTo": "player",
-      "cost": [{ "item": "minecraft:salmon", "count": 1 }],
-      "result": [{ "item": "minecraft:cooked_salmon", "count": 1 }],
+      "cost": [
+        {
+          "item": "minecraft:salmon",
+          "count": 1
+        }
+      ],
+      "result": [
+        {
+          "item": "minecraft:cooked_salmon",
+          "count": 1
+        }
+      ],
       "stock": {
         "item": "minecraft:cooked_salmon",
         "max": 64
