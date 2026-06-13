@@ -270,6 +270,18 @@ public final class CitizenManager extends SavedData {
         setDirty();
     }
 
+    public void releaseCity(UUID cityId, ServerLevel level) {
+        citizens.values().stream()
+                .filter(d -> Objects.equals(cityId, d.cityId()))
+                .map(CitizenData::uuid)
+                .toList()
+                .forEach(uuid -> {
+                    CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, uuid);
+                    if (entity != null) entity.discard();
+                    removeCitizen(uuid);
+                });
+    }
+
     public void tick(ServerLevel level) {
         if (level == null || this.level != null && this.level != level) {
             return;

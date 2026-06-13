@@ -244,6 +244,15 @@ public final class LogisticsManager extends SavedData {
         setDirty();
     }
 
+    public synchronized void releaseCity(UUID cityId) {
+        List.copyOf(warehouses(cityId)).forEach(w -> updateWarehouse(w.withNoCityId()));
+        Set<UUID> cids = clientsByCity.get(cityId);
+        if (cids != null) {
+            Set.copyOf(cids).stream().map(clients::get).filter(c -> c != null)
+                    .forEach(c -> updateClient(c.withNoCityId()));
+        }
+    }
+
     private void persistWarehouse(LogisticsWarehouseData data) {
         if (level != null && data != null) {
             SimuSqliteStorage.saveLogisticsWarehouse(level, data.toTag());

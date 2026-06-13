@@ -56,7 +56,13 @@ public final class CitySqliteRepository {
             return;
         }
         try (Connection connection = database.openConnection();
+             PreparedStatement deleteBuildingTasks = connection.prepareStatement("DELETE FROM building_tasks WHERE city_id = ?");
+             PreparedStatement deletePlanningTasks = connection.prepareStatement("DELETE FROM planning_tasks WHERE city_id = ?");
              PreparedStatement statement = connection.prepareStatement("DELETE FROM cities WHERE city_id = ?")) {
+            deleteBuildingTasks.setString(1, cityId.toString());
+            deleteBuildingTasks.executeUpdate();
+            deletePlanningTasks.setString(1, cityId.toString());
+            deletePlanningTasks.executeUpdate();
             statement.setString(1, cityId.toString());
             statement.executeUpdate();
         } catch (SQLException exception) {

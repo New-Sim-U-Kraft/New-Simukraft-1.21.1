@@ -48,6 +48,10 @@ public record LogisticsClientData(UUID clientId,
         return new LogisticsClientData(clientId, boxPos, cityId, dimensionId, name, automatic, sourceType, sourceId, nextPorts, gameTime);
     }
 
+    public LogisticsClientData withNoCityId() {
+        return new LogisticsClientData(clientId, boxPos, null, dimensionId, name, automatic, sourceType, sourceId, ports, updatedAt);
+    }
+
     public CompoundTag toTag() {
         CompoundTag tag = new CompoundTag();
         tag.putUUID("ClientId", clientId);

@@ -29,6 +29,10 @@ public record LogisticsWarehouseData(UUID warehouseId,
         return new LogisticsWarehouseData(warehouseId, boxPos, cityId, dimensionId, nextContainers, gameTime);
     }
 
+    public LogisticsWarehouseData withNoCityId() {
+        return new LogisticsWarehouseData(warehouseId, boxPos, null, dimensionId, containers, updatedAt);
+    }
+
     public CompoundTag toTag() {
         CompoundTag tag = new CompoundTag();
         tag.putUUID("WarehouseId", warehouseId);

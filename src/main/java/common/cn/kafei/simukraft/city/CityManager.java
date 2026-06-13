@@ -1,7 +1,9 @@
 package common.cn.kafei.simukraft.city;
 
 import common.cn.kafei.simukraft.SimuKraft;
+import common.cn.kafei.simukraft.citizen.CitizenManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
+import common.cn.kafei.simukraft.logistics.LogisticsManager;
 import common.cn.kafei.simukraft.storage.SimuSqliteStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -224,6 +226,11 @@ public final class CityManager extends SavedData {
         }
         if (poiManager != null) {
             poiManager.releaseCity(cityId);
+        }
+        ServerLevel currentLevel = level;
+        if (currentLevel != null) {
+            CitizenManager.get(currentLevel).releaseCity(cityId, currentLevel);
+            LogisticsManager.get(currentLevel).releaseCity(cityId);
         }
         deleteCityIncremental(cityId);
         setDirty();

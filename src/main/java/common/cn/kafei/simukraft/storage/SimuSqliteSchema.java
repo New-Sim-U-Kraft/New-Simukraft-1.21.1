@@ -37,6 +37,7 @@ public final class SimuSqliteSchema {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS logistics_ports(owner_id TEXT NOT NULL, owner_type TEXT NOT NULL, port_id TEXT NOT NULL, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT '', pos_long INTEGER NOT NULL, PRIMARY KEY(owner_id, owner_type, port_id))");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS logistics_channels(channel_id TEXT PRIMARY KEY, warehouse_id TEXT NOT NULL, client_id TEXT NOT NULL, direction TEXT NOT NULL, name TEXT NOT NULL DEFAULT '', enabled INTEGER NOT NULL DEFAULT 1, filters TEXT NOT NULL DEFAULT '[]', updated_at INTEGER NOT NULL DEFAULT 0)");
             dropColumnIfPresent(connection, "citizens", "hunger");
+            addColumnIfMissing(connection, "cities", "city_level", "INTEGER NOT NULL DEFAULT 0");
             addColumnIfMissing(connection, "citizens", "workplace_pos_long", "INTEGER");
             addColumnIfMissing(connection, "building_tasks", "amount", "TEXT NOT NULL DEFAULT ''");
             addColumnIfMissing(connection, "planning_tasks", "material_chest_long", "INTEGER");

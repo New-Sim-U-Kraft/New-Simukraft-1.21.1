@@ -48,6 +48,9 @@ final class NpcHireAccessValidator {
             return null;
         }
         UUID cityId = resolveCityId(level, sourcePos, normalizedSource, normalizedRole);
+        if (cityId == null && BUILD_BOX_SOURCE_TYPE.equals(normalizedSource)) {
+            cityId = CityService.findManagedPlayerCity(level, player.getUUID()).map(c -> c.cityId()).orElse(null);
+        }
         if (cityId == null || !CityService.canManageCity(level, cityId, player.getUUID())) {
             InfoToastService.warning(player, Component.translatable("message.simukraft.hire_npc.no_permission"));
             return null;
