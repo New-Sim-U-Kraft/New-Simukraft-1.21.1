@@ -206,7 +206,7 @@ public final class CommercialTradeUiRoot extends UIElement {
         if (event.button != 0 || offer == null || !canTrade(offer)) {
             return;
         }
-        tradeSelected(event.isShiftDown());
+        tradeSelected(true);
         event.stopImmediatePropagation();
     }
 
@@ -567,6 +567,11 @@ public final class CommercialTradeUiRoot extends UIElement {
         ItemSlot slot = new ItemSlot(new LocalSlot() {
             @Override
             public boolean mayPickup(Player player) {
+                return false;
+            }
+
+            @Override
+            public boolean mayPlace(ItemStack stack) {
                 return false;
             }
         });
