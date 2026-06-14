@@ -180,15 +180,7 @@ public final class IndustrialControlBoxService {
     }
 
     public static PlacedBuildingRecord resolveBuilding(ServerLevel level, BlockPos boxPos) {
-        PlacedBuildingRecord building = PlacedBuildingService.findByContainedPos(level, boxPos);
-        if (building == null) {
-            return null;
-        }
-        String category = building.category() != null ? building.category().toLowerCase(Locale.ROOT) : "";
-        if (!"industry".equals(category) && !"industrial".equals(category)) {
-            return null;
-        }
-        return building;
+        return PlacedBuildingService.findByContainedPosAndCategory(level, boxPos, "industry", "industrial");
     }
 
     public static CitizenData findAssignedWorker(ServerLevel level, BlockPos boxPos) {

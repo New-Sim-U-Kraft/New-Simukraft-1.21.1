@@ -133,12 +133,7 @@ public final class CommercialControlBoxService {
 
     /** resolveBuilding: 解析商业控制箱所属商业建筑。 */
     public static PlacedBuildingRecord resolveBuilding(ServerLevel level, BlockPos boxPos) {
-        PlacedBuildingRecord building = PlacedBuildingService.findByContainedPos(level, boxPos);
-        if (building == null) {
-            return null;
-        }
-        String category = building.category() != null ? building.category().toLowerCase(Locale.ROOT) : "";
-        return "commercial".equals(category) || "commerce".equals(category) ? building : null;
+        return PlacedBuildingService.findByContainedPosAndCategory(level, boxPos, "commercial", "commerce");
     }
 
     /** findAssignedWorker: 查找分配给商业控制箱的员工。 */

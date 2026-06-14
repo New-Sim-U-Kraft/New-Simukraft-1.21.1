@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerLevel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -108,6 +109,24 @@ public final class PlacedBuildingService {
         for (PlacedBuildingRecord record : getBuildings(level)) {
             if (isInside(pos, record.minPos(), record.maxPos())) {
                 return record;
+            }
+        }
+        return null;
+    }
+
+    public static PlacedBuildingRecord findByContainedPosAndCategory(ServerLevel level, BlockPos pos, String... categories) {
+        if (level == null || pos == null || categories == null || categories.length == 0) {
+            return null;
+        }
+        for (PlacedBuildingRecord record : getBuildings(level)) {
+            if (!isInside(pos, record.minPos(), record.maxPos())) {
+                continue;
+            }
+            String cat = record.category() != null ? record.category().toLowerCase(Locale.ROOT) : "";
+            for (String expected : categories) {
+                if (expected != null && expected.toLowerCase(Locale.ROOT).equals(cat)) {
+                    return record;
+                }
             }
         }
         return null;

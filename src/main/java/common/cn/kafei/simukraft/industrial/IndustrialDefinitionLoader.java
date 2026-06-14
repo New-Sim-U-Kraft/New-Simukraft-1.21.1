@@ -53,7 +53,7 @@ public final class IndustrialDefinitionLoader {
     }
 
     private static LoadResult loadBundled(String baseName) {
-        String resourcePath = "/assets/" + SimuKraft.MOD_ID + "/industrial/" + baseName + ".json";
+        String resourcePath = "/assets/" + SimuKraft.MOD_ID + "/building/industry/" + baseName + ".json";
         try (var input = IndustrialDefinitionLoader.class.getResourceAsStream(resourcePath)) {
             if (input == null) {
                 return LoadResult.missing("missing_industrial_json");
