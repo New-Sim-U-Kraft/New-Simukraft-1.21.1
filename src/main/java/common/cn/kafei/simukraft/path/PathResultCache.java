@@ -1,26 +1,27 @@
 package common.cn.kafei.simukraft.path;
 
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
+/** Bounded LRU cache of successful path results, keyed by request signature. */
 final class PathResultCache {
     private static final int MAX_ENTRIES = 512;
-    private final ConcurrentMap<PathCacheKey, CacheEntry> entries = new ConcurrentHashMap<>();
+    private final LinkedHashMap<PathCacheKey, CacheEntry> entries =
+            new LinkedHashMap<>(16, 0.75f, true);
 
-    PathResult get(PathCacheKey key, long gameTime) {
+    synchronized PathResult get(PathCacheKey key, long gameTime) {
         CacheEntry entry = entries.get(key);
         if (entry == null || entry.expiresAt < gameTime) {
             if (entry != null) {
-                entries.remove(key, entry);
+                entries.remove(key);
             }
             return null;
         }
         return entry.result;
     }
 
-    void put(PathCacheKey key, PathResult result, long gameTime, int ttlTicks) {
+    synchronized void put(PathCacheKey key, PathResult result, long gameTime, int ttlTicks) {
         if (key == null || result == null || !result.success() || ttlTicks <= 0) {
             return;
         }
@@ -30,29 +31,22 @@ final class PathResultCache {
         entries.put(key, new CacheEntry(result, gameTime + ttlTicks));
     }
 
-    void clear() {
+    synchronized void clear() {
         entries.clear();
     }
 
-    void cleanup(long gameTime) {
-        for (Iterator<Map.Entry<PathCacheKey, CacheEntry>> iterator = entries.entrySet().iterator(); iterator.hasNext();) {
-            Map.Entry<PathCacheKey, CacheEntry> entry = iterator.next();
-            if (entry.getValue().expiresAt < gameTime) {
-                iterator.remove();
-            }
-        }
+    synchronized void cleanup(long gameTime) {
+        entries.entrySet().removeIf(entry -> entry.getValue().expiresAt < gameTime);
     }
 
+    // entries iterates in access order (least-recently-used first), so evicting from the
+    // front discards the coldest entries rather than an arbitrary hash-order slice.
     private void trim(long gameTime) {
         cleanup(gameTime);
-        if (entries.size() < MAX_ENTRIES) {
-            return;
-        }
-        int removed = 0;
-        for (Iterator<PathCacheKey> iterator = entries.keySet().iterator(); iterator.hasNext() && removed < 64;) {
+        for (Iterator<Map.Entry<PathCacheKey, CacheEntry>> iterator = entries.entrySet().iterator();
+                iterator.hasNext() && entries.size() >= MAX_ENTRIES;) {
             iterator.next();
             iterator.remove();
-            removed++;
         }
     }
 

@@ -218,8 +218,8 @@ class HybridPathfinderRegressionTest {
         assertFalse(PathSnapshotBuilder.isGridFloorSupport(feetCell, PathSnapshotBuilder.supportTop(supportPos,
                         closedBottomTrapDoor.getCollisionShape(EmptyBlockGetter.INSTANCE, supportPos))),
                 "bottom trapdoor below the feet cell was lifted into the upper grid as a false floor");
-        assertTrue(Double.isNaN(PathSnapshotBuilder.supportTop(supportPos,
-                        openTrapDoor.getCollisionShape(EmptyBlockGetter.INSTANCE, supportPos))),
+        assertTrue(PathSnapshotBuilder.supportTop(supportPos,
+                        openTrapDoor.getCollisionShape(EmptyBlockGetter.INSTANCE, supportPos)).isEmpty(),
                 "open vertical trapdoor below the feet cell should not support the centred footprint");
     }
 

@@ -19,6 +19,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+import java.util.OptionalDouble;
+
 /**
  * Samples the live world on the server thread into an immutable {@link PathSnapshot}.
  *
@@ -189,27 +191,27 @@ final class PathSnapshotBuilder {
             return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), pos.getY(), false, true, false, 8.0D);
         }
         if (isClosedWoodenLowerDoor(foot) && isMatchingWoodenDoorHead(head)) {
-            double standY = supportTop(cache, pos.below(), below);
-            if (isGridFloorSupport(pos, standY) && hasNpcClearance(cache, pos, standY, pos, pos.above())) {
-                return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), standY, false, false, true, 3.2D);
+            OptionalDouble doorStandY = supportTop(cache, pos.below(), below);
+            if (isGridFloorSupport(pos, doorStandY) && hasNpcClearance(cache, pos, doorStandY.getAsDouble(), pos, pos.above())) {
+                return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), doorStandY.getAsDouble(), false, false, true, 3.2D);
             }
         }
         if (!isFootPassable(cache, pos, foot) || !isHeadPassable(cache, pos.above(), head)) {
-            double standY = lowStandY(cache, pos, foot);
-            if (!Double.isNaN(standY) && isHeadPassable(cache, pos.above(), head, standY - pos.getY()) && hasNpcClearance(cache, pos, standY, null, null)) {
-                return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), standY, false, false, false, 1.05D);
+            OptionalDouble lowStandY = lowStandY(cache, pos, foot);
+            if (lowStandY.isPresent() && isHeadPassable(cache, pos.above(), head, lowStandY.getAsDouble() - pos.getY()) && hasNpcClearance(cache, pos, lowStandY.getAsDouble(), null, null)) {
+                return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), lowStandY.getAsDouble(), false, false, false, 1.05D);
             }
             return null;
         }
-        double standY = supportTop(cache, pos.below(), below);
+        OptionalDouble standY = supportTop(cache, pos.below(), below);
         // 只接受贴着当前脚部格底面的支撑面；过高是栅栏/墙，过低则属于下一格内部的薄方块。
         if (!isGridFloorSupport(pos, standY)) {
             return null;
         }
-        if (!hasNpcClearance(cache, pos, standY, null, null)) {
+        if (!hasNpcClearance(cache, pos, standY.getAsDouble(), null, null)) {
             return null;
         }
-        return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), standY, false, false, false, 1.0D);
+        return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), standY.getAsDouble(), false, false, false, 1.0D);
     }
 
     private static boolean hasLoadedChunk(ServerLevel level, BlockPos pos) {
@@ -337,17 +339,17 @@ final class PathSnapshotBuilder {
     }
 
     /**
-     * Returns the world-space top surface of a supporting block, or {@link Double#NaN} when it has
-     * no collision to stand on.
+     * Returns the world-space top surface of a supporting block, or an empty {@link OptionalDouble}
+     * when it has no collision to stand on.
      */
-    private static double supportTop(BlockDataSource cache, BlockPos supportPos, BlockState supportState) {
+    private static OptionalDouble supportTop(BlockDataSource cache, BlockPos supportPos, BlockState supportState) {
         return supportTop(supportPos, cache.shape(supportPos, supportState));
     }
 
     /** supportTop: 返回能接触 NPC 脚印的最高支撑面，避免竖直薄板被误当成地板。 */
-    static double supportTop(BlockPos supportPos, VoxelShape shape) {
+    static OptionalDouble supportTop(BlockPos supportPos, VoxelShape shape) {
         if (shape.isEmpty()) {
-            return Double.NaN;
+            return OptionalDouble.empty();
         }
         double top = Double.NEGATIVE_INFINITY;
         for (AABB box : shape.toAabbs()) {
@@ -357,14 +359,14 @@ final class PathSnapshotBuilder {
             top = Math.max(top, supportPos.getY() + box.maxY);
         }
         if (!Double.isFinite(top)) {
-            return Double.NaN;
+            return OptionalDouble.empty();
         }
-        return top;
+        return OptionalDouble.of(top);
     }
 
     /** isGridFloorSupport: 判断支撑面是否正好承托当前脚部格，而不是上一层或下一层。 */
-    static boolean isGridFloorSupport(BlockPos pos, double standY) {
-        return !Double.isNaN(standY) && Math.abs(standY - pos.getY()) <= FLOOR_TOP_EPSILON;
+    static boolean isGridFloorSupport(BlockPos pos, OptionalDouble standY) {
+        return standY.isPresent() && Math.abs(standY.getAsDouble() - pos.getY()) <= FLOOR_TOP_EPSILON;
     }
 
     private static boolean touchesNpcSupportFootprint(AABB box) {
@@ -416,10 +418,13 @@ final class PathSnapshotBuilder {
     }
 
     // lowStandY：识别半砖、地毯等低矮碰撞面，避免把半格台阶误判为上一层跳跃。
-    private static double lowStandY(BlockDataSource cache, BlockPos pos, BlockState state) {
-        double standY = supportTop(cache, pos, state);
-        double offset = standY - pos.getY();
-        return !Double.isNaN(standY) && offset > 0.0D && offset <= MAX_LOW_STAND_OFFSET ? standY : Double.NaN;
+    private static OptionalDouble lowStandY(BlockDataSource cache, BlockPos pos, BlockState state) {
+        OptionalDouble standY = supportTop(cache, pos, state);
+        if (standY.isEmpty()) {
+            return OptionalDouble.empty();
+        }
+        double offset = standY.getAsDouble() - pos.getY();
+        return offset > 0.0D && offset <= MAX_LOW_STAND_OFFSET ? standY : OptionalDouble.empty();
     }
 
     private static boolean isDangerous(BlockState state) {
