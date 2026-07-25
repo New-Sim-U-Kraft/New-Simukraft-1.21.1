@@ -55,6 +55,7 @@ import common.cn.kafei.simukraft.network.logistics.LogisticsWarehouseGridOpenReq
 import common.cn.kafei.simukraft.network.logistics.LogisticsWarehouseGridRequestPacket;
 import common.cn.kafei.simukraft.network.logistics.LogisticsWarehouseGridResponsePacket;
 import common.cn.kafei.simukraft.network.logistics.LogisticsWarehouseGridShiftClickPacket;
+import common.cn.kafei.simukraft.network.medical.MedicalControlBoxDemolishPacket;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenRequestPacket;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.manifest.ManifestTogglePacket;
@@ -115,6 +116,7 @@ public final class ModNetwork {
         registrar.playToServer(IndustrialControlBoxDemolishPacket.TYPE, IndustrialControlBoxDemolishPacket.STREAM_CODEC, IndustrialControlBoxDemolishPacket::handle);
         registrar.playToServer(CommercialControlBoxOpenRequestPacket.TYPE, CommercialControlBoxOpenRequestPacket.STREAM_CODEC, CommercialControlBoxOpenRequestPacket::handle);
         registrar.playToServer(MedicalControlBoxOpenRequestPacket.TYPE, MedicalControlBoxOpenRequestPacket.STREAM_CODEC, MedicalControlBoxOpenRequestPacket::handle);
+        registrar.playToServer(MedicalControlBoxDemolishPacket.TYPE, MedicalControlBoxDemolishPacket.STREAM_CODEC, MedicalControlBoxDemolishPacket::handle);
         registrar.playToServer(CommercialControlBoxActionPacket.TYPE, CommercialControlBoxActionPacket.STREAM_CODEC, CommercialControlBoxActionPacket::handle);
         registrar.playToServer(CommercialControlBoxDemolishPacket.TYPE, CommercialControlBoxDemolishPacket.STREAM_CODEC, CommercialControlBoxDemolishPacket::handle);
         registrar.playToServer(CommercialTradePacket.TYPE, CommercialTradePacket.STREAM_CODEC, CommercialTradePacket::handle);

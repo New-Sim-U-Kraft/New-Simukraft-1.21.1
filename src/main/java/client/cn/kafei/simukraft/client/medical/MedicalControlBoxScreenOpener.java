@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import common.cn.kafei.simukraft.medical.MedicalControlBoxService;
 import common.cn.kafei.simukraft.medical.MedicalControlBoxView;
+import common.cn.kafei.simukraft.network.medical.MedicalControlBoxDemolishPacket;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenRequestPacket;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.npc.hire.NpcHireFirePacket;
@@ -92,6 +93,7 @@ public final class MedicalControlBoxScreenOpener {
         actions.addChild(actionButton(Component.translatable("gui.simukraft.medical.hire"), () -> hire(packet),
                 packet.hasBuilding() && packet.definitionValid() && !packet.hasDoctor()));
         actions.addChild(actionButton(Component.translatable("gui.simukraft.medical.fire"), () -> fire(packet), packet.hasDoctor()));
+        actions.addChild(actionButton(Component.translatable("gui.simukraft.medical.demolish"), () -> demolish(packet), packet.hasBuilding()));
         panel.addChild(actions);
         root.addChild(panel);
         return new ModularUI(SimuKraftUiTheme.createUi(root)).shouldCloseOnEsc(true).shouldCloseOnKeyInventory(false);
@@ -172,6 +174,11 @@ public final class MedicalControlBoxScreenOpener {
             PacketDistributor.sendToServer(new NpcHireFirePacket(packet.boxPos(), MedicalControlBoxService.HIRE_SOURCE_TYPE,
                     MedicalControlBoxService.HIRE_ROLE, packet.doctorId()));
         }
+        Minecraft.getInstance().setScreen(null);
+    }
+
+    private static void demolish(MedicalControlBoxOpenResponsePacket packet) {
+        PacketDistributor.sendToServer(new MedicalControlBoxDemolishPacket(packet.boxPos()));
         Minecraft.getInstance().setScreen(null);
     }
 }

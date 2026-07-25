@@ -1,13 +1,19 @@
 package common.cn.kafei.simukraft.event;
 
+import common.cn.kafei.simukraft.building.MedicalBedPoiService;
+import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
+import common.cn.kafei.simukraft.building.ResidentialBedPoiService;
+import common.cn.kafei.simukraft.building.controlbox.ResidentialControlBoxService;
 import common.cn.kafei.simukraft.city.CityChunkManager;
 import common.cn.kafei.simukraft.city.CityData;
 import common.cn.kafei.simukraft.city.CityService;
 import common.cn.kafei.simukraft.city.poi.CityPoiService;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
-import common.cn.kafei.simukraft.building.ResidentialBedPoiService;
-import common.cn.kafei.simukraft.building.MedicalBedPoiService;
+import common.cn.kafei.simukraft.commercial.CommercialControlBoxService;
 import common.cn.kafei.simukraft.config.ServerConfig;
+import common.cn.kafei.simukraft.farmland.FarmlandBoxService;
+import common.cn.kafei.simukraft.industrial.IndustrialControlBoxService;
+import common.cn.kafei.simukraft.medical.MedicalControlBoxService;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -114,13 +120,58 @@ public final class CityPlacementRestrictionHandler {
         if (!(event.getLevel() instanceof ServerLevel serverLevel)) {
             return;
         }
-        BlockState brokenState = serverLevel.getBlockState(event.getPos());
-        ResidentialBedPoiService.handleBlockBroken(serverLevel, event.getPos(), brokenState);
-        MedicalBedPoiService.handleBlockBroken(serverLevel, event.getPos(), brokenState);
+        BlockPos pos = event.getPos();
+        BlockState brokenState = serverLevel.getBlockState(pos);
         Block block = brokenState.getBlock();
-        if (poiTypeForBlock(block).isPresent()) {
-            CityPoiService.deactivatePoi(serverLevel, event.getPos());
+        // 权限拦截：控制箱方块需要官员及以上才可直接破坏
+        if (isBuildingControlBox(block) && !isDemolishAllowed(serverLevel, pos, block, event.getPlayer())) {
+            event.setCanceled(true);
+            return;
         }
+        ResidentialBedPoiService.handleBlockBroken(serverLevel, pos, brokenState);
+        MedicalBedPoiService.handleBlockBroken(serverLevel, pos, brokenState);
+        if (poiTypeForBlock(block).isPresent()) {
+            CityPoiService.deactivatePoi(serverLevel, pos);
+        }
+    }
+
+    private static boolean isBuildingControlBox(Block block) {
+        return block == ModBlocks.RESIDENTIAL_CONTROL_BOX.get()
+                || block == ModBlocks.COMMERCIAL_CONTROL_BOX.get()
+                || block == ModBlocks.INDUSTRIAL_CONTROL_BOX.get()
+                || block == ModBlocks.MEDICAL_CONTROL_BOX.get()
+                || block == ModBlocks.NSUK_FARMLAND_BOX.get();
+    }
+
+    private static boolean isDemolishAllowed(ServerLevel level, BlockPos pos, Block block, Player player) {
+        if (player.isCreative() || player.hasPermissions(2)) {
+            return true;
+        }
+        UUID cityId = resolveBuildingCityId(level, pos, block);
+        if (cityId == null || !CityService.canManageCity(level, cityId, player.getUUID())) {
+            if (player instanceof ServerPlayer serverPlayer) {
+                InfoToastService.warning(serverPlayer, Component.translatable("message.simukraft.no_permission"));
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private static UUID resolveBuildingCityId(ServerLevel level, BlockPos pos, Block block) {
+        if (block == ModBlocks.NSUK_FARMLAND_BOX.get()) {
+            return FarmlandBoxService.cityIdFor(level, pos);
+        }
+        PlacedBuildingRecord building = null;
+        if (block == ModBlocks.RESIDENTIAL_CONTROL_BOX.get()) {
+            building = ResidentialControlBoxService.findBuilding(level, pos);
+        } else if (block == ModBlocks.COMMERCIAL_CONTROL_BOX.get()) {
+            building = CommercialControlBoxService.resolveBuilding(level, pos);
+        } else if (block == ModBlocks.INDUSTRIAL_CONTROL_BOX.get()) {
+            building = IndustrialControlBoxService.resolveBuilding(level, pos);
+        } else if (block == ModBlocks.MEDICAL_CONTROL_BOX.get()) {
+            building = MedicalControlBoxService.resolveBuilding(level, pos);
+        }
+        return building != null ? building.cityId() : null;
     }
 
     private static BlockPos resolveTargetPos(BlockPos clickedPos, Direction face, Level level) {

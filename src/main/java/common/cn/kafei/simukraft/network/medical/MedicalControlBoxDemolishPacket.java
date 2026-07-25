@@ -1,12 +1,14 @@
-package common.cn.kafei.simukraft.network.commercial;
+package common.cn.kafei.simukraft.network.medical;
 
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.building.PlacedBuildingDemolitionService;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
+import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.city.CityData;
 import common.cn.kafei.simukraft.city.CityManager;
 import common.cn.kafei.simukraft.city.CityPermissionLevel;
-import common.cn.kafei.simukraft.commercial.CommercialControlBoxService;
+import common.cn.kafei.simukraft.job.CitizenEmploymentService;
+import common.cn.kafei.simukraft.medical.MedicalControlBoxService;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -20,45 +22,41 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 @SuppressWarnings("null")
-public record CommercialControlBoxDemolishPacket(BlockPos pos) implements CustomPacketPayload {
-    public static final Type<CommercialControlBoxDemolishPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "commercial_control_box_demolish"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, CommercialControlBoxDemolishPacket> STREAM_CODEC = StreamCodec.of(CommercialControlBoxDemolishPacket::encode, CommercialControlBoxDemolishPacket::decode);
+public record MedicalControlBoxDemolishPacket(BlockPos pos) implements CustomPacketPayload {
+    public static final Type<MedicalControlBoxDemolishPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "medical_control_box_demolish"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, MedicalControlBoxDemolishPacket> STREAM_CODEC = StreamCodec.of(MedicalControlBoxDemolishPacket::encode, MedicalControlBoxDemolishPacket::decode);
 
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
 
-    /** encode: 写入商业建筑拆除请求。 */
-    public static void encode(RegistryFriendlyByteBuf buffer, CommercialControlBoxDemolishPacket packet) {
+    public static void encode(RegistryFriendlyByteBuf buffer, MedicalControlBoxDemolishPacket packet) {
         buffer.writeBlockPos(packet.pos());
     }
 
-    /** decode: 读取商业建筑拆除请求。 */
-    public static CommercialControlBoxDemolishPacket decode(RegistryFriendlyByteBuf buffer) {
-        return new CommercialControlBoxDemolishPacket(buffer.readBlockPos());
+    public static MedicalControlBoxDemolishPacket decode(RegistryFriendlyByteBuf buffer) {
+        return new MedicalControlBoxDemolishPacket(buffer.readBlockPos());
     }
 
-    /** handle: 校验并拆除商业控制箱关联建筑。 */
-    public static void handle(CommercialControlBoxDemolishPacket packet, IPayloadContext context) {
+    public static void handle(MedicalControlBoxDemolishPacket packet, IPayloadContext context) {
         if (context.player() instanceof ServerPlayer player && player.level() instanceof ServerLevel level) {
             handleFor(level, player, packet.pos());
         }
     }
 
-    /** handleFor: 执行拆除并释放商业员工。 */
     private static void handleFor(ServerLevel level, ServerPlayer player, BlockPos pos) {
         if (!player.blockPosition().closerThan(pos, 8.0D)) {
-            InfoToastService.warning(player, Component.translatable("message.simukraft.commercial_control_box.too_far"));
+            InfoToastService.warning(player, Component.translatable("message.simukraft.medical_control_box.too_far"));
             return;
         }
-        if (!level.getBlockState(pos).is(ModBlocks.COMMERCIAL_CONTROL_BOX.get())) {
-            InfoToastService.warning(player, Component.translatable("message.simukraft.commercial_control_box.not_found"));
+        if (!level.getBlockState(pos).is(ModBlocks.MEDICAL_CONTROL_BOX.get())) {
+            InfoToastService.warning(player, Component.translatable("message.simukraft.medical_control_box.not_found"));
             return;
         }
-        PlacedBuildingRecord building = CommercialControlBoxService.resolveBuilding(level, pos);
+        PlacedBuildingRecord building = MedicalControlBoxService.resolveBuilding(level, pos);
         if (building == null) {
-            InfoToastService.warning(player, Component.translatable("message.simukraft.commercial_control_box.no_building"));
+            InfoToastService.warning(player, Component.translatable("message.simukraft.medical_control_box.no_building"));
             return;
         }
         // 鉴权：OP 或城市官员及以上权限
@@ -73,9 +71,13 @@ public record CommercialControlBoxDemolishPacket(BlockPos pos) implements Custom
                 return;
             }
         }
-        CommercialControlBoxService.fireWorker(level, pos);
+        CitizenData doctor = MedicalControlBoxService.findAssignedDoctor(level, pos);
+        if (doctor != null) {
+            CitizenEmploymentService.fire(level, doctor.uuid(), MedicalControlBoxService.HIRE_SOURCE_TYPE,
+                    MedicalControlBoxService.HIRE_ROLE, pos, "medical_demolished");
+        }
         if (PlacedBuildingDemolitionService.demolish(level, building)) {
-            InfoToastService.success(player, Component.translatable("message.simukraft.commercial_control_box.demolished"));
+            InfoToastService.success(player, Component.translatable("message.simukraft.medical_control_box.demolished"));
         }
     }
 }
