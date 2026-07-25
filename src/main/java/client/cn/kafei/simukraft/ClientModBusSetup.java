@@ -3,6 +3,7 @@ package client.cn.kafei.simukraft;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import client.cn.kafei.simukraft.client.bridge.ClientInteractionHandlerImpl;
 import client.cn.kafei.simukraft.client.buildbox.BuildingBoundsRenderer;
+import client.cn.kafei.simukraft.client.config.ConfigButtonHandler;
 import client.cn.kafei.simukraft.client.config.SimuKraftConfigScreen;
 import client.cn.kafei.simukraft.client.citizen.CitizenScreenOpener;
 import client.cn.kafei.simukraft.client.fluid.ClientFluidExtensions;
@@ -50,6 +51,7 @@ public final class ClientModBusSetup {
         NeoForge.EVENT_BUS.addListener(BuildingBoundsRenderer::onRender);
         NeoForge.EVENT_BUS.addListener(TwoPointSelectionRenderer::onRender);
         NeoForge.EVENT_BUS.addListener(NpcPathDebugRenderer::onRender);
+        NeoForge.EVENT_BUS.register(new ConfigButtonHandler());
         ModLoadingContext.get().getActiveContainer().registerExtensionPoint(IConfigScreenFactory.class,
                 (container, parent) -> SimuKraftConfigScreen.createRoot(parent));
     }

@@ -5,8 +5,13 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import common.cn.kafei.simukraft.building.BuildingBuiltinResourceService;
+import common.cn.kafei.simukraft.building.BuildingPackageCatalog;
+import common.cn.kafei.simukraft.citizen.CitizenLevelService;
+import common.cn.kafei.simukraft.citizen.CitizenSkillSnapshot;
 import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenManager;
+import common.cn.kafei.simukraft.job.CityJobType;
 import common.cn.kafei.simukraft.citizen.CitizenService;
 import common.cn.kafei.simukraft.citizen.CitizenTeleportService;
 import common.cn.kafei.simukraft.building.BuildingCatalog;
@@ -67,7 +72,9 @@ public final class SimuKraftCommand {
                 .requires(source -> source.hasPermission(2))
                 .executes(context -> reload(context.getSource()))
                 .then(Commands.literal("database")
-                        .executes(context -> reloadDatabase(context.getSource()))));
+                        .executes(context -> reloadDatabase(context.getSource())))
+                .then(Commands.literal("buildings")
+                        .executes(context -> reloadOfficialBuildings(context.getSource()))));
         root.then(Commands.literal("city")
                 .then(Commands.literal("permission")
                         .then(Commands.literal("accept")
@@ -114,13 +121,7 @@ public final class SimuKraftCommand {
                                                         context.getSource(),
                                                         DoubleArgumentType.getDouble(context, "amount"),
                                                         EntityArgument.getPlayer(context, "player")))))))
-                .then(Commands.literal("citizens")
-                        .requires(source -> source.hasPermission(2))
-                        .then(Commands.literal("spawn")
-                                .then(Commands.argument("count", IntegerArgumentType.integer(1, 500))
-                                        .executes(context -> spawnCitizensInSelfCity(
-                                                context.getSource(),
-                                                IntegerArgumentType.getInteger(context, "count")))))));
+);
         root.then(Commands.literal("path")
                 .requires(source -> source.hasPermission(2))
                 .then(Commands.literal("test")
@@ -163,6 +164,11 @@ public final class SimuKraftCommand {
                         .executes(context -> clearPathDebug(context.getSource()))));
         root.then(Commands.literal("npc")
                 .requires(source -> source.hasPermission(2))
+                .then(Commands.literal("spawn")
+                        .then(Commands.argument("count", IntegerArgumentType.integer(1, 500))
+                                .executes(context -> spawnCitizensInSelfCity(
+                                        context.getSource(),
+                                        IntegerArgumentType.getInteger(context, "count")))))
                 .then(Commands.literal("disease")
                         .then(Commands.literal("set")
                                 .then(Commands.argument("citizen", EntityArgument.entity())
@@ -177,8 +183,124 @@ public final class SimuKraftCommand {
                                 .then(Commands.argument("citizen", EntityArgument.entity())
                                         .executes(context -> clearCitizenDisease(
                                                 context.getSource(),
-                                                EntityArgument.getEntity(context, "citizen")))))));
+                                                EntityArgument.getEntity(context, "citizen"))))))
+                .then(Commands.literal("xp")
+                        .then(Commands.literal("add")
+                                .then(Commands.argument("citizen", EntityArgument.entity())
+                                        .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                                .executes(context -> addNpcXp(
+                                                        context.getSource(),
+                                                        EntityArgument.getEntity(context, "citizen"),
+                                                        IntegerArgumentType.getInteger(context, "amount"))))))
+                        .then(Commands.literal("remove")
+                                .then(Commands.argument("citizen", EntityArgument.entity())
+                                        .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                                .executes(context -> removeNpcXp(
+                                                        context.getSource(),
+                                                        EntityArgument.getEntity(context, "citizen"),
+                                                        IntegerArgumentType.getInteger(context, "amount"))))))
+                        .then(Commands.literal("set")
+                                .then(Commands.argument("citizen", EntityArgument.entity())
+                                        .then(Commands.argument("amount", IntegerArgumentType.integer(0))
+                                                .executes(context -> setNpcXp(
+                                                        context.getSource(),
+                                                        EntityArgument.getEntity(context, "citizen"),
+                                                        IntegerArgumentType.getInteger(context, "amount")))))))
+                .then(Commands.literal("level")
+                        .then(Commands.literal("add")
+                                .then(Commands.argument("citizen", EntityArgument.entity())
+                                        .then(Commands.argument("count", IntegerArgumentType.integer(1))
+                                                .executes(context -> addNpcLevel(
+                                                        context.getSource(),
+                                                        EntityArgument.getEntity(context, "citizen"),
+                                                        IntegerArgumentType.getInteger(context, "count"))))))
+                        .then(Commands.literal("remove")
+                                .then(Commands.argument("citizen", EntityArgument.entity())
+                                        .then(Commands.argument("count", IntegerArgumentType.integer(1))
+                                                .executes(context -> removeNpcLevel(
+                                                        context.getSource(),
+                                                        EntityArgument.getEntity(context, "citizen"),
+                                                        IntegerArgumentType.getInteger(context, "count"))))))
+                        .then(Commands.literal("set")
+                                .then(Commands.argument("citizen", EntityArgument.entity())
+                                        .then(Commands.argument("level", IntegerArgumentType.integer(1))
+                                                .executes(context -> setNpcLevel(
+                                                        context.getSource(),
+                                                        EntityArgument.getEntity(context, "citizen"),
+                                                        IntegerArgumentType.getInteger(context, "level"))))))));
         dispatcher.register(root);
+    }
+
+    /** addNpcXp：给选中 NPC 增加 XP。 */
+    private static int addNpcXp(CommandSourceStack source, Entity entity, int amount) {
+        CitizenData citizen = resolveCommandCitizen(source, entity);
+        if (citizen == null) return 0;
+        ServerLevel level = (ServerLevel) entity.level();
+        CitizenLevelService.LevelUpdateResult result = CitizenLevelService.addExperience(level, citizen.uuid(), CityJobType.RESIDENT, amount);
+        CitizenSkillSnapshot after = result.after();
+        source.sendSuccess(() -> Component.translatable("message.simukraft.command.npc_xp.added",
+                citizen.name(), amount, result.before().xp(), after.xp(), after.level()), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** removeNpcXp：从选中 NPC 扣除 XP（下限 0）。 */
+    private static int removeNpcXp(CommandSourceStack source, Entity entity, int amount) {
+        CitizenData citizen = resolveCommandCitizen(source, entity);
+        if (citizen == null) return 0;
+        ServerLevel level = (ServerLevel) entity.level();
+        CitizenLevelService.LevelUpdateResult result = CitizenLevelService.removeExperience(level, citizen.uuid(), CityJobType.RESIDENT, amount);
+        CitizenSkillSnapshot after = result.after();
+        source.sendSuccess(() -> Component.translatable("message.simukraft.command.npc_xp.removed",
+                citizen.name(), amount, result.before().xp(), after.xp(), after.level()), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** setNpcXp：将选中 NPC 的 XP 直接设为指定值。 */
+    private static int setNpcXp(CommandSourceStack source, Entity entity, int amount) {
+        CitizenData citizen = resolveCommandCitizen(source, entity);
+        if (citizen == null) return 0;
+        ServerLevel level = (ServerLevel) entity.level();
+        CitizenLevelService.LevelUpdateResult result = CitizenLevelService.setExperience(level, citizen.uuid(), CityJobType.RESIDENT, amount);
+        CitizenSkillSnapshot after = result.after();
+        source.sendSuccess(() -> Component.translatable("message.simukraft.command.npc_xp.set",
+                citizen.name(), after.xp(), after.level()), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** addNpcLevel：给选中 NPC 增加等级。 */
+    private static int addNpcLevel(CommandSourceStack source, Entity entity, int count) {
+        CitizenData citizen = resolveCommandCitizen(source, entity);
+        if (citizen == null) return 0;
+        ServerLevel level = (ServerLevel) entity.level();
+        CitizenSkillSnapshot current = CitizenLevelService.snapshot(citizen, CityJobType.RESIDENT);
+        CitizenLevelService.LevelUpdateResult result = CitizenLevelService.setLevel(level, citizen.uuid(), CityJobType.RESIDENT, current.level() + count);
+        source.sendSuccess(() -> Component.translatable("message.simukraft.command.npc_level.added",
+                citizen.name(), count, result.before().level(), result.after().level()), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** removeNpcLevel：从选中 NPC 扣除等级（下限 1）。 */
+    private static int removeNpcLevel(CommandSourceStack source, Entity entity, int count) {
+        CitizenData citizen = resolveCommandCitizen(source, entity);
+        if (citizen == null) return 0;
+        ServerLevel level = (ServerLevel) entity.level();
+        CitizenSkillSnapshot current = CitizenLevelService.snapshot(citizen, CityJobType.RESIDENT);
+        CitizenLevelService.LevelUpdateResult result = CitizenLevelService.setLevel(level, citizen.uuid(), CityJobType.RESIDENT, current.level() - count);
+        source.sendSuccess(() -> Component.translatable("message.simukraft.command.npc_level.removed",
+                citizen.name(), count, result.before().level(), result.after().level()), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** setNpcLevel：将选中 NPC 的等级直接设为指定值。 */
+    private static int setNpcLevel(CommandSourceStack source, Entity entity, int targetLevel) {
+        CitizenData citizen = resolveCommandCitizen(source, entity);
+        if (citizen == null) return 0;
+        ServerLevel level = (ServerLevel) entity.level();
+        CitizenLevelService.LevelUpdateResult result = CitizenLevelService.setLevel(level, citizen.uuid(), CityJobType.RESIDENT, targetLevel);
+        CitizenSkillSnapshot after = result.after();
+        source.sendSuccess(() -> Component.translatable("message.simukraft.command.npc_level.set",
+                citizen.name(), after.level()), true);
+        return Command.SINGLE_SUCCESS;
     }
 
     /** setCitizenDisease：给选中的存活 NPC 设置测试疾病并立即持久化。 */
@@ -314,6 +436,20 @@ public final class SimuKraftCommand {
             LogisticsManager.get(level).reloadFromSqlite(level);
         }
         source.sendSuccess(() -> Component.translatable("message.simukraft.reload.database.success"), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** reloadOfficialBuildings：强制用 jar 内置包覆写 official_building.zip，然后重载建筑目录并同步所有客户端。 */
+    private static int reloadOfficialBuildings(CommandSourceStack source) {
+        BuildingBuiltinResourceService.forceOverwrite(BuildingPackageCatalog.rootDirectory());
+        BuildingCatalog.reload();
+        int count = 0;
+        for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
+            PacketDistributor.sendToPlayer(player, new BuildingCacheReloadPacket());
+            count++;
+        }
+        final int syncedCount = count;
+        source.sendSuccess(() -> Component.translatable("message.simukraft.reload.buildings.success", syncedCount), true);
         return Command.SINGLE_SUCCESS;
     }
 

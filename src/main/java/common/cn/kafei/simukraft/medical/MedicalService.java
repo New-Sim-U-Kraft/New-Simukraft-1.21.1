@@ -79,14 +79,37 @@ public final class MedicalService {
                 && CitizenManager.get(level).getCitizen(citizenId).map(MedicalService::isAdmitted).orElse(false);
     }
 
-    /** isOnMedicalLeave：孕晚期、产后和住院居民暂停正常工作。 */
+    /** isOnMedicalLeave：全孕期、产后和住院居民暂停正常工作。 */
     public static boolean isOnMedicalLeave(CitizenData citizen, long currentDay) {
         if (citizen == null || citizen.dead()) {
             return false;
         }
         return isAdmitted(citizen)
                 || citizen.medical().postpartumUntilDay() > currentDay
-                || pregnancyStage(citizen, currentDay) == PregnancyStage.LATE;
+                || citizen.pregnant();
+    }
+
+    /** hasMedicalCoverageForCitizen：居民住宅所在城市是否有覆盖其家庭区块的运营医院。 */
+    public static boolean hasMedicalCoverageForCitizen(ServerLevel level, CitizenData citizen) {
+        if (level == null || citizen == null || citizen.cityId() == null || citizen.homeId() == null) {
+            return false;
+        }
+        CityPoiData home = CityPoiManager.get(level).getPoi(citizen.homeId());
+        if (home == null || !home.active() || home.type() != CityPoiType.RESIDENTIAL) {
+            return false;
+        }
+        ChunkPos homeChunk = new ChunkPos(home.pos());
+        for (PlacedBuildingRecord building : PlacedBuildingService.getBuildings(level)) {
+            if (!citizen.cityId().equals(building.cityId())) continue;
+            BlockPos boxPos = MedicalControlBoxService.resolveControlBoxPos(level, building);
+            if (!MedicalControlBoxService.isOperational(level, building, boxPos)) continue;
+            MedicalDefinition definition = MedicalDefinitionLoader.loadForBuilding(building).definition();
+            int rings = definition != null ? definition.serviceRangeRings() : MedicalDefinition.DEFAULT_SERVICE_RANGE_RINGS;
+            if (isWithinRange(homeChunk, new ChunkPos(boxPos), rings)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** coveredChunkCount：计算九宫格扩展圈覆盖的区块总数。 */
@@ -172,11 +195,13 @@ public final class MedicalService {
             Hospital hospital = findHospitalForCitizen(level, citizen, hospitals, occupiedBeds);
             if (hospital == null) {
                 applyMedicalLeave(level, citizen, currentDay);
+                navigateHomeForMedicalLeave(level, citizen);
                 continue;
             }
             CityPoiData bed = hospital.firstVacant(occupiedBeds);
             if (bed == null) {
                 applyMedicalLeave(level, citizen, currentDay);
+                navigateHomeForMedicalLeave(level, citizen);
                 continue;
             }
             citizen.medical().setMedicalBedPoiId(bed.poiId());
@@ -310,6 +335,17 @@ public final class MedicalService {
         }
     }
 
+    // 无床位时引导居民回家静养，避免停在原地
+    private static void navigateHomeForMedicalLeave(ServerLevel level, CitizenData citizen) {
+        if (citizen.homeId() == null) return;
+        CityPoiData home = CityPoiManager.get(level).getPoi(citizen.homeId());
+        if (home == null || !home.active() || home.type() != CityPoiType.RESIDENTIAL) return;
+        Vec3 homeTarget = CitizenHomeRestService.resolveHomeTarget(level, home.pos());
+        if (!CitizenNavigationService.requestMove(level, citizen.uuid(), homeTarget, MovementIntent.RETURN_HOME)) {
+            CitizenTeleportService.teleportOrSpawnCitizen(level, citizen, homeTarget);
+        }
+    }
+
     private static void discharge(ServerLevel level, CitizenData citizen) {
         CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
         if (entity != null && entity.isSleeping()) {
@@ -341,7 +377,7 @@ public final class MedicalService {
         }
     }
 
-    /** needsCare：判断居民当前是否满足低生命、疾病、孕晚期或产后住院条件。 */
+    /** needsCare：全孕期、产后、低生命或患病均需住院。 */
     static boolean needsCare(ServerLevel level, CitizenData citizen, long currentDay) {
         CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
         if (entity != null) {
@@ -350,12 +386,12 @@ public final class MedicalService {
         return citizen.health() <= ServerConfig.medicalLowHealthThreshold()
                 || citizen.disease().isActive()
                 || citizen.medical().postpartumUntilDay() > currentDay
-                || pregnancyStage(citizen, currentDay) == PregnancyStage.LATE;
+                || citizen.pregnant();
     }
 
     private static int carePriority(ServerLevel level, CitizenData citizen, long currentDay) {
         if (citizen.health() <= ServerConfig.medicalLowHealthThreshold()) return 0;
-        if (pregnancyStage(citizen, currentDay) == PregnancyStage.LATE) return 1;
+        if (citizen.pregnant()) return 1;
         if (citizen.medical().postpartumUntilDay() > currentDay) return 2;
         return 3;
     }
@@ -369,7 +405,7 @@ public final class MedicalService {
 
     private static String conditionKey(CitizenData citizen, long currentDay) {
         PregnancyStage stage = pregnancyStage(citizen, currentDay);
-        if (stage == PregnancyStage.LATE) return stage.translationKey();
+        if (stage != PregnancyStage.NONE) return stage.translationKey();
         if (citizen.medical().postpartumUntilDay() > currentDay) return "pregnancy.postpartum";
         if (citizen.disease().isActive()) return citizen.disease().translationKey();
         return "medical.low_health";

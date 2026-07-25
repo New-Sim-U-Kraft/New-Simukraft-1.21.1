@@ -28,14 +28,18 @@ public final class CityClaimService {
         if (!chunkManager.isAdjacentToCity(city.cityId(), chunkLong)) {
             return ClaimResult.failed(Component.translatable("message.simukraft.city_chunk.not_adjacent"));
         }
-        if (!EconomyService.canAfford(level, city.cityId(), chunkPrice)) {
-            return ClaimResult.failed(Component.translatable("message.simukraft.city_chunk.not_enough_funds", chunkPrice));
-        }
-        if (!CityService.withdrawFunds(level, city.cityId(), chunkPrice)) {
-            return ClaimResult.failed(Component.translatable("message.simukraft.city_chunk.not_enough_funds", chunkPrice));
+        if (chunkPrice > 0) {
+            if (!EconomyService.canAfford(level, city.cityId(), chunkPrice)) {
+                return ClaimResult.failed(Component.translatable("message.simukraft.city_chunk.not_enough_funds", chunkPrice));
+            }
+            if (!CityService.withdrawFunds(level, city.cityId(), chunkPrice)) {
+                return ClaimResult.failed(Component.translatable("message.simukraft.city_chunk.not_enough_funds", chunkPrice));
+            }
         }
         if (!chunkManager.claimChunk(city.cityId(), chunkLong)) {
-            CityService.depositFunds(level, city.cityId(), chunkPrice);
+            if (chunkPrice > 0) {
+                CityService.depositFunds(level, city.cityId(), chunkPrice);
+            }
             return ClaimResult.failed(Component.translatable("message.simukraft.city_chunk.claim_failed"));
         }
         FinanceLedgerService.record(level, city.cityId(), player, -chunkPrice, EconomyService.getCityBalance(level, city.cityId()), FinanceTransactionData.Type.EXPENSE, "claim_chunk");

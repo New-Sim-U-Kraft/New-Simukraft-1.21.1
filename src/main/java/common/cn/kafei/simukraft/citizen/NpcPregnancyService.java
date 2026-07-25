@@ -68,6 +68,9 @@ public final class NpcPregnancyService {
         // 家庭当前成员数 + 孩子已有数，需要还有空余床位才允许怀孕
         if (!hasVacantBedForBaby(level, manager, family, wife)) return;
 
+        // 无医院服务覆盖时不允许怀孕，确保孕期全程有医疗保障
+        if (!MedicalService.hasMedicalCoverageForCitizen(level, wife)) return;
+
         if (random.nextDouble() >= chance) return;
 
         wife.setPregnant(true);

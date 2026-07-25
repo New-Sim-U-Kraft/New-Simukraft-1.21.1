@@ -1,5 +1,6 @@
 package common.cn.kafei.simukraft.block;
 
+import common.cn.kafei.simukraft.building.controlbox.ResidentialControlBoxService;
 import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxOpenRequestPacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -18,6 +19,14 @@ import net.minecraft.world.phys.BlockHitResult;
 public final class ResidentialControlBoxBlock extends Block {
     public ResidentialControlBoxBlock() {
         super(BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(1.0F).sound(SoundType.METAL));
+    }
+
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+        if (!level.isClientSide() && !state.is(newState.getBlock()) && level instanceof ServerLevel serverLevel) {
+            ResidentialControlBoxService.onRemoved(serverLevel, pos);
+        }
+        super.onRemove(state, level, pos, newState, movedByPiston);
     }
 
     @Override

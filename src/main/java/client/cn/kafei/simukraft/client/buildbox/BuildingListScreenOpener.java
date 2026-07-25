@@ -595,10 +595,6 @@ public final class BuildingListScreenOpener {
         BuildingCacheService.BuildingMeta building = selectedBuilding.get();
         Optional<BuildingStructure> structure = BuildingStructureService.loadStructure(building.category(), building.metaFileName());
         if (structure.isPresent()) {
-            Component detail = Component.literal(structure.get().size().toShortString());
-            ClientInfoToast.show(Component.translatable("toast.simukraft.title"),
-                    Component.translatable("message.simukraft.building_list.loaded", building.name(), detail.getString()),
-                    "success");
             pendingPreview = new PendingPreview(building, currentBuildBoxPos, structure.get());
             minecraft.setScreen(null);
         } else {

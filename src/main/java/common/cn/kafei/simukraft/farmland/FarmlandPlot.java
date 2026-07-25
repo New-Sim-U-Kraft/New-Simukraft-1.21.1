@@ -59,6 +59,7 @@ public record FarmlandPlot(BlockPos min, BlockPos max) {
     public boolean intersects(FarmlandPlot other) {
         return other != null
                 && min.getX() <= other.max.getX() && max.getX() >= other.min.getX()
+                && min.getY() <= other.max.getY() && max.getY() >= other.min.getY()
                 && min.getZ() <= other.max.getZ() && max.getZ() >= other.min.getZ();
     }
 

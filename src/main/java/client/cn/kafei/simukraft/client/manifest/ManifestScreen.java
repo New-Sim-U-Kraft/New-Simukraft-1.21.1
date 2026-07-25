@@ -235,36 +235,31 @@ public final class ManifestScreen extends Screen {
         guiGraphics.drawString(font, title, titleX, titleY, MUTED_TEXT_COLOR, false);
     }
 
-    /** renderProductGroup: 绘制“需要物品 -> 商品”的控制箱清单页。 */
+    /** renderProductGroup: 上下动态分栏渲染”需要物品 / 产出商品”。 */
     private void renderProductGroup(GuiGraphics guiGraphics, PageLayout layout, ManifestItem.ProductGroup group) {
         int left = layout.contentX() + 4;
         int right = layout.contentRight() - 4;
         int width = Math.max(1, right - left);
         int top = layout.listTop();
         int bottom = layout.listFrameBottom() - 8;
-        int productRows = Math.max(1, Math.min(group.products().size(), 3));
-        int productTop = Math.max(top + 92, bottom - productRows * ROW_HEIGHT - 6);
-        int middleY = top + (productTop - top) / 2;
-        int materialRows = Math.max(1, (middleY - top - 26) / ROW_HEIGHT);
 
-        Component requiredTitle = Component.translatable(requiredTitleKey());
-        guiGraphics.drawCenteredString(font, requiredTitle, left + width / 2, top, MUTED_TEXT_COLOR);
-        renderEntryRows(guiGraphics, group.materials(), left + 7, top + 18, width - 14, materialRows, false);
+        // 无标题，仅保留10px分隔区，其余全部给行内容
+        int rowsArea = Math.max(2 * ROW_HEIGHT, bottom - top - 10);
+        int totalItems = Math.max(1, group.materials().size() + group.products().size());
+        int totalRowSlots = Math.max(2, rowsArea / ROW_HEIGHT);
+        int materialRows = Math.max(1, Math.min(group.materials().size(),
+                (int) Math.round((double) totalRowSlots * group.materials().size() / totalItems)));
+        int productRows = Math.max(1, Math.min(group.products().size(), totalRowSlots - materialRows));
 
-        renderDownArrow(guiGraphics, left + width / 2, middleY - 13);
+        // 上区：需要的物品（无标题，直接列表）
+        renderEntryRows(guiGraphics, group.materials(), left + 7, top, width - 14, materialRows, false);
 
-        Component productTitle = Component.translatable(productTitleKey());
-        guiGraphics.drawCenteredString(font, productTitle, left + width / 2, middleY + 6, MUTED_TEXT_COLOR);
-        renderEntryRows(guiGraphics, group.products(), left + 7, productTop, width - 14, productRows, false);
-    }
+        // 分隔线
+        int dividerY = top + materialRows * ROW_HEIGHT + 4;
+        guiGraphics.fill(left + 8, dividerY, right - 8, dividerY + 1, PAPER_EDGE_COLOR);
 
-    private void renderDownArrow(GuiGraphics guiGraphics, int centerX, int top) {
-        centerX -= 1;
-        guiGraphics.fill(centerX - 1, top, centerX + 1, top + 10, MUTED_TEXT_COLOR);
-        guiGraphics.hLine(centerX - 4, centerX + 4, top + 10, MUTED_TEXT_COLOR);
-        guiGraphics.hLine(centerX - 3, centerX + 3, top + 11, MUTED_TEXT_COLOR);
-        guiGraphics.hLine(centerX - 2, centerX + 2, top + 12, MUTED_TEXT_COLOR);
-        guiGraphics.hLine(centerX - 1, centerX + 1, top + 13, MUTED_TEXT_COLOR);
+        // 下区：产出 / 售出商品（无标题，直接列表）
+        renderEntryRows(guiGraphics, group.products(), left + 7, dividerY + 5, width - 14, productRows, false);
     }
 
     private void renderEntryRows(GuiGraphics guiGraphics,
@@ -379,22 +374,10 @@ public final class ManifestScreen extends Screen {
         return Math.max(1, (materials.size() + perPage - 1) / perPage);
     }
 
-    private String productTitleKey() {
-        return "industrial".equals(ManifestItem.getSourceType(manifestStack))
-                ? "screen.simukraft.manifest.produced_products"
-                : "screen.simukraft.manifest.sold_products";
-    }
-
     private String productFrameTitleKey() {
         return "industrial".equals(ManifestItem.getSourceType(manifestStack))
                 ? "screen.simukraft.manifest.recipe_header"
                 : "screen.simukraft.manifest.product_header";
-    }
-
-    private String requiredTitleKey() {
-        return "industrial".equals(ManifestItem.getSourceType(manifestStack))
-                ? "screen.simukraft.manifest.input_materials"
-                : "screen.simukraft.manifest.required_items";
     }
 
     private PageLayout pageLayout() {

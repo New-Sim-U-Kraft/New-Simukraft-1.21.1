@@ -65,6 +65,81 @@ public final class CitizenLevelService {
         return new CitizenSkillSnapshot(normalizedType, level, xp, normalizedMaxLevel);
     }
 
+    /** setExperience：直接将 NPC 全局 XP 设为指定值（上限为满级所需 XP）。 */
+    public static LevelUpdateResult setExperience(ServerLevel level, UUID citizenId, CityJobType skillType, int xp) {
+        CityJobType normalizedType = normalizeSkillType(skillType);
+        if (level == null || citizenId == null) {
+            return LevelUpdateResult.unchanged(new CitizenSkillSnapshot(normalizedType, 1, 0, configuredMaxLevel()));
+        }
+        CitizenManager manager = CitizenManager.get(level);
+        Optional<CitizenData> optionalCitizen = manager.getCitizen(citizenId);
+        if (optionalCitizen.isEmpty()) {
+            return LevelUpdateResult.unchanged(new CitizenSkillSnapshot(normalizedType, 1, 0, configuredMaxLevel()));
+        }
+        CitizenData data = optionalCitizen.get();
+        LevelUpdateResult result;
+        synchronized (data) {
+            CitizenSkillSnapshot before = snapshot(data, normalizedType);
+            int cappedXp = Math.clamp(xp, 0, maxStoredXp(before.maxLevel()));
+            int nextLevel = levelForXp(cappedXp, before.maxLevel());
+            CitizenSkillSnapshot after = new CitizenSkillSnapshot(normalizedType, nextLevel, cappedXp, before.maxLevel());
+            writeSkillSnapshot(data, normalizedType, LevelScope.GLOBAL, cappedXp, before.maxLevel());
+            result = new LevelUpdateResult(before, after);
+        }
+        manager.saveCitizenNow(citizenId);
+        return result;
+    }
+
+    /** removeExperience：从 NPC 当前 XP 中减去指定数值（下限为 0）。 */
+    public static LevelUpdateResult removeExperience(ServerLevel level, UUID citizenId, CityJobType skillType, int amount) {
+        CityJobType normalizedType = normalizeSkillType(skillType);
+        if (level == null || citizenId == null || amount <= 0) {
+            return LevelUpdateResult.unchanged(new CitizenSkillSnapshot(normalizedType, 1, 0, configuredMaxLevel()));
+        }
+        CitizenManager manager = CitizenManager.get(level);
+        Optional<CitizenData> optionalCitizen = manager.getCitizen(citizenId);
+        if (optionalCitizen.isEmpty()) {
+            return LevelUpdateResult.unchanged(new CitizenSkillSnapshot(normalizedType, 1, 0, configuredMaxLevel()));
+        }
+        CitizenData data = optionalCitizen.get();
+        LevelUpdateResult result;
+        synchronized (data) {
+            CitizenSkillSnapshot before = snapshot(data, normalizedType);
+            int newXp = Math.max(0, before.xp() - amount);
+            int nextLevel = levelForXp(newXp, before.maxLevel());
+            CitizenSkillSnapshot after = new CitizenSkillSnapshot(normalizedType, nextLevel, newXp, before.maxLevel());
+            writeSkillSnapshot(data, normalizedType, LevelScope.GLOBAL, newXp, before.maxLevel());
+            result = new LevelUpdateResult(before, after);
+        }
+        manager.saveCitizenNow(citizenId);
+        return result;
+    }
+
+    /** setLevel：将 NPC 等级直接设为目标值，XP 置为该等级的起始值。 */
+    public static LevelUpdateResult setLevel(ServerLevel level, UUID citizenId, CityJobType skillType, int targetLevel) {
+        CityJobType normalizedType = normalizeSkillType(skillType);
+        if (level == null || citizenId == null) {
+            return LevelUpdateResult.unchanged(new CitizenSkillSnapshot(normalizedType, 1, 0, configuredMaxLevel()));
+        }
+        CitizenManager manager = CitizenManager.get(level);
+        Optional<CitizenData> optionalCitizen = manager.getCitizen(citizenId);
+        if (optionalCitizen.isEmpty()) {
+            return LevelUpdateResult.unchanged(new CitizenSkillSnapshot(normalizedType, 1, 0, configuredMaxLevel()));
+        }
+        CitizenData data = optionalCitizen.get();
+        LevelUpdateResult result;
+        synchronized (data) {
+            CitizenSkillSnapshot before = snapshot(data, normalizedType);
+            int clampedLevel = Math.clamp(targetLevel, 1, before.maxLevel());
+            int xp = xpForCurrentLevel(clampedLevel);
+            CitizenSkillSnapshot after = new CitizenSkillSnapshot(normalizedType, clampedLevel, xp, before.maxLevel());
+            writeSkillSnapshot(data, normalizedType, LevelScope.GLOBAL, xp, before.maxLevel());
+            result = new LevelUpdateResult(before, after);
+        }
+        manager.saveCitizenNow(citizenId);
+        return result;
+    }
+
     public static LevelUpdateResult addExperience(ServerLevel level, UUID citizenId, CityJobType skillType, int amount) {
         CityJobType normalizedType = normalizeSkillType(skillType);
         if (level == null || citizenId == null || amount <= 0) {

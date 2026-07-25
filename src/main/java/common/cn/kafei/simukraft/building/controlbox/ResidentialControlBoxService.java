@@ -7,6 +7,7 @@ import common.cn.kafei.simukraft.building.BuildingIntegrityService;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.citizen.CitizenManager;
+import common.cn.kafei.simukraft.citizen.CitizenService;
 import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
@@ -26,6 +27,32 @@ import java.util.UUID;
 @SuppressWarnings("null")
 public final class ResidentialControlBoxService {
     private ResidentialControlBoxService() {
+    }
+
+    /** onRemoved：控制箱被移除时清理住户、停用POI并注销建筑记录。 */
+    public static void onRemoved(ServerLevel level, BlockPos boxPos) {
+        PlacedBuildingRecord building = resolveBuilding(level, boxPos);
+        if (building == null) return;
+        CityPoiManager poiManager = CityPoiManager.get(level);
+        CitizenManager citizenManager = CitizenManager.get(level);
+        // 收集该建筑所有住宅POI的ID
+        Set<UUID> residentialPoiIds = building.poiInstances().stream()
+                .filter(instance -> instance.poiType() == CityPoiType.RESIDENTIAL)
+                .map(instance -> poiManager.getPoiAt(instance.worldPos()))
+                .filter(poi -> poi != null)
+                .map(CityPoiData::poiId)
+                .collect(java.util.stream.Collectors.toSet());
+        // 驱逐住户：清除homeId引用
+        citizenManager.allCitizens().stream()
+                .filter(citizen -> citizen.homeId() != null && residentialPoiIds.contains(citizen.homeId()))
+                .forEach(citizen -> {
+                    citizen.setHomeId(null);
+                    CitizenService.save(level, citizen.uuid());
+                });
+        // 停用所有住宅POI
+        residentialPoiIds.forEach(poiManager::deactivatePoi);
+        // 注销建筑记录
+        PlacedBuildingService.unregister(level, building.buildingId());
     }
 
     public static ResidentialControlBoxView buildView(ServerLevel level, BlockPos controlBoxPos) {

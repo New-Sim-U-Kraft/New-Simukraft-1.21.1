@@ -100,7 +100,7 @@ public class CitizenEntity extends PathfinderMob {
         if (level() instanceof ServerLevel serverLevel && player instanceof ServerPlayer serverPlayer && player.distanceToSqr(this) <= 64.0D) {
             CitizenData data = CitizenService.ensureCitizen(serverLevel, this);
             if (data != null) {
-                if (CommercialControlBoxService.openForWorker(serverLevel, serverPlayer, data)) {
+                if (!player.isShiftKeyDown() && CommercialControlBoxService.openForWorker(serverLevel, serverPlayer, data)) {
                     return InteractionResult.sidedSuccess(level().isClientSide());
                 }
                 CitizenInfoMenuProvider.open(serverLevel, serverPlayer, this, data);

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +34,40 @@ public final class BuildingBuiltinResourceService {
             }
             copyOfficialPackage(normalizedRoot);
             COPIED_ROOTS.add(rootKey);
+        }
+    }
+
+    /** forceOverwrite: 强制用 jar 内置包覆写磁盘上的官方建筑 zip，无论文件是否存在。 */
+    public static void forceOverwrite(Path rootDirectory) {
+        if (rootDirectory == null) {
+            return;
+        }
+        Path normalizedRoot = rootDirectory.toAbsolutePath().normalize();
+        String rootKey = normalizedRoot.toString().toLowerCase(Locale.ROOT);
+        synchronized (BuildingBuiltinResourceService.class) {
+            try {
+                Files.createDirectories(normalizedRoot);
+            } catch (IOException exception) {
+                SimuKraft.LOGGER.error("Simukraft: Failed to create building package directory {}", normalizedRoot, exception);
+                return;
+            }
+            Path targetFile = normalizedRoot.resolve(BuildingPackageCatalog.OFFICIAL_PACKAGE_NAME).normalize();
+            if (!targetFile.startsWith(normalizedRoot)) {
+                SimuKraft.LOGGER.error("Simukraft: Refused unsafe official building package path {}", targetFile);
+                return;
+            }
+            try (InputStream inputStream = openResource()) {
+                if (inputStream == null) {
+                    SimuKraft.LOGGER.warn("Simukraft: Missing built-in official building package {}", RESOURCE_PATH);
+                    return;
+                }
+                Files.copy(inputStream, targetFile, StandardCopyOption.REPLACE_EXISTING);
+                SimuKraft.LOGGER.info("Simukraft: Force-overwrote official building package at {}", targetFile);
+            } catch (IOException exception) {
+                SimuKraft.LOGGER.error("Simukraft: Failed to overwrite official building package at {}", targetFile, exception);
+            }
+            // 重置标记，下次 ensureCopied 可正常判断
+            COPIED_ROOTS.remove(rootKey);
         }
     }
 

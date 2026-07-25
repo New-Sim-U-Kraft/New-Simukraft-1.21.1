@@ -14,6 +14,8 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,9 +28,11 @@ public final class CitizenSelfFeedingService {
     public static final String EATING_FOOD_STATUS = "gui.npc.status.eating_food";
     public static final String TOO_HUNGRY_STRIKE_STATUS = "gui.npc.status.too_hungry_on_strike";
     private static final String FOOD_NEED_PREFIX = "food:";
-    private static final double START_HUNGER_THRESHOLD = 4.0D;
+    private static final double START_HUNGER_THRESHOLD = 5.0D;
     private static final double FULL_HUNGER = CitizenEntity.DEFAULT_HUNGER;
     private static final double ARRIVAL_DISTANCE_SQR = 16.0D;
+    private static final int BACKPACK_BUY_MIN = 5;  // 购买时额外存入背包的最小数量
+    private static final int BACKPACK_BUY_MAX = 10; // 购买时额外存入背包的最大数量
     private static final long SERVICE_INTERVAL_TICKS = 20L;
     private static final long SEARCH_RETRY_TICKS = 200L;
     private static final long DONE_COOLDOWN_TICKS = 600L;
@@ -58,6 +62,14 @@ public final class CitizenSelfFeedingService {
                 continue;
             }
             clearStaleFoodStatus(level, manager, citizen);
+            // 背包有存粮时直接进食，不必出门购买
+            if (!citizen.dead() && !citizen.child()) {
+                CitizenEntity idleEntity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
+                if (idleEntity != null && idleEntity.getHungerValue() < START_HUNGER_THRESHOLD
+                        && tryEatFromBackpack(level, manager, citizen, idleEntity)) {
+                    continue;
+                }
+            }
             if (shouldStart(level, citizen, gameTime, runtime)) {
                 start(level, manager, citizen, runtime, gameTime);
             }
@@ -173,6 +185,9 @@ public final class CitizenSelfFeedingService {
                 enterStrike(level, manager, citizen, feeding, gameTime);
                 return;
             }
+            // 购买成功后额外多买5~10个存入背包
+            buyExtraForBackpack(level, citizen, entity, feeding.plan,
+                    level.random.nextIntBetweenInclusive(BACKPACK_BUY_MIN, BACKPACK_BUY_MAX));
             beginEating(level, manager, citizen, entity, feeding, result.foodStack(), gameTime);
             return;
         }
@@ -223,6 +238,34 @@ public final class CitizenSelfFeedingService {
         }
         if (restoreWorkplace && citizen.workStatusType() == CitizenWorkStatus.WORKING) {
             CitizenWorkplaceMoveService.returnToWorkplace(level, citizen);
+        }
+    }
+
+    /** tryEatFromBackpack：hunger低于阈值时先消耗背包存粮，直到吃饱为止。 */
+    private static boolean tryEatFromBackpack(ServerLevel level, CitizenManager manager, CitizenData citizen, CitizenEntity entity) {
+        boolean ate = false;
+        while (entity.getHungerValue() < FULL_HUNGER) {
+            if (!CitizenFoodConsumptionService.tryEatBackpackFood(level, entity, citizen)) break;
+            ate = true;
+        }
+        if (ate) {
+            manager.syncEntity(entity);
+        }
+        return ate;
+    }
+
+    /** buyExtraForBackpack：购买成功后额外多买若干份存入背包，供下次饥饿时直接取用。 */
+    private static void buyExtraForBackpack(ServerLevel level, CitizenData citizen, CitizenEntity entity,
+            CommercialFoodMarketService.PurchasePlan plan, int maxCount) {
+        CitizenInventory inventory = entity.getCitizenInventory();
+        List<ItemStack> extras = new ArrayList<>();
+        for (int i = 0; i < maxCount; i++) {
+            CommercialFoodMarketService.PurchaseResult extra = CommercialFoodMarketService.executePurchase(level, citizen, plan);
+            if (!extra.success()) break;
+            extras.add(extra.foodStack());
+        }
+        if (!extras.isEmpty()) {
+            inventory.insertBackpackAll(extras);
         }
     }
 
