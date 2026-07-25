@@ -798,6 +798,7 @@
     "message.simukraft.commercial.invalid_trade":  "交易请求无效。",
     "message.simukraft.commercial.no_building":  "该商业控制箱没有关联城市建筑。",
     "message.simukraft.commercial.not_city_member":  "你不属于该建筑所在城市。",
+    "message.simukraft.commercial.visitor_no_city_funds":  "你没有所属城市，无法支付货币费用。",
     "message.simukraft.commercial.invalid_definition":  "商业 JSON 配置无效。",
     "message.simukraft.commercial.offer_unavailable":  "该交易项不可用。",
     "message.simukraft.commercial.stock_not_ready":  "库存尚未初始化。",

@@ -47,9 +47,9 @@ public final class CommercialTradeService {
             return stateValidation;
         }
         CityData playerCity = CityService.findPlayerCity(level, player.getUUID()).orElse(null);
-        if (playerCity == null || !building.cityId().equals(playerCity.cityId())) {
-            return TradeResult.fail("message.simukraft.commercial.not_city_member");
-        }
+        boolean isMember = playerCity != null && building.cityId().equals(playerCity.cityId());
+        // 城市成员用建筑城市账户，访客用自己城市账户，无城市玩家为 null
+        UUID payerCityId = isMember ? building.cityId() : (playerCity != null ? playerCity.cityId() : null);
         CommercialDefinitionLoader.LoadResult loadResult = CommercialDefinitionLoader.loadForBuilding(building);
         if (!loadResult.valid()) {
             return TradeResult.fail("message.simukraft.commercial.invalid_definition");
@@ -60,11 +60,11 @@ public final class CommercialTradeService {
             return TradeResult.fail("message.simukraft.commercial.offer_unavailable");
         }
         CommercialStockService.restock(level, boxPos, definition);
-        TradeResult validation = validatePlayer(level, player, building.cityId(), boxPos, offer, times, quickMove);
+        TradeResult validation = validatePlayer(level, player, building.cityId(), payerCityId, boxPos, offer, times, quickMove);
         if (!validation.success()) {
             return validation;
         }
-        return applyPlayerTrade(level, player, building.cityId(), boxPos, offer, times, quickMove);
+        return applyPlayerTrade(level, player, building.cityId(), payerCityId, boxPos, offer, times, quickMove);
     }
 
     /** executeNpcOffer: 执行 NPC 自动经营可见的商业报价。 */
@@ -113,14 +113,19 @@ public final class CommercialTradeService {
         return TradeResult.success("message.simukraft.commercial.ready");
     }
 
-    private static TradeResult validatePlayer(ServerLevel level, ServerPlayer player, UUID cityId, BlockPos boxPos, CommercialOffer offer, int times, boolean quickMove) {
+    private static TradeResult validatePlayer(ServerLevel level, ServerPlayer player, UUID cityId, UUID payerCityId, BlockPos boxPos, CommercialOffer offer, int times, boolean quickMove) {
         TradeResult supplyValidation = CommercialTradeSupplyService.validate(level, boxPos, offer, times);
         if (!supplyValidation.success()) {
             return supplyValidation;
         }
         double moneyCost = totalMoney(offer.cost(), times);
-        if (moneyCost > 0.0D && !EconomyService.canAfford(level, cityId, moneyCost)) {
-            return TradeResult.fail("message.simukraft.commercial.not_enough_funds");
+        if (moneyCost > 0.0D) {
+            if (payerCityId == null) {
+                return TradeResult.fail("message.simukraft.commercial.visitor_no_city_funds");
+            }
+            if (!EconomyService.canAfford(level, payerCityId, moneyCost)) {
+                return TradeResult.fail("message.simukraft.commercial.not_enough_funds");
+            }
         }
         for (Map.Entry<net.minecraft.world.item.Item, Integer> entry : itemTotals(offer.cost(), times).entrySet()) {
             if (countPlayerItems(player, entry.getKey()) < entry.getValue()) {
@@ -134,16 +139,19 @@ public final class CommercialTradeService {
         return TradeResult.success("message.simukraft.commercial.ready");
     }
 
-    private static TradeResult applyPlayerTrade(ServerLevel level, ServerPlayer player, UUID cityId, BlockPos boxPos, CommercialOffer offer, int times, boolean quickMove) {
+    private static TradeResult applyPlayerTrade(ServerLevel level, ServerPlayer player, UUID cityId, UUID payerCityId, BlockPos boxPos, CommercialOffer offer, int times, boolean quickMove) {
+        boolean isVisitor = payerCityId != null && !cityId.equals(payerCityId);
+        UUID effectivePayerId = payerCityId != null ? payerCityId : cityId;
         List<ItemStack> resultItems = resultItemStacks(offer, times);
         ItemStack carriedStack = quickMove || resultItems.isEmpty() ? player.containerMenu.getCarried().copy() : carriedResultStack(player, resultItems);
         double moneyCost = totalMoney(offer.cost(), times);
-        if (moneyCost > 0.0D && !EconomyService.withdrawCityFunds(level, cityId, player, moneyCost, "commercial_trade")) {
+        String withdrawReason = isVisitor ? "visitor_commercial_trade" : "commercial_trade";
+        if (moneyCost > 0.0D && !EconomyService.withdrawCityFunds(level, effectivePayerId, player, moneyCost, withdrawReason)) {
             return TradeResult.fail("message.simukraft.commercial.not_enough_funds");
         }
         if (!CommercialTradeSupplyService.apply(level, boxPos, offer, times)) {
             if (moneyCost > 0.0D) {
-                EconomyService.depositCityFunds(level, cityId, player, moneyCost, "commercial_trade_refund");
+                EconomyService.depositCityFunds(level, effectivePayerId, player, moneyCost, withdrawReason + "_refund");
             }
             return TradeResult.fail("message.simukraft.commercial.insufficient_materials");
         }
@@ -155,7 +163,12 @@ public final class CommercialTradeService {
             EconomyService.depositCityFunds(level, cityId, player, moneyResult, "commercial_trade");
         }
         if (moneyCost > 0.0D) {
-            CommercialTaxService.recordShopIncome(level, cityId, moneyCost);
+            if (isVisitor) {
+                // 访客购买：全额直接入账建筑城市金库，不走每日税收记账
+                EconomyService.depositCityFunds(level, cityId, null, moneyCost, "visitor_commercial_tax");
+            } else {
+                CommercialTaxService.recordShopIncome(level, cityId, moneyCost);
+            }
         }
         if (quickMove) {
             for (ItemStack stack : resultItems) {
