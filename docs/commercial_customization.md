@@ -4,16 +4,35 @@
 
 ## 文件位置
 
-开发环境中的外部商业 JSON 放在：
+商业 JSON 放在建筑包 ZIP 内部，路径格式为：
 
 ```text
-run/simukraftbuilding/commercial/
+buildings/commercial/<file>.json
 ```
 
-整合包实际发布时，对应游戏目录是：
+建筑包 ZIP 文件放在游戏目录的 `simukraftbuilding/` 文件夹下，例如：
 
 ```text
-<gameDir>/simukraftbuilding/commercial/
+<gameDir>/simukraftbuilding/my_shop_pack.zip
+```
+
+开发环境对应：
+
+```text
+run/simukraftbuilding/my_shop_pack.zip
+```
+
+ZIP 内部完整结构示例：
+
+```text
+buildings/
+  commercial/
+    breadShop.sk
+    breadShop.nbt
+    breadShop.json
+    custom_bakery.sk
+    custom_bakery.nbt
+    custom_bakery.json
 ```
 
 推荐让商业 JSON 与建筑 `.sk` 元数据同名：
@@ -33,8 +52,9 @@ commercial:custom_bakery.json
 加载优先级：
 
 1. `.sk` 里的 `commercial:<file>.json`
-2. 与 `.sk` 同名的外部 JSON
-3. 模组内置建筑目录里的同名 JSON，例如 `assets/simukraft/building/commercial/<building>.json`
+2. 与 `.sk` 同名的 JSON
+
+`simukraftbuilding/` 目录下所有 `.zip` 文件都会被加载，按文件名字母顺序排序。若多个 ZIP 内存在同一类别同名建筑，字母序靠后的 ZIP 会覆盖靠前的。官方内置包 `official_building.zip` 由模组在启动时自动复制到该目录（仅在文件不存在时），与任何自定义包并存加载。
 
 JSON 请保存为 UTF-8。Windows PowerShell 校验中文 JSON 时建议显式加 `-Encoding UTF8`。
 

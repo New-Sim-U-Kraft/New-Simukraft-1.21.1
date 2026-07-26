@@ -4,16 +4,42 @@
 
 ## 文件位置
 
-工业 JSON 放在：
+工业 JSON 放在建筑包 ZIP 内部，路径格式为：
 
 ```text
-simukraftbuilding/industry/
+buildings/industry/<file>.json
+```
+
+建筑包 ZIP 文件放在游戏目录的 `simukraftbuilding/` 文件夹下，例如：
+
+```text
+<gameDir>/simukraftbuilding/my_factory_pack.zip
+```
+
+开发环境对应：
+
+```text
+run/simukraftbuilding/my_factory_pack.zip
+```
+
+ZIP 内部完整结构示例：
+
+```text
+buildings/
+  industry/
+    mill.sk
+    mill.nbt
+    mill.json
+    custom_mill.json
+    custom_mill.sk
+    custom_mill.nbt
 ```
 
 推荐让工业 JSON 与建筑 `.sk` 文件同名：
 
 ```text
 mill.sk
+mill.nbt
 mill.json
 ```
 
@@ -27,7 +53,8 @@ industrial:custom_mill.json
 
 1. `.sk` 里的 `industrial:<file>.json`
 2. 与 `.sk` 同名的 JSON
-3. 模组内置的备用 JSON
+
+`simukraftbuilding/` 目录下所有 `.zip` 文件都会被加载，按文件名字母顺序排序。若多个 ZIP 内存在同一类别同名建筑，字母序靠后的 ZIP 会覆盖靠前的。官方内置包 `official_building.zip` 由模组在启动时自动复制到该目录（仅在文件不存在时），与任何自定义包并存加载。
 
 ## 核心原则
 

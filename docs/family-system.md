@@ -14,8 +14,9 @@
 | `originFamilyId` | `UUID?` | 出生时所在家庭，永不改变，用于族谱回溯 |
 | `pregnant` | `boolean` | 是否怀孕 |
 | `pregnantSince` | `long` | 怀孕开始的游戏日 |
+| `reservedBabyBedPoiId` | `UUID?` | 怀孕时预约给婴儿的住宅床位 POI ID |
 
-死亡时 `pregnant=false, pregnantSince=0`；`familyId/originFamilyId` 保留不清空。
+死亡时 `pregnant=false, pregnantSince=0, reservedBabyBedPoiId=null`；`familyId/originFamilyId` 保留不清空。
 
 ### FamilyData（`citizen/family/FamilyData.java`）
 
@@ -103,15 +104,16 @@ NpcGrowthService → NpcChildbirthService → NpcPregnancyService → NpcMarriag
 ### NpcPregnancyService
 
 - 仅对 ACTIVE 家庭的妻子触发
-- 条件：alive、!child、!pregnant、家庭所在建筑有空余床位
+- 条件：alive、!child、!pregnant、家庭所在建筑有空余且未被他人预约的住宅床位、有医院覆盖
 - 每日掷骰 < `familyPregnancyChancePerDay`（默认0.10）
+- 怀孕成功后立即将该床位记入 `reservedBabyBedPoiId`，防止多胎并发抢占同一张床
 
 ### NpcChildbirthService
 
-- 条件：pregnant、currentDay ≥ pregnantSince + duration、所在建筑有空余床位
-- 分娩：在妻子 homeId 对应的 POI 位置 spawn 孩子（ignoreHousingCapacity=true）
-- 孩子：age=1，homeId=空余床位，familyId=originFamilyId=父母家庭，子皮肤暂用成人皮肤库
-- 清空妻子孕期状态，广播出生消息
+- 条件：pregnant、currentDay ≥ pregnantSince + duration
+- 分娩位置：优先使用 `reservedBabyBedPoiId` 对应的医院床（若已入院）或住宅坐标，无预约时兜底搜索建筑内空床
+- 孩子：age=1，homeId=预约床位 POI ID，familyId=originFamilyId=父母家庭，子皮肤暂用成人皮肤库
+- 分娩完成后清空妻子孕期状态（含 `reservedBabyBedPoiId`），广播出生消息
 
 ### NpcMarriageService
 

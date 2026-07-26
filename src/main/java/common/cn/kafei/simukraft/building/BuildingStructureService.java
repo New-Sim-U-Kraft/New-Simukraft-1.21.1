@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.building;
 
 import common.cn.kafei.simukraft.SimuKraft;
+import common.cn.kafei.simukraft.city.poi.CityPoiType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -8,7 +9,10 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.Property;
 
 import java.util.ArrayList;
@@ -63,7 +67,7 @@ public final class BuildingStructureService {
                 definition.size(),
                 BuildingMetadataReader.parseSize(definition.size()),
                 List.copyOf(blocks),
-                BuildingMetadataReader.readPoiDefinitions(definition),
+                scanPoiDefinitions(blocks),
                 BlockPos.ZERO,
                 blocks.size()
         ));
@@ -141,6 +145,34 @@ public final class BuildingStructureService {
 
     private static <T extends Comparable<T>> BlockState applyProperty(BlockState state, Property<T> property, String value) {
         return property.getValue(value).map(parsed -> state.setValue(property, parsed)).orElse(state);
+    }
+
+    /** 扫描 NBT 方块列表中的床头方块，自动生成 POI 定义：红床→RESIDENTIAL，白床→MEDICAL */
+    private static List<BuildingPoiDefinition> scanPoiDefinitions(List<BuildingBlockData> blocks) {
+        int residentialCount = 0;
+        int medicalCount = 0;
+        for (BuildingBlockData block : blocks) {
+            BlockState state = block.state();
+            if (state == null) continue;
+            // 只统计床头，避免一张床的头/脚两个方块重复计数
+            if (!state.hasProperty(BlockStateProperties.BED_PART) ||
+                    state.getValue(BlockStateProperties.BED_PART) != BedPart.HEAD) {
+                continue;
+            }
+            if (state.is(Blocks.RED_BED)) {
+                residentialCount++;
+            } else if (state.is(Blocks.WHITE_BED)) {
+                medicalCount++;
+            }
+        }
+        List<BuildingPoiDefinition> result = new ArrayList<>();
+        if (residentialCount > 0) {
+            result.add(new BuildingPoiDefinition("residential", CityPoiType.RESIDENTIAL, residentialCount));
+        }
+        if (medicalCount > 0) {
+            result.add(new BuildingPoiDefinition("medical", CityPoiType.MEDICAL, medicalCount));
+        }
+        return List.copyOf(result);
     }
 
     private static String stripExtension(String fileName) {
