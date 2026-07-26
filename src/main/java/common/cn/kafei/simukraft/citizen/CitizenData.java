@@ -45,6 +45,7 @@ public final class CitizenData {
     private UUID originFamilyId;
     private boolean pregnant;
     private long pregnantSince;
+    private UUID reservedBabyBedPoiId; // 怀孕时预约给婴儿的住宅床位
     private long lastAgeGrowthDay = -1L;
     private final MedicalPatientData medical = new MedicalPatientData();
 
@@ -104,6 +105,7 @@ public final class CitizenData {
         data.originFamilyId = tag.hasUUID("OriginFamilyId") ? tag.getUUID("OriginFamilyId") : null;
         data.pregnant = tag.getBoolean("Pregnant");
         data.pregnantSince = tag.getLong("PregnantSince");
+        data.reservedBabyBedPoiId = tag.hasUUID("ReservedBabyBedPoiId") ? tag.getUUID("ReservedBabyBedPoiId") : null;
         data.lastAgeGrowthDay = tag.contains("LastAgeGrowthDay") ? Math.max(-1L, tag.getLong("LastAgeGrowthDay")) : -1L;
         data.medical.fromTag(tag);
         CompoundTag skillTag = tag.getCompound("Skills");
@@ -155,6 +157,7 @@ public final class CitizenData {
         if (originFamilyId != null) tag.putUUID("OriginFamilyId", originFamilyId);
         tag.putBoolean("Pregnant", pregnant);
         tag.putLong("PregnantSince", pregnantSince);
+        if (reservedBabyBedPoiId != null) tag.putUUID("ReservedBabyBedPoiId", reservedBabyBedPoiId);
         tag.putLong("LastAgeGrowthDay", lastAgeGrowthDay);
         medical.toTag(tag);
         CompoundTag skillTag = new CompoundTag();
@@ -460,6 +463,7 @@ public final class CitizenData {
         this.homeId = null;
         this.pregnant = false;
         this.pregnantSince = 0L;
+        this.reservedBabyBedPoiId = null;
         this.lastAgeGrowthDay = -1L;
         this.medical.clear();
     }
@@ -514,6 +518,14 @@ public final class CitizenData {
 
     public void setPregnantSince(long pregnantSince) {
         this.pregnantSince = Math.max(0L, pregnantSince);
+    }
+
+    public UUID reservedBabyBedPoiId() {
+        return reservedBabyBedPoiId;
+    }
+
+    public void setReservedBabyBedPoiId(UUID reservedBabyBedPoiId) {
+        this.reservedBabyBedPoiId = reservedBabyBedPoiId;
     }
 
     public long lastAgeGrowthDay() {

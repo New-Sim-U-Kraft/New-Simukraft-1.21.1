@@ -47,8 +47,10 @@ public final class NpcChildbirthService {
         BlockPos spawnPos = resolveDeliveryPos(level, wife);
         if (spawnPos == null) return;
 
-        // 必须有空床才能出生，无空床保留孕期状态等下一天
-        UUID vacantBedPoiId = findVacantBedInSameBuilding(level, wife);
+        // 优先使用怀孕时预约的床位，预约丢失时兜底搜索
+        UUID vacantBedPoiId = wife.reservedBabyBedPoiId() != null
+                ? wife.reservedBabyBedPoiId()
+                : findVacantBedInSameBuilding(level, wife);
         if (vacantBedPoiId == null) return;
 
         Optional<common.cn.kafei.simukraft.entity.CitizenEntity> entityOpt =
@@ -83,6 +85,7 @@ public final class NpcChildbirthService {
 
         wife.setPregnant(false);
         wife.setPregnantSince(0L);
+        wife.setReservedBabyBedPoiId(null); // 分娩完成，释放预约
         wife.medical().setPostpartumUntilDay(currentDay + Math.max(0, ServerConfig.familyPostpartumRecoveryDays()));
         wife.setStatusLabel("pregnancy.postpartum");
         manager.saveCitizenNow(wife.uuid());
@@ -122,7 +125,12 @@ public final class NpcChildbirthService {
         java.util.Set<UUID> occupiedPoiIds = CitizenManager.get(level).allCitizens().stream()
                 .filter(c -> !c.dead() && c.homeId() != null)
                 .map(CitizenData::homeId)
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
+        // 其他孕妇预约的床位也视为占用（兜底搜索时排除）
+        CitizenManager.get(level).allCitizens().stream()
+                .filter(c -> !c.dead() && c.reservedBabyBedPoiId() != null && !c.uuid().equals(wife.uuid()))
+                .map(CitizenData::reservedBabyBedPoiId)
+                .forEach(occupiedPoiIds::add);
 
         for (var instance : building.poiInstances()) {
             if (instance.poiType() != CityPoiType.RESIDENTIAL) continue;

@@ -4,12 +4,15 @@ import common.cn.kafei.simukraft.citizen.family.FamilyData;
 import common.cn.kafei.simukraft.citizen.family.FamilyManager;
 import common.cn.kafei.simukraft.citizen.family.FamilyStatus;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
+import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.medical.MedicalService;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
+
+import java.util.UUID;
 
 @SuppressWarnings("null")
 public final class NpcPregnancyService {
@@ -66,7 +69,8 @@ public final class NpcPregnancyService {
         if (husband != null && !husband.dead() && NpcMarriageService.isLivingWithOriginFamily(level, manager, husband)) return;
 
         // 家庭当前成员数 + 孩子已有数，需要还有空余床位才允许怀孕
-        if (!hasVacantBedForBaby(level, manager, family, wife)) return;
+        UUID reservedBedId = findVacantBedForBaby(level, manager, wife);
+        if (reservedBedId == null) return;
 
         // 无医院服务覆盖时不允许怀孕，确保孕期全程有医疗保障
         if (!MedicalService.hasMedicalCoverageForCitizen(level, wife)) return;
@@ -75,25 +79,31 @@ public final class NpcPregnancyService {
 
         wife.setPregnant(true);
         wife.setPregnantSince(currentDay);
+        wife.setReservedBabyBedPoiId(reservedBedId); // 预约婴儿床位，防止并发抢占
         wife.setStatusLabel("pregnant");
         manager.saveCitizenNow(wife.uuid());
     }
 
-    private static boolean hasVacantBedForBaby(ServerLevel level, CitizenManager manager,
-            FamilyData family, CitizenData wife) {
-        if (wife.homeId() == null) return false;
+    /** findVacantBedForBaby：在妻子所在建筑中找一张未被占用也未被其他孕妇预约的空床，返回其 poiId。 */
+    private static UUID findVacantBedForBaby(ServerLevel level, CitizenManager manager, CitizenData wife) {
+        if (wife.homeId() == null) return null;
         var building = PlacedBuildingService.findByPoi(level, wife.homeId());
-        if (building == null) return false;
+        if (building == null) return null;
         var poiManager = CityPoiManager.get(level);
+        // 已住居民的床 + 其他孕妇预约的床 均视为占用
         java.util.Set<java.util.UUID> occupied = manager.allCitizens().stream()
                 .filter(c -> !c.dead() && c.homeId() != null)
                 .map(CitizenData::homeId)
-                .collect(java.util.stream.Collectors.toSet());
-        long vacantBeds = building.poiInstances().stream()
-                .filter(inst -> inst.poiType() == CityPoiType.RESIDENTIAL)
-                .map(inst -> poiManager.getPoiAt(inst.worldPos()))
-                .filter(poi -> poi != null && poi.active() && !occupied.contains(poi.poiId()))
-                .count();
-        return vacantBeds > 0;
+                .collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
+        manager.allCitizens().stream()
+                .filter(c -> !c.dead() && c.reservedBabyBedPoiId() != null)
+                .map(CitizenData::reservedBabyBedPoiId)
+                .forEach(occupied::add);
+        for (var inst : building.poiInstances()) {
+            if (inst.poiType() != CityPoiType.RESIDENTIAL) continue;
+            CityPoiData poi = poiManager.getPoiAt(inst.worldPos());
+            if (poi != null && poi.active() && !occupied.contains(poi.poiId())) return poi.poiId();
+        }
+        return null;
     }
 }
