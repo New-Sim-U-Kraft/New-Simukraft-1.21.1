@@ -477,6 +477,9 @@ public class CitizenEntity extends PathfinderMob {
 
     public void setAge(int age) {
         this.entityData.set(DATA_AGE, age);
+        if (isChildNpc()) {
+            refreshDimensions(); // 幼儿年龄变化时同步刷新碰撞箱
+        }
     }
 
     public int getLifespan() {
@@ -501,6 +504,16 @@ public class CitizenEntity extends PathfinderMob {
 
     public void setChildNpc(boolean childNpc) {
         this.entityData.set(DATA_IS_CHILD, childNpc);
+        refreshDimensions(); // 幼儿/成人状态切换时同步刷新碰撞箱
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+        // 客户端收到年龄或幼儿标志变更时刷新碰撞箱（服务端由 setAge/setChildNpc 直接刷新）
+        if (DATA_IS_CHILD.equals(key) || (DATA_AGE.equals(key) && isChildNpc())) {
+            refreshDimensions();
+        }
     }
 
     public boolean hasActiveVisualTask() {

@@ -3,7 +3,8 @@
   "package": "common.cn.kafei.simukraft.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "MixinMilkBucketItem"
+    "MixinMilkBucketItem",
+    "MixinLivingEntityDimensions"
   ],
   "injectors": {
     "defaultRequire": 1
