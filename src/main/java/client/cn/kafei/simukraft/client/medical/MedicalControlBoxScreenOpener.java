@@ -64,6 +64,7 @@ public final class MedicalControlBoxScreenOpener {
         });
         root.addChild(SimuKraftUiTheme.createShellPanel(screenWidth, screenHeight));
         root.addChild(doneButton());
+        root.addChild(demolishButton(packet));
 
         UIElement panel = new UIElement().layout(layout -> {
             layout.widthPercent(92);
@@ -93,7 +94,6 @@ public final class MedicalControlBoxScreenOpener {
         actions.addChild(actionButton(Component.translatable("gui.simukraft.medical.hire"), () -> hire(packet),
                 packet.hasBuilding() && packet.definitionValid() && !packet.hasDoctor()));
         actions.addChild(actionButton(Component.translatable("gui.simukraft.medical.fire"), () -> fire(packet), packet.hasDoctor()));
-        actions.addChild(actionButton(Component.translatable("gui.simukraft.medical.demolish"), () -> demolish(packet), packet.hasBuilding()));
         panel.addChild(actions);
         root.addChild(panel);
         return new ModularUI(SimuKraftUiTheme.createUi(root)).shouldCloseOnEsc(true).shouldCloseOnKeyInventory(false);
@@ -131,6 +131,23 @@ public final class MedicalControlBoxScreenOpener {
         button.layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
             layout.left(5);
+            layout.top(5);
+            layout.width(50);
+            layout.height(22);
+        });
+        return button;
+    }
+
+    private static Button demolishButton(MedicalControlBoxOpenResponsePacket packet) {
+        Button button = new Button();
+        button.setText(Component.translatable("gui.button.demolish"));
+        button.setActive(packet.hasBuilding());
+        if (packet.hasBuilding()) {
+            button.setOnClick(event -> demolish(packet));
+        }
+        button.layout(layout -> {
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.right(5);
             layout.top(5);
             layout.width(50);
             layout.height(22);

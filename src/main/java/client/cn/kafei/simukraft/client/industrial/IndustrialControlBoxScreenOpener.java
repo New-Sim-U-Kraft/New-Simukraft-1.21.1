@@ -16,7 +16,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import common.cn.kafei.simukraft.industrial.IndustrialConstants;
@@ -51,6 +54,7 @@ public final class IndustrialControlBoxScreenOpener {
     private static final int ROW_BUTTON_SELECTED = 0xFFD8EAD8;
     private static final int ROW_BUTTON_BORDER = 0xFF1E1E1E;
     private static final float TEXT_ROLL_SPEED = 0.25F;
+    private static final int RECIPE_SCROLL_THRESHOLD = 3; // 超过此数量时启用垂直滚动
     private static BlockPos openedBoxPos;
 
     private IndustrialControlBoxScreenOpener() {
@@ -167,6 +171,32 @@ public final class IndustrialControlBoxScreenOpener {
     }
 
     private static UIElement recipeList(IndustrialControlBoxOpenResponsePacket packet, LayoutMetrics metrics) {
+        List<IndustrialControlBoxOpenResponsePacket.RecipeEntry> allRecipes = packet.recipes();
+
+        if (allRecipes.size() > RECIPE_SCROLL_THRESHOLD) {
+            // 配方超过阈值：全部行放入 ScrollerView，高度固定裁剪
+            UIElement content = new UIElement().layout(layout -> {
+                layout.widthPercent(100);
+                layout.flexDirection(FlexDirection.COLUMN);
+                layout.gapAll(metrics.gap());
+            });
+            allRecipes.forEach(recipe -> content.addChild(recipeRow(packet, recipe, metrics)));
+
+            ScrollerView scroller = new ScrollerView();
+            scroller.setOverflowVisible(false);
+            scroller.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
+                    .verticalScrollDisplay(ScrollDisplay.AUTO)
+                    .horizontalScrollDisplay(ScrollDisplay.NEVER));
+            scroller.layout(layout -> {
+                layout.widthPercent(100);
+                layout.height(metrics.recipeAreaHeight());
+                layout.marginTop(metrics.innerGap());
+            });
+            scroller.addScrollViewChild(content);
+            return scroller;
+        }
+
+        // 配方不超过阈值：静态显示，截断到可见行数
         UIElement recipes = new UIElement().layout(layout -> {
             layout.widthPercent(100);
             layout.height(metrics.recipeAreaHeight());
@@ -176,7 +206,7 @@ public final class IndustrialControlBoxScreenOpener {
         });
         recipes.setOverflowVisible(false);
         int maxRows = Math.max(1, metrics.recipeAreaHeight() / Math.max(1, metrics.recipeRowHeight() + metrics.gap()));
-        List<IndustrialControlBoxOpenResponsePacket.RecipeEntry> visibleRecipes = packet.recipes().stream().limit(maxRows).toList();
+        List<IndustrialControlBoxOpenResponsePacket.RecipeEntry> visibleRecipes = allRecipes.stream().limit(maxRows).toList();
         if (visibleRecipes.isEmpty()) {
             recipes.addChild(label(Component.translatable("gui.simukraft.industrial.no_recipes"), Horizontal.CENTER, 0xFFFF7070, metrics.recipeRowHeight(), TextWrap.HIDE));
         } else {

@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft.citizen;
 
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
+import common.cn.kafei.simukraft.medical.DiseaseType;
 import common.cn.kafei.simukraft.util.SaveScopedCacheKey;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
@@ -12,6 +13,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.Locale;
 import java.util.Set;
@@ -94,6 +96,12 @@ public final class CitizenFoodConsumptionService {
             CitizenJobVisualService.setMainHandOverride(data.uuid(), visualStack.copyWithCount(1));
             runtime(level).visualExpiries.put(data.uuid(), level.getGameTime() + EAT_VISUAL_TICKS);
         }
+        // 食用蜘蛛眼或腐肉触发食物中毒
+        if (!data.disease().isActive() && isFoodPoisoningItem(visualStack)) {
+            long currentDay = level.getDayTime() / 24_000L;
+            data.setDisease(DiseaseType.FOOD_POISONING, currentDay);
+            CitizenService.save(level, data.uuid());
+        }
         CitizenManager.get(level).syncEntity(entity);
         level.playSound(null, entity.blockPosition(), SoundEvents.GENERIC_EAT, SoundSource.NEUTRAL, 0.8F, 1.0F);
         entity.triggerWorkSwing(InteractionHand.MAIN_HAND);
@@ -129,6 +137,12 @@ public final class CitizenFoodConsumptionService {
     /** runtime: 按存档和维度隔离运行时缓存，避免跨世界串数据。 */
     private static LevelRuntime runtime(ServerLevel level) {
         return RUNTIMES.computeIfAbsent(SaveScopedCacheKey.levelKey(level).toLowerCase(Locale.ROOT), ignored -> new LevelRuntime());
+    }
+
+    private static boolean isFoodPoisoningItem(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        Item item = stack.getItem();
+        return item == Items.SPIDER_EYE || item == Items.ROTTEN_FLESH || item == Items.PUFFERFISH;
     }
 
     private static final class LevelRuntime {

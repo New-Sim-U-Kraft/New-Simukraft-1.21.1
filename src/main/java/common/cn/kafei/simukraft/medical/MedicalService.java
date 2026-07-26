@@ -59,10 +59,14 @@ public final class MedicalService {
             return;
         }
         for (CitizenData citizen : CitizenManager.get(level).allCitizens()) {
-            if (citizen.dead() || citizen.disease().isActive() || random.nextDouble() >= ServerConfig.medicalDiseaseChancePerDay()) {
+            // 医生职业因职业知识降低患病概率
+            double chance = citizen.jobType() == common.cn.kafei.simukraft.job.CityJobType.DOCTOR
+                    ? 0.009D
+                    : ServerConfig.medicalDiseaseChancePerDay();
+            if (citizen.dead() || citizen.disease().isActive() || random.nextDouble() >= chance) {
                 continue;
             }
-            DiseaseType[] choices = {DiseaseType.COLD, DiseaseType.FLU, DiseaseType.FOOD_POISONING};
+            DiseaseType[] choices = {DiseaseType.COLD, DiseaseType.FLU};
             citizen.setDisease(choices[random.nextInt(choices.length)], currentDay);
             CitizenService.save(level, citizen.uuid());
         }

@@ -33,8 +33,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @OnlyIn(Dist.CLIENT)
 public final class BuildingBoundsRenderer {
     private static final int COLOR_CITY_BORDER = 0x553C66FF;
-    private static final int COLOR_INTRUSION_AIR = 0x60FFFF00;
-    private static final int COLOR_INTRUSION_BLOCK = 0x60FF0000;
+    private static final int COLOR_INTRUSION_AIR   = 0x28FFEE00; // 黄色实心面，低透明避免叠加过亮
+    private static final int COLOR_INTRUSION_BLOCK  = 0x28FF3300; // 红色实心面
+    private static final int COLOR_INTRUSION_AIR_EDGE   = 0xCCFFEE00; // 黄色线框边缘
+    private static final int COLOR_INTRUSION_BLOCK_EDGE  = 0xCCFF3300; // 红色线框边缘
     private static final int COLOR_SELECTED_BUILDING = 0xAAFFFFFF;
     private static final int COLOR_RESIDENTIAL_POI = 0xAA00FF66;
     private static final int COLOR_INDUSTRIAL_WORK_POINT = 0xAA33CCFF;
@@ -261,12 +263,79 @@ public final class BuildingBoundsRenderer {
 
     private static void renderCachedIntrusions(PoseStack poseStack, Vec3 cameraPos, Minecraft minecraft) {
         ensurePreviewDetectionCache(minecraft);
-        for (PreviewIntrusion intrusion : cachedIntrusions) {
-            renderBox(poseStack, cameraPos, new AABB(intrusion.pos()), intrusion.color());
+        if (!cachedIntrusions.isEmpty()) {
+            renderIntrusionsBatched(poseStack, cameraPos);
         }
         for (AABB buildingBounds : cachedTouchedBuildingBounds) {
             renderWireBox(poseStack, cameraPos, buildingBounds, COLOR_SELECTED_BUILDING);
         }
+    }
+
+    // 所有侵入方块合并为 2 次 draw call（实心面 + 线框），避免每块单独 draw call 卡顿。
+    private static void renderIntrusionsBatched(PoseStack poseStack, Vec3 cameraPos) {
+        Matrix4f matrix = poseStack.last().pose();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableCull();
+        RenderSystem.enableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        Tesselator tesselator = Tesselator.getInstance();
+
+        // 实心面 batch：全部侵入块写入同一 buffer，一次提交
+        BufferBuilder faceBuffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        for (PreviewIntrusion intrusion : cachedIntrusions) {
+            addBoxFacesToBuffer(faceBuffer, matrix, cameraPos, new AABB(intrusion.pos()), intrusion.color());
+        }
+        BufferUploader.drawWithShader(faceBuffer.buildOrThrow());
+
+        // 线框 batch：同色但高透明度边框，让边界清晰可见
+        BufferBuilder lineBuffer = tesselator.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+        for (PreviewIntrusion intrusion : cachedIntrusions) {
+            int edgeColor = intrusion.color() == COLOR_INTRUSION_AIR ? COLOR_INTRUSION_AIR_EDGE : COLOR_INTRUSION_BLOCK_EDGE;
+            addWireBoxToBuffer(lineBuffer, matrix, cameraPos, new AABB(intrusion.pos()), edgeColor);
+        }
+        BufferUploader.drawWithShader(lineBuffer.buildOrThrow());
+
+        RenderSystem.depthMask(true);
+        RenderSystem.enableCull();
+        RenderSystem.disableBlend();
+    }
+
+    private static void addBoxFacesToBuffer(BufferBuilder buffer, Matrix4f matrix, Vec3 cameraPos, AABB bounds, int color) {
+        float r = ((color >> 16) & 0xFF) / 255.0f;
+        float g = ((color >> 8) & 0xFF) / 255.0f;
+        float b = (color & 0xFF) / 255.0f;
+        float a = ((color >> 24) & 0xFF) / 255.0f;
+        double x0 = bounds.minX - cameraPos.x, y0 = bounds.minY - cameraPos.y, z0 = bounds.minZ - cameraPos.z;
+        double x1 = bounds.maxX - cameraPos.x, y1 = bounds.maxY - cameraPos.y, z1 = bounds.maxZ - cameraPos.z;
+        drawQuad(buffer, matrix, x0, y0, z0, x1, y0, z0, x1, y1, z0, x0, y1, z0, r, g, b, a); // 北
+        drawQuad(buffer, matrix, x1, y0, z1, x0, y0, z1, x0, y1, z1, x1, y1, z1, r, g, b, a); // 南
+        drawQuad(buffer, matrix, x0, y0, z1, x0, y0, z0, x0, y1, z0, x0, y1, z1, r, g, b, a); // 西
+        drawQuad(buffer, matrix, x1, y0, z0, x1, y0, z1, x1, y1, z1, x1, y1, z0, r, g, b, a); // 东
+        drawQuad(buffer, matrix, x0, y1, z0, x1, y1, z0, x1, y1, z1, x0, y1, z1, r, g, b, a); // 顶
+        drawQuad(buffer, matrix, x0, y0, z1, x1, y0, z1, x1, y0, z0, x0, y0, z0, r, g, b, a); // 底
+    }
+
+    private static void addWireBoxToBuffer(BufferBuilder buffer, Matrix4f matrix, Vec3 cameraPos, AABB bounds, int color) {
+        float r = ((color >> 16) & 0xFF) / 255.0f;
+        float g = ((color >> 8) & 0xFF) / 255.0f;
+        float b = (color & 0xFF) / 255.0f;
+        float a = ((color >> 24) & 0xFF) / 255.0f;
+        double x0 = bounds.minX - cameraPos.x, y0 = bounds.minY - cameraPos.y, z0 = bounds.minZ - cameraPos.z;
+        double x1 = bounds.maxX - cameraPos.x, y1 = bounds.maxY - cameraPos.y, z1 = bounds.maxZ - cameraPos.z;
+        drawLine(buffer, matrix, x0, y0, z0, x1, y0, z0, r, g, b, a);
+        drawLine(buffer, matrix, x1, y0, z0, x1, y0, z1, r, g, b, a);
+        drawLine(buffer, matrix, x1, y0, z1, x0, y0, z1, r, g, b, a);
+        drawLine(buffer, matrix, x0, y0, z1, x0, y0, z0, r, g, b, a);
+        drawLine(buffer, matrix, x0, y1, z0, x1, y1, z0, r, g, b, a);
+        drawLine(buffer, matrix, x1, y1, z0, x1, y1, z1, r, g, b, a);
+        drawLine(buffer, matrix, x1, y1, z1, x0, y1, z1, r, g, b, a);
+        drawLine(buffer, matrix, x0, y1, z1, x0, y1, z0, r, g, b, a);
+        drawLine(buffer, matrix, x0, y0, z0, x0, y1, z0, r, g, b, a);
+        drawLine(buffer, matrix, x1, y0, z0, x1, y1, z0, r, g, b, a);
+        drawLine(buffer, matrix, x1, y0, z1, x1, y1, z1, r, g, b, a);
+        drawLine(buffer, matrix, x0, y0, z1, x0, y1, z1, r, g, b, a);
     }
 
     private static void ensurePreviewDetectionCache(Minecraft minecraft) {
@@ -391,33 +460,6 @@ public final class BuildingBoundsRenderer {
         if (throughWalls) {
             RenderSystem.enableDepthTest();
         }
-        RenderSystem.enableCull();
-        RenderSystem.disableBlend();
-    }
-
-    private static void renderBox(PoseStack poseStack, Vec3 cameraPos, AABB bounds, int color) {
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableCull();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        Matrix4f matrix = poseStack.last().pose();
-        float red = ((color >> 16) & 0xFF) / 255.0f;
-        float green = ((color >> 8) & 0xFF) / 255.0f;
-        float blue = (color & 0xFF) / 255.0f;
-        float alpha = ((color >> 24) & 0xFF) / 255.0f;
-        double minX = bounds.minX - cameraPos.x;
-        double minY = bounds.minY - cameraPos.y;
-        double minZ = bounds.minZ - cameraPos.z;
-        double maxX = bounds.maxX - cameraPos.x;
-        double maxY = bounds.maxY - cameraPos.y;
-        double maxZ = bounds.maxZ - cameraPos.z;
-        drawQuad(buffer, matrix, minX, minY, minZ, maxX, minY, minZ, maxX, maxY, minZ, minX, maxY, minZ, red, green, blue, alpha);
-        drawQuad(buffer, matrix, maxX, minY, maxZ, minX, minY, maxZ, minX, maxY, maxZ, maxX, maxY, maxZ, red, green, blue, alpha);
-        drawQuad(buffer, matrix, minX, minY, maxZ, minX, minY, minZ, minX, maxY, minZ, minX, maxY, maxZ, red, green, blue, alpha);
-        drawQuad(buffer, matrix, maxX, minY, minZ, maxX, minY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ, red, green, blue, alpha);
-        com.mojang.blaze3d.vertex.BufferUploader.drawWithShader(buffer.buildOrThrow());
         RenderSystem.enableCull();
         RenderSystem.disableBlend();
     }

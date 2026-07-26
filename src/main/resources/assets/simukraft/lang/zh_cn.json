@@ -434,7 +434,6 @@
     "gui.simukraft.medical.range_line":  "服务范围：%s 圈（%s 个区块）",
     "gui.simukraft.medical.hire":  "雇佣医生",
     "gui.simukraft.medical.fire":  "解雇医生",
-    "gui.simukraft.medical.demolish":  "拆除建筑",
     "gui.simukraft.medical.no_patients":  "当前没有住院居民",
     "gui.simukraft.medical.patient_line":  "%s：%s，生命值 %s",
     "gui.simukraft.medical.status.no_building":  "未绑定医疗建筑",

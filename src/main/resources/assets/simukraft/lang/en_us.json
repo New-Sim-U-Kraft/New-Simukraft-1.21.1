@@ -433,7 +433,6 @@
     "gui.simukraft.medical.range_line":  "Service range: %s rings (%s chunks)",
     "gui.simukraft.medical.hire":  "Hire Doctor",
     "gui.simukraft.medical.fire":  "Fire Doctor",
-    "gui.simukraft.medical.demolish":  "Demolish Building",
     "gui.simukraft.medical.no_patients":  "No residents are hospitalized",
     "gui.simukraft.medical.patient_line":  "%s: %s, health %s",
     "gui.simukraft.medical.status.no_building":  "No medical building bound",
