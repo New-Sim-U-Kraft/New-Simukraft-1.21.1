@@ -275,11 +275,14 @@ public final class CityManager extends SavedData {
         if (city == null || !city.hasPermission(operatorId, CityPermissionLevel.OFFICIAL)) {
             return false;
         }
-        if (operatorId.equals(targetId)) {
+        // 市长不能自行离开城市（必须先转让市长职位）
+        if (operatorId.equals(targetId) && city.hasPermission(operatorId, CityPermissionLevel.MAYOR)) {
             return false;
         }
         Optional<CityMemberData> targetMember = city.member(targetId);
-        if (targetMember.map(CityMemberData::permissionLevel).orElse(CityPermissionLevel.CITIZEN).atLeast(CityPermissionLevel.OFFICIAL)
+        // 自退时跳过"只有市长才能移除官员"的限制
+        if (!operatorId.equals(targetId)
+                && targetMember.map(CityMemberData::permissionLevel).orElse(CityPermissionLevel.CITIZEN).atLeast(CityPermissionLevel.OFFICIAL)
                 && !city.hasPermission(operatorId, CityPermissionLevel.MAYOR)) {
             return false;
         }

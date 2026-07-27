@@ -359,6 +359,7 @@
     "message.simukraft.command.city_mayor.target_has_city":  "玩家 %1$s 已是城市 %2$s 的成员，无法接受转让。",
     "message.simukraft.command.city_mayor.failed":  "市长转让失败。",
     "message.simukraft.command.city_mayor.success":  "已将城市 %1$s 的市长从 %2$s 转让给 %3$s。",
+    "message.simukraft.command.city_mayor.city_not_found":  "找不到名为「%s」的城市。",
     "message.simukraft.command.city_required":  "你尚未加入任何城市。",
     "message.simukraft.command.city_citizens.spawned":  "已为城市 %2$s 生成 %1$s 名市民。",
     "message.simukraft.command.path_stress.started":  "压力测试已提交：%1$s 个寻路请求，已加载 %2$s / 本市总计 %3$s 名市民，终点分散半径 %4$s 格。",

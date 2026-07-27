@@ -41,6 +41,16 @@ public final class CityService {
         return CityManager.get(level).getCity(cityId).filter(city -> belongsToLevel(level, city));
     }
 
+    public static Optional<CityData> findCityByName(ServerLevel level, String cityName) {
+        if (level == null || cityName == null || cityName.isBlank()) {
+            return Optional.empty();
+        }
+        String normalized = cityName.trim();
+        return CityManager.get(level).allCities().stream()
+                .filter(city -> city.cityName().equalsIgnoreCase(normalized) && belongsToLevel(level, city))
+                .findFirst();
+    }
+
     public static Optional<CityData> findPlayerCity(ServerLevel level, UUID playerId) {
         if (level == null || playerId == null) {
             return Optional.empty();
