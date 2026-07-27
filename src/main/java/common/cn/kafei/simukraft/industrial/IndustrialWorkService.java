@@ -49,6 +49,14 @@ public final class IndustrialWorkService {
         long gameTime = level.getGameTime();
         for (IndustrialBoxData data : manager.all()) {
             BoxRuntime boxRuntime = runtime.boxes.computeIfAbsent(data.boxPos(), ignored -> new BoxRuntime());
+            // 重启后首次 tick：从持久化的 stepElapsedTicks 恢复计时起点
+            if (!boxRuntime.progressRestored) {
+                boxRuntime.progressRestored = true;
+                if (data.stepElapsedTicks() > 0) {
+                    boxRuntime.stepStartedAt = gameTime - data.stepElapsedTicks();
+                    data.setStepElapsedTicks(0);
+                }
+            }
             if (!data.running()) {
                 boxRuntime.reset();
                 if (gameTime < boxRuntime.nextTick || !tryAutoStartStoppedBox(level, manager, data)) {
@@ -67,7 +75,22 @@ public final class IndustrialWorkService {
 
     public static void flush(ServerLevel level) {
         if (level != null) {
+            syncRuntimeProgressToData(level);
             IndustrialBoxManager.get(level).saveToSqlite(level);
+        }
+    }
+
+    // 关服前将内存中的步骤计时进度写回 data，确保重启后能从断点恢复
+    private static void syncRuntimeProgressToData(ServerLevel level) {
+        LevelRuntime runtime = RUNTIMES.get(SaveScopedCacheKey.levelKey(level).toLowerCase(Locale.ROOT));
+        if (runtime == null) return;
+        IndustrialBoxManager manager = IndustrialBoxManager.get(level);
+        long gameTime = level.getGameTime();
+        for (IndustrialBoxData data : manager.all()) {
+            BoxRuntime br = runtime.boxes.get(data.boxPos());
+            if (br != null && br.stepStartedAt > 0) {
+                data.setStepElapsedTicks(gameTime - br.stepStartedAt);
+            }
         }
     }
 
@@ -163,6 +186,11 @@ public final class IndustrialWorkService {
         }
         IndustrialEntitySpawnService.ensureSpawned(level, manager, data, building, definition);
         if (CitizenHomeRestService.isRestTime(level)) {
+            // 夜间睡眠前保存当前步骤已消耗 tick，防止重启后计时丢失
+            if (boxRuntime.stepStartedAt > 0 && data.stepElapsedTicks() == 0) {
+                data.setStepElapsedTicks(gameTime - boxRuntime.stepStartedAt);
+                manager.persist(data);
+            }
             setStatus(manager, data, "gui.simukraft.industrial.status.resting", "");
             CitizenJobVisualService.clearMainHandOverride(worker.uuid());
             boxRuntime.nextTick = gameTime + IDLE_RETRY_TICKS;
@@ -191,8 +219,21 @@ public final class IndustrialWorkService {
             manager.persist(data);
         }
         IndustrialDefinition.StepDefinition step = recipe.steps().get(data.currentStep());
+        // use_item 步骤前检查NPC是否在上次记录的工作位置，不在则先导航过去
+        if ("use_item".equals(step.type().toLowerCase(Locale.ROOT)) && data.workerWorkPos() != Long.MIN_VALUE) {
+            Vec3 workCenter = Vec3.atBottomCenterOf(BlockPos.of(data.workerWorkPos()));
+            if (entity.position().distanceToSqr(workCenter) > 16.0) {
+                CitizenNavigationService.requestMove(level, worker.uuid(), workCenter, MovementIntent.WORK);
+                boxRuntime.nextTick = gameTime + MOVE_RETRY_TICKS;
+                return;
+            }
+        }
         StepResult result = executeStep(level, manager, data, boxRuntime, building, definition, recipe, worker, entity, step, gameTime);
         if (result == StepResult.PROGRESSED) {
+            // 移动步骤完成时记录工作位置，用于后续纯计时步骤（如 use_item）的位置恢复
+            if (step.type().toLowerCase(Locale.ROOT).startsWith("move_to")) {
+                data.setWorkerWorkPos(entity.blockPosition().asLong());
+            }
             advanceStep(manager, data, recipe, boxRuntime);
             boxRuntime.nextTick = gameTime + 1L;
         } else if (result == StepResult.WAITING_MOVE) {
@@ -388,7 +429,9 @@ public final class IndustrialWorkService {
         int stepKey = Objects.hash(data.currentStep(), step.type(), containerId);
         if (boxRuntime.activeStep != stepKey) {
             boxRuntime.activeStep = stepKey;
-            boxRuntime.stepStartedAt = gameTime;
+            if (boxRuntime.stepStartedAt == 0) {
+                boxRuntime.stepStartedAt = gameTime;
+            }
             setContainersOpen(level, containers, true);
             setStatus(manager, data, "gui.simukraft.industrial.status.depositing_carried_items", "");
             return StepResult.WAITING;
@@ -494,7 +537,9 @@ public final class IndustrialWorkService {
         int stepKey = Objects.hash(data.currentStep(), step.type(), containerId, step.itemSpec().displayKey(), step.count());
         if (boxRuntime.activeStep != stepKey) {
             boxRuntime.activeStep = stepKey;
-            boxRuntime.stepStartedAt = gameTime;
+            if (boxRuntime.stepStartedAt == 0) {
+                boxRuntime.stepStartedAt = gameTime;
+            }
             setContainersOpen(level, containers, true);
             setStatus(manager, data, "gui.simukraft.industrial.status.inspecting_container", "");
             return StepResult.WAITING;
@@ -640,7 +685,9 @@ public final class IndustrialWorkService {
         int stepKey = boxRuntimeStepKey(entity, step);
         if (boxRuntime.activeStep != stepKey) {
             boxRuntime.activeStep = stepKey;
-            boxRuntime.stepStartedAt = gameTime;
+            if (boxRuntime.stepStartedAt == 0) {
+                boxRuntime.stepStartedAt = gameTime;
+            }
         }
         entity.getLookControl().setLookAt(target.get());
         long elapsed = gameTime - boxRuntime.stepStartedAt;
@@ -783,7 +830,10 @@ public final class IndustrialWorkService {
     private static StepResult useItem(CitizenEntity entity, BoxRuntime boxRuntime, IndustrialDefinition.StepDefinition step, long gameTime) {
         if (boxRuntime.activeStep != boxRuntimeStepKey(entity, step)) {
             boxRuntime.activeStep = boxRuntimeStepKey(entity, step);
-            boxRuntime.stepStartedAt = gameTime;
+            // stepStartedAt > 0 说明是重启恢复的计时起点，直接沿用；否则从当前 gameTime 开始
+            if (boxRuntime.stepStartedAt == 0) {
+                boxRuntime.stepStartedAt = gameTime;
+            }
             boxRuntime.swingDone = false;
         }
         if (step.swing() && !boxRuntime.swingDone) {
@@ -809,7 +859,9 @@ public final class IndustrialWorkService {
         int stepKey = Objects.hash(step.type(), step.container(), step.input(), step.ticks());
         if (boxRuntime.activeStep != stepKey) {
             boxRuntime.activeStep = stepKey;
-            boxRuntime.stepStartedAt = gameTime;
+            if (boxRuntime.stepStartedAt == 0) {
+                boxRuntime.stepStartedAt = gameTime;
+            }
             setContainersOpen(level, containers, true);
             setStatus(manager, data, "gui.simukraft.industrial.status.inspecting_container", "");
             return StepResult.WAITING;
@@ -934,6 +986,11 @@ public final class IndustrialWorkService {
         int next = data.currentStep() + 1;
         data.setCurrentStep(next >= recipe.steps().size() ? 0 : next);
         data.setMachineState("");
+        data.setStepElapsedTicks(0);
+        // 一轮配方循环结束时清空工作位置
+        if (next >= recipe.steps().size()) {
+            data.setWorkerWorkPos(Long.MIN_VALUE);
+        }
         boxRuntime.reset();
         manager.persist(data);
     }
@@ -1117,6 +1174,7 @@ public final class IndustrialWorkService {
         private long stepStartedAt;
         private long timeoutStartAt;
         private boolean swingDone;
+        private boolean progressRestored; // 本次会话已从持久化恢复过计时进度，防止二次恢复
 
         private void reset() {
             activeStep = Integer.MIN_VALUE;

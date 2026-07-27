@@ -17,6 +17,8 @@ public final class IndustrialBoxData {
     private String machineState = "";
     private String workState = "";
     private long updatedAt;
+    private long stepElapsedTicks;          // 当前步骤已消耗 tick，睡眠/关服前保存，重启后恢复计时进度
+    private long workerWorkPos = Long.MIN_VALUE; // 上次移动步骤的目标位置，Long.MIN_VALUE=无效
 
     public IndustrialBoxData(BlockPos boxPos) {
         this.boxPos = boxPos.immutable();
@@ -110,6 +112,22 @@ public final class IndustrialBoxData {
         return updatedAt;
     }
 
+    public long stepElapsedTicks() {
+        return stepElapsedTicks;
+    }
+
+    public void setStepElapsedTicks(long stepElapsedTicks) {
+        this.stepElapsedTicks = Math.max(0, stepElapsedTicks);
+    }
+
+    public long workerWorkPos() {
+        return workerWorkPos;
+    }
+
+    public void setWorkerWorkPos(long workerWorkPos) {
+        this.workerWorkPos = workerWorkPos;
+    }
+
     public void touch() {
         this.updatedAt = System.currentTimeMillis();
     }
@@ -128,6 +146,8 @@ public final class IndustrialBoxData {
         tag.putString("MachineState", machineState);
         tag.putString("WorkState", workState);
         tag.putLong("UpdatedAt", updatedAt);
+        tag.putLong("StepElapsedTicks", stepElapsedTicks);
+        tag.putLong("WorkerWorkPos", workerWorkPos);
         return tag;
     }
 
@@ -144,6 +164,8 @@ public final class IndustrialBoxData {
         data.machineState = tag.getString("MachineState");
         data.workState = tag.getString("WorkState");
         data.updatedAt = tag.getLong("UpdatedAt");
+        data.stepElapsedTicks = Math.max(0, tag.getLong("StepElapsedTicks"));
+        data.workerWorkPos = tag.contains("WorkerWorkPos") ? tag.getLong("WorkerWorkPos") : Long.MIN_VALUE;
         return data;
     }
 }

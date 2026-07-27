@@ -97,6 +97,8 @@ public final class SimuSqliteSchema {
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_building_tasks_city ON building_tasks(city_id)");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_building_tasks_dimension ON building_tasks(dimension_id)");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_planning_tasks_dimension ON planning_tasks(dimension_id)");
+            addColumnIfMissing(connection, "industrial_boxes", "step_elapsed_ticks", "INTEGER NOT NULL DEFAULT 0");
+            addColumnIfMissing(connection, "industrial_boxes", "worker_work_pos_long", "INTEGER NOT NULL DEFAULT " + Long.MIN_VALUE);
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_industrial_boxes_running ON industrial_boxes(running)");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_commercial_boxes_running ON commercial_boxes(running)");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_commercial_stock_box ON commercial_stock(box_pos_long)");
