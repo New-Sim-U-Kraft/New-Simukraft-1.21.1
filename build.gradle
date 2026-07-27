@@ -157,6 +157,12 @@ configurations {
 }
 
 dependencies {
+    // NT 保护层：内测版通过 JiJ 嵌入，正式版构建时用 -Prelease 剔除
+    if (!rootProject.hasProperty('release')) {
+        implementation 'com.nt:nt:1.0.0'
+        jarJar 'com.nt:nt:1.0.0'
+    }
+
     implementation "curse.maven:ldlib-626676:8152699"
     implementation "dev.vfyjxf:taffy:1.1.4"
     compileOnly "org.appliedenergistics.yoga:yoga:1.0.0"
