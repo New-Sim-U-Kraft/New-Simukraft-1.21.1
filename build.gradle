@@ -159,8 +159,8 @@ configurations {
 dependencies {
     // NT 保护层：内测版通过 JiJ 嵌入，正式版构建时用 -Prelease 剔除
     if (!rootProject.hasProperty('release')) {
-        implementation 'com.nt:nt:1.0.0'
-        jarJar 'com.nt:nt:1.0.0'
+        implementation 'com.nt:nt:1.0.1'
+        jarJar 'com.nt:nt:1.0.1'
     }
 
     implementation "curse.maven:ldlib-626676:8152699"
