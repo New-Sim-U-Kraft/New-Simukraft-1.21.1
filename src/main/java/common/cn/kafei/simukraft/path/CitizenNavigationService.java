@@ -542,7 +542,8 @@ public final class CitizenNavigationService {
     }
 
     private static int localPathDistanceLimit() {
-        return Math.min(ServerConfig.pathFarMovementTeleportDistance(), ServerConfig.pathLocalRadiusBlocks());
+        // 只用传送阈值配置，不再被 localPathRadiusBlocks 静默截断
+        return ServerConfig.pathFarMovementTeleportDistance();
     }
 
     private static ExecutorService executor() {

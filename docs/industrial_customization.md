@@ -814,9 +814,9 @@ NPC 会在范围内寻找最近的匹配掉落物，走过去后把可触及的�
 ```json
 {
   "type": "harvest_block_clusters",
-  "targetBlockTag": "minecraft:logs",
-  "attachedBlockTag": "minecraft:leaves",
-  "supportBlockTag": "minecraft:dirt",
+  "targetBlockTag": "#minecraft:logs",
+  "attachedBlockTag": "#minecraft:leaves",
+  "supportBlockTag": "#minecraft:dirt",
   "plantItemTag": "minecraft:saplings",
   "minAttachedBlocks": 4,
   "maxClusterBlocks": 160,
@@ -836,9 +836,9 @@ NPC 会在范围内寻找最近的匹配掉落物，走过去后把可触及的�
 
 | 字段 | 说明 |
 | --- | --- |
-| `targetBlockTag` / `blockTag` | 必填，要采集的主体方块标签，例如 `minecraft:logs` |
-| `attachedBlockTag` | 可选，主体簇附近必须连接的附着方块标签，例如 `minecraft:leaves` |
-| `supportBlockTag` | 可选，根部下方的支撑方块标签，例如 `minecraft:dirt` |
+| `targetBlockTag` / `blockTag` | 必填，要采集的主体方块。`#tag` 语法匹配标签，例如 `"#minecraft:logs"`；无 `#` 前缀视为直接方块 ID，例如 `"minecraft:oak_log"` |
+| `attachedBlockTag` | 可选，主体簇附近必须连接的附着方块。同样支持 `#tag` 或直接方块 ID |
+| `supportBlockTag` | 可选，根部下方的支撑方块。同样支持 `#tag` 或直接方块 ID；不填则允许所有非空气方块作为支撑 |
 | `plantItemTag` | 可选，采集后尝试补种的物品标签，例如 `minecraft:saplings` |
 | `minAttachedBlocks` | 至少需要多少个附着方块，默认 0；伐木建议设为 4，降低误砍玩家木结构的概率 |
 | `maxClusterBlocks` | 单个连通簇最多处理多少个主体方块，默认 96 |
@@ -864,9 +864,9 @@ NPC 会在范围内寻找最近的匹配掉落物，走过去后把可触及的�
 
 ```json
 {
-  "targetBlockTag": "minecraft:logs",
-  "attachedBlockTag": "minecraft:leaves",
-  "supportBlockTag": "minecraft:dirt",
+  "targetBlockTag": "#minecraft:logs",
+  "attachedBlockTag": "#minecraft:leaves",
+  "supportBlockTag": "#minecraft:dirt",
   "plantItemTag": "minecraft:saplings",
   "minAttachedBlocks": 4
 }
@@ -880,7 +880,8 @@ NPC 会在范围内寻找最近的匹配掉落物，走过去后把可触及的�
 {
   "type": "deposit_carried_items",
   "container": "output",
-  "ticks": 20
+  "ticks": 20,
+  "itemSpecs": ["#minecraft:logs", "#minecraft:saplings", "minecraft:stick"]
 }
 ```
 
@@ -892,6 +893,9 @@ NPC 会在范围内寻找最近的匹配掉落物，走过去后把可触及的�
 | --- | --- |
 | `container` / `output` | 目标容器，默认 `output` |
 | `ticks` | 容器打开后等待多久再入库，默认 1 tick |
+| `itemSpecs` | 可选白名单，只把匹配列表中任意规格的临时携带物存入容器，不在列表中的物品保留在 NPC 背包。不写或写空数组则存入全部物品（向下兼容）。支持精确 ID 和 `#tag` 语法，例如 `"minecraft:beef"`、`"#minecraft:wool"`。 |
+
+`itemSpecs` 典型用法：避免 NPC 把工具磨损残余、多余食材等不需要入库的物品混入输出箱。每条配方可以写自己的白名单，同一个建筑的不同配方互不干扰。
 
 这个步骤通常接在 `harvest_block_clusters`、`move_to_container`、`look_at_container` 和 `inspect_container` 后面，用来表现 NPC 带着收获物回小屋入库。
 
@@ -1383,9 +1387,9 @@ NPC 会等待指定结构坐标中出现目标方块。目标出现前会保持�
         { "type": "set_held_item", "item": "minecraft:iron_axe" },
         {
           "type": "harvest_block_clusters",
-          "targetBlockTag": "minecraft:logs",
-          "attachedBlockTag": "minecraft:leaves",
-          "supportBlockTag": "minecraft:dirt",
+          "targetBlockTag": "#minecraft:logs",
+          "attachedBlockTag": "#minecraft:leaves",
+          "supportBlockTag": "#minecraft:dirt",
           "plantItemTag": "minecraft:saplings",
           "minAttachedBlocks": 4,
           "maxClusterBlocks": 160,
@@ -1398,7 +1402,12 @@ NPC 会等待指定结构坐标中出现目标方块。目标出现前会保持�
         { "type": "move_to_container", "container": "output", "range": 1.2 },
         { "type": "look_at_container", "container": "output" },
         { "type": "inspect_container", "container": "output", "ticks": 20 },
-        { "type": "deposit_carried_items", "container": "output", "ticks": 20 },
+        {
+          "type": "deposit_carried_items",
+          "container": "output",
+          "ticks": 20,
+          "itemSpecs": ["#minecraft:logs", "#minecraft:saplings", "minecraft:stick"]
+        },
         { "type": "use_item", "ticks": 60 }
       ]
     }
@@ -1412,63 +1421,70 @@ NPC 会等待指定结构坐标中出现目标方块。目标出现前会保持�
 
 ```json
 {
-  "id": "simukraft:mill",
-  "name": "磨坊",
-  "jobType": "miller",
-  "jobName": "磨坊工人",
-  "heldItem": "minecraft:wheat",
+  "id": "simukraft:wool_farm",
+  "name": "羊毛农场",
+  "jobType": "wool_farmer",
+  "jobName": "羊毛工",
+  "heldItem": "minecraft:shears",
   "points": {
     "stand": {
       "type": "structure_pos",
-      "positions": [[4, 1, 5], [5, 1, 5]],
+      "positions": [[4, 1, 4], [4, 1, 5]],
       "select": "nearest"
     },
-    "machine": {
+    "pen": {
       "type": "structure_pos",
-      "pos": [4, 1, 6]
+      "pos": [5, 1, 5]
     }
   },
   "containers": {
     "input": {
       "type": "structure_pos",
-      "positions": [[2, 1, 4], [3, 1, 4]]
+      "positions": [[2, 1, 3]]
     },
     "output": {
       "type": "structure_pos",
-      "positions": [[6, 1, 4], [7, 1, 4]]
+      "positions": [[7, 1, 3]]
     }
   },
   "recipes": [
     {
-      "id": "wheat2cookie",
-      "name": "曲奇生产",
-      "inputs": [
-        { "item": "minecraft:wheat", "count": 3 },
-        { "item": "minecraft:sugar", "count": 1 }
-      ],
+      "id": "shear_wool",
+      "name": "剪羊毛",
+      "inputs": [],
       "outputs": [
-        { "item": "minecraft:cookie", "baseAmount": 1, "randomRange": 2, "probability": 1.0 }
+        { "item": "minecraft:white_wool", "baseAmount": 1, "randomRange": 2 }
       ],
       "steps": [
-        { "type": "move_to_container", "container": "input", "range": 1.2 },
-        { "type": "look_at_container", "container": "input" },
-        { "type": "inspect_container", "container": "input", "ticks": 20 },
-        { "type": "require_inputs", "container": "input" },
         { "type": "require_output_space", "container": "output" },
-        { "type": "set_held_item", "item": "minecraft:wheat" },
+        { "type": "set_held_item", "item": "minecraft:shears" },
         { "type": "move_to", "point": "stand", "range": 1.2 },
-        { "type": "look_at", "point": "machine" },
-        { "type": "use_item", "ticks": 80, "swing": true },
-        { "type": "set_held_item", "item": "minecraft:cookie" },
+        { "type": "look_at", "point": "pen" },
+        { "type": "use_item", "ticks": 40, "swing": true },
+        { "type": "shear_entities", "entityType": "minecraft:sheep", "count": 1, "ticks": 40, "swing": true },
+        { "type": "require_drops", "point": "pen", "radius": 8, "timeoutTicks": 200 },
+        { "type": "collect_drops", "point": "pen", "radius": 8, "maxCarryStacks": 18 },
         { "type": "move_to_container", "container": "output", "range": 1.2 },
         { "type": "look_at_container", "container": "output" },
         { "type": "inspect_container", "container": "output", "ticks": 20 },
-        { "type": "craft_recipe", "input": "input", "output": "output" }
+        {
+          "type": "deposit_carried_items",
+          "container": "output",
+          "ticks": 20,
+          "itemSpecs": ["#minecraft:wool"]
+        }
       ]
     }
-  ]
+  ],
+  "spawnEntity": {
+    "enabled": true,
+    "type": "minecraft:sheep",
+    "count": 5
+  }
 }
 ```
+
+这个示例展示了动物农场的典型流程：剪羊毛 → 收集掉落物 → 回库入箱。`itemSpecs: ["#minecraft:wool"]` 确保只把羊毛存入输出箱，NPC 背包中的其他物品（如工具磨损残余）不会被误入库。
 
 ## 调试建议
 

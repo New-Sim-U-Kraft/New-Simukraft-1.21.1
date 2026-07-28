@@ -4,6 +4,8 @@ import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenService;
 import common.cn.kafei.simukraft.citizen.CitizenSelfFeedingService;
 import common.cn.kafei.simukraft.citizen.CitizenWorkStatus;
+import common.cn.kafei.simukraft.city.poi.CityPoiManager;
+import common.cn.kafei.simukraft.city.poi.CityPoiType;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
@@ -27,6 +29,11 @@ public final class CitizenWanderService {
     private static final int DEFAULT_WANDER_RADIUS = 12;
     private static final int MIN_WANDER_DISTANCE = 4;
     private static final int TARGET_ATTEMPTS = 12;
+    // 闲逛目标与公共建筑控制块的最小水平距离（格²），避免NPC在商店/工厂/农田/医院门口逗留
+    private static final int PUBLIC_BUILDING_EXCLUSION_RADIUS_SQ = 10 * 10;
+    private static final java.util.EnumSet<CityPoiType> PUBLIC_WORK_TYPES = java.util.EnumSet.of(
+            CityPoiType.COMMERCIAL, CityPoiType.INDUSTRIAL, CityPoiType.FARMLAND, CityPoiType.MEDICAL
+    );
     private static final ConcurrentMap<String, Long> WANDER_COOLDOWNS = new ConcurrentHashMap<>();
 
     private CitizenWanderService() {
@@ -92,7 +99,7 @@ public final class CitizenWanderService {
             }
             int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
             BlockPos feet = new BlockPos(x, y, z);
-            if (isOpenForCitizen(level, feet)) {
+            if (isOpenForCitizen(level, feet) && !isNearPublicBuilding(level, x, z)) {
                 return new Vec3(x + 0.5D, y, z + 0.5D);
             }
         }
@@ -153,6 +160,22 @@ public final class CitizenWanderService {
                 && level.isEmptyBlock(feet)
                 && level.isEmptyBlock(feet.above())
                 && !level.getBlockState(feet.below()).getCollisionShape(level, feet.below()).isEmpty();
+    }
+
+    /** 检查目标位置是否过于靠近公共功能建筑（商业/工业/农田/医疗）的控制块，避免闲逛NPC逗留其中 */
+    private static boolean isNearPublicBuilding(ServerLevel level, int x, int z) {
+        for (var poi : CityPoiManager.get(level).allPois()) {
+            if (!PUBLIC_WORK_TYPES.contains(poi.type())) {
+                continue;
+            }
+            BlockPos pos = poi.pos();
+            int dx = x - pos.getX();
+            int dz = z - pos.getZ();
+            if (dx * dx + dz * dz <= PUBLIC_BUILDING_EXCLUSION_RADIUS_SQ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void markCooldown(ServerLevel level, UUID citizenId, int ticks) {

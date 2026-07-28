@@ -846,6 +846,7 @@
     "gui.simukraft.industrial.status.worker_fired":  "员工已解雇",
     "gui.simukraft.industrial.status.interrupted":  "工作已中断",
     "gui.simukraft.industrial.status.resting":  "夜晚回家休息",
+    "gui.simukraft.industrial.status.worker_sick":  "员工生病中，配方已暂停",
     "gui.simukraft.industrial.status.moving":  "前往工作点",
     "gui.simukraft.industrial.status.missing_point":  "缺少工作点",
     "gui.simukraft.industrial.status.invalid_point":  "工作点不可站立",

@@ -37,7 +37,7 @@ final class FarmlandWorkGeometry {
         return Math.max(1, farmRows * plot.width());
     }
 
-    // groupedFarmCellAt：先完成当前水槽分隔出的作业块，块内从左往右扫描。
+    // groupedFarmCellAt：先完成当前水槽分隔出的作业块，块内S型蛇形扫描（奇数行反向），减少来回空走。
     static BlockPos groupedFarmCellAt(FarmlandPlot plot, int index) {
         int total = groupedFarmCellCount(plot);
         int remaining = Math.floorMod(index, total);
@@ -50,8 +50,12 @@ final class FarmlandWorkGeometry {
                 continue;
             }
             if (remaining < groupCells) {
+                int rowInGroup = remaining / plot.width();
                 int localX = remaining % plot.width();
-                int localZ = groupStartZ + remaining / plot.width();
+                if (rowInGroup % 2 == 1) {
+                    localX = plot.width() - 1 - localX;
+                }
+                int localZ = groupStartZ + rowInGroup;
                 return new BlockPos(plot.min().getX() + localX, plot.min().getY(), plot.min().getZ() + localZ);
             }
             remaining -= groupCells;

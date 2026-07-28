@@ -6,6 +6,7 @@ import common.cn.kafei.simukraft.citizen.CitizenTeleportService;
 import common.cn.kafei.simukraft.citizen.CitizenWorkStatus;
 import common.cn.kafei.simukraft.citizen.CitizenWorkplaceMoveService;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
+import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
 import common.cn.kafei.simukraft.path.MovementIntent;
 import net.minecraft.core.BlockPos;
@@ -39,14 +40,14 @@ public final class CityJobMobilityService {
         };
     }
 
-    // teleportCitizenToWorkplace：保留旧方法名，实际执行顺序是先寻路，失败才传送兜底。
-    public static void teleportCitizenToWorkplace(ServerLevel level, UUID citizenId, BlockPos workplacePos, CityJobType jobType, CitizenWorkStatus workStatus, String statusLabel) {
+    /** sendToWorkplace：雇佣入职时移动 NPC 到岗位，根据距离选择传送或寻路。 */
+    public static void sendToWorkplace(ServerLevel level, UUID citizenId, BlockPos workplacePos, CityJobType jobType, CitizenWorkStatus workStatus, String statusLabel) {
         if (level == null || citizenId == null || workplacePos == null) {
             return;
         }
         CitizenEntity citizenEntity = findCitizenEntity(level, citizenId);
         if (citizenEntity == null) {
-            SimuKraft.LOGGER.warn("Simukraft: Unable to move hired citizen {}, entity not found near workplace {}", citizenId, workplacePos);
+            SimuKraft.LOGGER.warn("Simukraft: sendToWorkplace - citizen {} entity not found, workplace {}", citizenId, workplacePos);
             return;
         }
         Vec3 target = (jobType == CityJobType.COMMERCIAL_WORKER
@@ -56,14 +57,34 @@ public final class CityJobMobilityService {
         boolean selfFeeding = CitizenSelfFeedingService.isSelfFeeding(level, citizenId);
         if (!selfFeeding) {
             CitizenNavigationService.stop(level, citizenId);
-            if (!CitizenNavigationService.requestMove(level, citizenId, target, MovementIntent.WORK)) {
-                CitizenTeleportService.teleportCitizen(level, citizenId, target);
+            double threshold = ServerConfig.pathFarMovementTeleportDistance();
+            if (citizenEntity.position().distanceToSqr(target) >= threshold * threshold) {
+                teleportToTarget(level, citizenId, target);
+            } else {
+                pathfindToTarget(level, citizenId, target);
             }
         }
         String effectiveStatusLabel = selfFeeding
                 ? CitizenSelfFeedingService.effectiveStatusLabel(level, citizenId, statusLabel)
                 : statusLabel;
         syncCitizenEntityState(citizenEntity, jobType, workStatus, effectiveStatusLabel);
+    }
+
+    /** teleportToTarget：直接传送 NPC 到目标位置。 */
+    private static void teleportToTarget(ServerLevel level, UUID citizenId, Vec3 target) {
+        CitizenTeleportService.teleportCitizen(level, citizenId, target);
+    }
+
+    /** pathfindToTarget：寻路到目标位置，寻路失败时传送兜底。 */
+    private static void pathfindToTarget(ServerLevel level, UUID citizenId, Vec3 target) {
+        if (!CitizenNavigationService.requestMove(level, citizenId, target, MovementIntent.WORK)) {
+            CitizenTeleportService.teleportCitizen(level, citizenId, target);
+        }
+    }
+
+    /** teleportCitizenToWorkplace：保留旧方法名供现有调用点兼容，委托给 sendToWorkplace。 */
+    public static void teleportCitizenToWorkplace(ServerLevel level, UUID citizenId, BlockPos workplacePos, CityJobType jobType, CitizenWorkStatus workStatus, String statusLabel) {
+        sendToWorkplace(level, citizenId, workplacePos, jobType, workStatus, statusLabel);
     }
 
     public static void resetCitizenAfterFire(ServerLevel level, UUID citizenId) {

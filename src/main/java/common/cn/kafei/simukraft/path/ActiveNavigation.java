@@ -264,12 +264,17 @@ final class ActiveNavigation {
     }
 
     private boolean shouldTriggerJump(CitizenEntity citizen, int index, PathWaypoint waypoint) {
-        return waypoint.mode() == MovementMode.JUMP
-                && index > 0
-                && !jumpTriggered
-                && citizen.onGround()
-                && isNearActionStart(citizen.position(), index)
-                && waypoint.position().y > waypoints.get(index - 1).position().y + 0.25D;
+        if (waypoint.mode() != MovementMode.JUMP || index <= 0 || jumpTriggered) {
+            return false;
+        }
+        if (!isNearActionStart(citizen.position(), index)) {
+            return false;
+        }
+        if (waypoint.position().y <= waypoints.get(index - 1).position().y + 0.25D) {
+            return false;
+        }
+        // 水中 onGround 始终为 false，但从水面跳上岸同样需要触发跳跃
+        return citizen.onGround() || citizen.isInWater();
     }
 
     /**
@@ -410,7 +415,8 @@ final class ActiveNavigation {
             return CORNER_ARRIVAL_DISTANCE;
         }
         return switch (mode) {
-            case CLIMB, SWIM -> 1.15D;
+            case CLIMB -> 1.15D;
+            case SWIM -> 0.75D; // 收紧到达判定，避免提前停止导致爬不上岸
             case JUMP, FALL -> 1.05D;
             default -> 0.72D;
         };
@@ -421,8 +427,11 @@ final class ActiveNavigation {
     }
 
     private static double speedFor(MovementIntent intent, MovementMode mode) {
-        if (mode == MovementMode.CLIMB || mode == MovementMode.SWIM) {
+        if (mode == MovementMode.CLIMB) {
             return 0.9D;
+        }
+        if (mode == MovementMode.SWIM) {
+            return 1.15D; // 提速，快速上岸，避免拖拉
         }
         if (mode == MovementMode.RUN || intent == MovementIntent.RUN || intent == MovementIntent.RETURN_HOME) {
             return 1.2D;

@@ -1,9 +1,11 @@
 package common.cn.kafei.simukraft.citizen;
 
 import common.cn.kafei.simukraft.commercial.CommercialFoodMarketService;
+import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.medical.MedicalMealService;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
+import common.cn.kafei.simukraft.path.CitizenWanderService;
 import common.cn.kafei.simukraft.path.MovementIntent;
 import common.cn.kafei.simukraft.util.SaveScopedCacheKey;
 import net.minecraft.server.MinecraftServer;
@@ -238,6 +240,25 @@ public final class CitizenSelfFeedingService {
         }
         if (restoreWorkplace && citizen.workStatusType() == CitizenWorkStatus.WORKING) {
             CitizenWorkplaceMoveService.returnToWorkplace(level, citizen);
+        } else if (restoreWorkplace && citizen.workStatusType() == CitizenWorkStatus.IDLE) {
+            leaveShopArea(level, citizen);
+        }
+    }
+
+    /** 购物完成后，IDLE市民立即离开商店区域：优先回家，无家则随机闲逛 */
+    private static void leaveShopArea(ServerLevel level, CitizenData citizen) {
+        var homePoi = citizen.homeId() != null ? CityPoiManager.lookupPoi(citizen.homeId()) : null;
+        if (homePoi != null) {
+            CitizenNavigationService.requestMove(level, citizen.uuid(),
+                    Vec3.atCenterOf(homePoi.pos()), MovementIntent.RETURN_HOME);
+            return;
+        }
+        CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
+        if (entity != null) {
+            Vec3 target = CitizenWanderService.randomTarget(level, entity.position(), 12);
+            if (target != null) {
+                CitizenNavigationService.requestMove(level, citizen.uuid(), target, MovementIntent.WANDER);
+            }
         }
     }
 

@@ -837,6 +837,7 @@
     "gui.simukraft.industrial.status.worker_fired":  "Worker fired",
     "gui.simukraft.industrial.status.interrupted":  "Work interrupted",
     "gui.simukraft.industrial.status.resting":  "Resting at home for the night",
+    "gui.simukraft.industrial.status.worker_sick":  "Worker is sick, recipe paused",
     "gui.simukraft.industrial.status.moving":  "Moving to work point",
     "gui.simukraft.industrial.status.missing_point":  "Missing work point",
     "gui.simukraft.industrial.status.invalid_point":  "Work point is not standable",

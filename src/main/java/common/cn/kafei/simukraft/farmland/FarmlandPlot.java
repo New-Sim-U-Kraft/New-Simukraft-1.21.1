@@ -42,12 +42,15 @@ public record FarmlandPlot(BlockPos min, BlockPos max) {
         return width() * depth();
     }
 
-    // 把线性游标映射成区域格子，供工作服务以固定步长轮转扫描，避免每 tick 全量遍历。
+    // 把线性游标映射成区域格子，S型蛇形扫描：奇数行反向，减少农民来回空走。
     public BlockPos cellAt(int index) {
         int total = Math.max(1, cellCount());
         int normalized = Math.floorMod(index, total);
-        int localX = normalized % width();
         int localZ = normalized / width();
+        int localX = normalized % width();
+        if (localZ % 2 == 1) {
+            localX = width() - 1 - localX;
+        }
         return new BlockPos(min.getX() + localX, min.getY(), min.getZ() + localZ);
     }
 

@@ -81,11 +81,13 @@ public final class IndustrialCarriedItemService {
                 : Optional.empty();
     }
 
-    /** depositToContainers：把 NPC 背包逐槽放入真实容器，未放下的部分保留在原槽。 */
+    /** depositToContainers：把 NPC 背包逐槽放入真实容器，未放下的部分保留在原槽。
+     *  filter 非空时只处理匹配列表中任意 spec 的槽，其余槽原封不动保留在背包。 */
     public static DepositResult depositToContainers(ServerLevel level,
                                                      IndustrialBoxManager manager,
                                                      IndustrialBoxData data,
-                                                     List<BlockPos> containers) {
+                                                     List<BlockPos> containers,
+                                                     List<IndustrialItemStackSpec> filter) {
         if (level == null || data == null) {
             return DepositResult.MISSING_CONTAINER;
         }
@@ -100,11 +102,18 @@ public final class IndustrialCarriedItemService {
         if (containers == null || containers.isEmpty()) {
             return DepositResult.MISSING_CONTAINER;
         }
+        HolderLookup.Provider registries = level.registryAccess();
         boolean remainingFound = false;
         List<ItemStack> updated = new ArrayList<>(CitizenInventory.BACKPACK_SIZE);
         synchronized (inventory) {
             for (int slot = 0; slot < CitizenInventory.BACKPACK_SIZE; slot++) {
                 ItemStack remaining = inventory.getItem(slot).copy();
+                // filter 非空时跳过不在白名单的物品，保留在背包
+                final ItemStack stackForFilter = remaining;
+                if (!stackForFilter.isEmpty() && !filter.isEmpty() && filter.stream().noneMatch(s -> s.matches(stackForFilter, registries))) {
+                    updated.add(remaining);
+                    continue;
+                }
                 for (BlockPos container : containers) {
                     if (remaining.isEmpty()) {
                         break;
@@ -117,6 +126,14 @@ public final class IndustrialCarriedItemService {
             inventory.replaceBackpack(updated);
         }
         return remainingFound ? DepositResult.OUTPUT_FULL : DepositResult.SUCCESS;
+    }
+
+    /** depositToContainers：无过滤器版本，保持旧调用点兼容。 */
+    public static DepositResult depositToContainers(ServerLevel level,
+                                                     IndustrialBoxManager manager,
+                                                     IndustrialBoxData data,
+                                                     List<BlockPos> containers) {
+        return depositToContainers(level, manager, data, containers, List.of());
     }
 
     /** dropAndClear：在控制箱失效时掉落 NPC 普通背包与旧虚拟库存。 */

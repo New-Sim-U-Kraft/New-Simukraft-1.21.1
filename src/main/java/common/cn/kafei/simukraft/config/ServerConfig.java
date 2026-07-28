@@ -100,7 +100,7 @@ public final class ServerConfig {
         POPULATION_GROWTH_MAX_PER_INTERVAL = builder.defineInRange("growthMaxPerInterval", 1, 0, 100);
         POPULATION_GROWTH_TIMES_PER_WEEK = builder
                 .comment("How many times per game week (7 days) the population growth check fires. Range: 1~7.")
-                .defineInRange("growthTimesPerWeek", 2, 1, 7);
+                .defineInRange("growthTimesPerWeek", 7, 1, 7);
         NPC_NAME_STYLE = builder
                 .comment("NPC name style used when generating new citizens.")
                 .translation("config.simukraft.npc.nameStyle")

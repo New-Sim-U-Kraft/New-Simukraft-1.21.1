@@ -75,6 +75,10 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
     @Override
     public void removed() {
         super.removed();
+        // Screen 被任何原因关闭时（含死亡）均需清理预览状态
+        BuildingPreviewManager.clearPreview();
+        FreeCameraManager.deactivate();
+        BuildingBoundsRenderer.setPreviewPlayerId(null);
         releasePreviewMouse();
     }
 

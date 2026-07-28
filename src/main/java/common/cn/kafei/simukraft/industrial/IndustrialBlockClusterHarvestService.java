@@ -14,6 +14,7 @@ import common.cn.kafei.simukraft.path.CitizenNavigationService;
 import common.cn.kafei.simukraft.path.MovementIntent;
 import common.cn.kafei.simukraft.util.SaveScopedCacheKey;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -38,6 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -83,8 +85,8 @@ public final class IndustrialBlockClusterHarvestService {
             return ActionResult.INVALID_STEP;
         }
         cleanupMiningRuntimes(level);
-        TagKey<Block> targetTag = blockTag(step.targetBlockTag());
-        if (targetTag == null) {
+        Predicate<BlockState> targetMatcher = blockMatcher(level, step.targetBlockTag());
+        if (targetMatcher == null) {
             return ActionResult.INVALID_STEP;
         }
         HarvestConfig config = HarvestConfig.from(level, building, definition.workArea(), step);
@@ -106,7 +108,7 @@ public final class IndustrialBlockClusterHarvestService {
             return ActionResult.CARRY_FULL;
         }
 
-        QueuedCluster queuedCluster = nextQueuedCluster(level, building, step, targetTag, config, state, worker != null ? worker.position() : null);
+        QueuedCluster queuedCluster = nextQueuedCluster(level, building, step, targetMatcher, config, state, worker != null ? worker.position() : null);
         if (!queuedCluster.state().equals(state)) {
             persistMachineState(manager, data, queuedCluster.state());
             state = queuedCluster.state();
@@ -119,7 +121,7 @@ public final class IndustrialBlockClusterHarvestService {
             return harvestActiveCluster(level, manager, data, building, definition, step, next, worker, workerId);
         }
 
-        ScanResult scan = scanForNextCluster(level, building, step, targetTag, config, state, worker != null ? worker.position() : null);
+        ScanResult scan = scanForNextCluster(level, building, step, targetMatcher, config, state, worker != null ? worker.position() : null);
         if (scan.cluster() != null) {
             HarvestState next = scan.state().withCluster(scan.cluster());
             persistMachineState(manager, data, next);
@@ -221,7 +223,7 @@ public final class IndustrialBlockClusterHarvestService {
             return ActionResult.BLOCKED;
         }
         BlockState stumpState = level.getBlockState(stump);
-        if (stumpState.isAir() || !isTargetBlock(stumpState, step)) {
+        if (stumpState.isAir() || !isTargetBlock(level, stumpState, step)) {
             clearBreakProgress(level, worker, stump);
             resetMiningRuntime(level, data, stump);
             return fellActiveCluster(level, manager, data, building, definition, step, state, worker);
@@ -314,7 +316,7 @@ public final class IndustrialBlockClusterHarvestService {
     }
 
     private static boolean isUsableStump(ServerLevel level, IndustrialDefinition.StepDefinition step, BlockPos pos) {
-        return pos != null && level.isLoaded(pos) && isTargetBlock(level.getBlockState(pos), step);
+        return pos != null && level.isLoaded(pos) && isTargetBlock(level, level.getBlockState(pos), step);
     }
 
     private static BlockPos chooseStumpFromCluster(ServerLevel level, IndustrialDefinition.StepDefinition step, List<BlockPos> clusterPositions) {
@@ -360,7 +362,7 @@ public final class IndustrialBlockClusterHarvestService {
             if (blockState.isAir() || IndustrialControlBoxService.isIndustrialControlBox(level, pos)) {
                 continue;
             }
-            ItemStack effectiveTool = isTargetBlock(blockState, step) ? tool : ItemStack.EMPTY;
+            ItemStack effectiveTool = isTargetBlock(level, blockState, step) ? tool : ItemStack.EMPTY;
             List<ItemStack> blockDrops = Block.getDrops(blockState, level, pos, level.getBlockEntity(pos), worker, effectiveTool);
             if (!destroyHarvestedBlock(level, pos, worker)) {
                 blocked.add(pos.immutable());
@@ -447,7 +449,7 @@ public final class IndustrialBlockClusterHarvestService {
             appendHarvestPos(result, seen, target);
         }
         state.clusterPositions().stream()
-                .filter(pos -> pos != null && !pos.equals(target) && level.isLoaded(pos) && isTargetBlock(level.getBlockState(pos), step))
+                .filter(pos -> pos != null && !pos.equals(target) && level.isLoaded(pos) && isTargetBlock(level, level.getBlockState(pos), step))
                 .sorted(Comparator.comparingInt((BlockPos pos) -> pos.getY())
                         .thenComparingInt(pos -> pos.getX())
                         .thenComparingInt(pos -> pos.getZ()))
@@ -604,7 +606,7 @@ public final class IndustrialBlockClusterHarvestService {
     private static ScanResult scanForNextCluster(ServerLevel level,
                                                  PlacedBuildingRecord building,
                                                  IndustrialDefinition.StepDefinition step,
-                                                 TagKey<Block> targetTag,
+                                                 Predicate<BlockState> targetMatcher,
                                                  HarvestConfig config,
                                                  HarvestState state,
                                                  Vec3 workerPosition) {
@@ -614,7 +616,7 @@ public final class IndustrialBlockClusterHarvestService {
         while (processed < config.scanColumnsPerTick() && cursor.ring() <= config.radius()) {
             Column column = cursor.column(building, config);
             if (column != null && level.isLoaded(new BlockPos(column.x(), config.minY(), column.z()))) {
-                List<Cluster> clusters = scanColumn(level, building, step, targetTag, config, column.x(), column.z(), workerPosition);
+                List<Cluster> clusters = scanColumn(level, building, step, targetMatcher, config, column.x(), column.z(), workerPosition);
                 for (Cluster cluster : clusters) {
                     if (isBetterCandidate(cluster, bestCluster, workerPosition)) {
                         bestCluster = cluster;
@@ -633,7 +635,7 @@ public final class IndustrialBlockClusterHarvestService {
     private static List<Cluster> scanColumn(ServerLevel level,
                                             PlacedBuildingRecord building,
                                             IndustrialDefinition.StepDefinition step,
-                                            TagKey<Block> targetTag,
+                                            Predicate<BlockState> targetMatcher,
                                             HarvestConfig config,
                                             int x,
                                             int z,
@@ -642,10 +644,10 @@ public final class IndustrialBlockClusterHarvestService {
         Set<BlockPos> seenTargets = new HashSet<>();
         for (int y = config.minY(); y <= config.maxY(); y++) {
             BlockPos pos = new BlockPos(x, y, z);
-            if (!level.getBlockState(pos).is(targetTag)) {
+            if (!targetMatcher.test(level.getBlockState(pos))) {
                 continue;
             }
-            Cluster cluster = buildCluster(level, building, step, targetTag, config, pos, workerPosition);
+            Cluster cluster = buildCluster(level, building, step, targetMatcher, config, pos, workerPosition);
             if (cluster != null && seenTargets.add(cluster.target())) {
                 clusters.add(cluster);
             }
@@ -656,7 +658,7 @@ public final class IndustrialBlockClusterHarvestService {
     private static QueuedCluster nextQueuedCluster(ServerLevel level,
                                                    PlacedBuildingRecord building,
                                                    IndustrialDefinition.StepDefinition step,
-                                                   TagKey<Block> targetTag,
+                                                   Predicate<BlockState> targetMatcher,
                                                    HarvestConfig config,
                                                    HarvestState state,
                                                    Vec3 workerPosition) {
@@ -665,11 +667,11 @@ public final class IndustrialBlockClusterHarvestService {
         }
         HarvestState cleaned = state;
         for (BlockPos target : state.queuedTargets()) {
-            if (target == null || !level.isLoaded(target) || !level.getBlockState(target).is(targetTag)) {
+            if (target == null || !level.isLoaded(target) || !targetMatcher.test(level.getBlockState(target))) {
                 cleaned = cleaned.withoutQueuedTarget(target);
                 continue;
             }
-            Cluster cluster = buildCluster(level, building, step, targetTag, config, target, workerPosition);
+            Cluster cluster = buildCluster(level, building, step, targetMatcher, config, target, workerPosition);
             if (cluster != null) {
                 return new QueuedCluster(cleaned, cluster);
             }
@@ -681,11 +683,11 @@ public final class IndustrialBlockClusterHarvestService {
     private static Cluster buildCluster(ServerLevel level,
                                         PlacedBuildingRecord building,
                                         IndustrialDefinition.StepDefinition step,
-                                        TagKey<Block> targetTag,
+                                        Predicate<BlockState> targetMatcher,
                                         HarvestConfig config,
                                         BlockPos start,
                                         Vec3 workerPosition) {
-        Set<BlockPos> logs = connectedLogs(level, targetTag, config, start);
+        Set<BlockPos> logs = connectedLogs(level, targetMatcher, config, start);
         if (logs.isEmpty() || logs.size() >= config.maxClusterBlocks()) {
             return null;
         }
@@ -704,13 +706,13 @@ public final class IndustrialBlockClusterHarvestService {
         if (roots.isEmpty()) {
             return null;
         }
-        TagKey<Block> attachedTag = blockTag(step.attachedBlockTag());
-        Set<BlockPos> attached = attachedTag != null ? attachedBlocks(level, logs, attachedTag, config, ATTACHED_VALIDATE_RADIUS, config.maxClusterBlocks()) : Set.of();
+        Predicate<BlockState> attachedMatcher = blockMatcher(level, step.attachedBlockTag());
+        Set<BlockPos> attached = attachedMatcher != null ? attachedBlocks(level, logs, attachedMatcher, config, ATTACHED_VALIDATE_RADIUS, config.maxClusterBlocks()) : Set.of();
         if (attached.size() < Math.max(0, step.minAttachedBlocks())) {
             return null;
         }
-        Set<BlockPos> harvestAttached = attachedTag != null
-                ? attachedBlocks(level, logs, attachedTag, config, ATTACHED_HARVEST_RADIUS, config.maxClusterBlocks() - logs.size())
+        Set<BlockPos> harvestAttached = attachedMatcher != null
+                ? attachedBlocks(level, logs, attachedMatcher, config, ATTACHED_HARVEST_RADIUS, config.maxClusterBlocks() - logs.size())
                 : Set.of();
         List<BlockPos> harvest = new ArrayList<>();
         harvest.addAll(harvestAttached);
@@ -771,7 +773,7 @@ public final class IndustrialBlockClusterHarvestService {
         return x != 0 ? x : Integer.compare(first.getZ(), second.getZ());
     }
 
-    private static Set<BlockPos> connectedLogs(ServerLevel level, TagKey<Block> targetTag, HarvestConfig config, BlockPos start) {
+    private static Set<BlockPos> connectedLogs(ServerLevel level, Predicate<BlockState> targetMatcher, HarvestConfig config, BlockPos start) {
         Set<BlockPos> visited = new HashSet<>();
         ArrayDeque<BlockPos> queue = new ArrayDeque<>();
         queue.add(start.immutable());
@@ -785,7 +787,7 @@ public final class IndustrialBlockClusterHarvestService {
                             continue;
                         }
                         BlockPos next = current.offset(dx, dy, dz);
-                        if (!config.contains(next) || visited.contains(next) || !level.isLoaded(next) || !level.getBlockState(next).is(targetTag)) {
+                        if (!config.contains(next) || visited.contains(next) || !level.isLoaded(next) || !targetMatcher.test(level.getBlockState(next))) {
                             continue;
                         }
                         visited.add(next.immutable());
@@ -799,7 +801,7 @@ public final class IndustrialBlockClusterHarvestService {
 
     private static Set<BlockPos> attachedBlocks(ServerLevel level,
                                                 Set<BlockPos> logs,
-                                                TagKey<Block> attachedTag,
+                                                Predicate<BlockState> attachedMatcher,
                                                 HarvestConfig config,
                                                 int radius,
                                                 int limit) {
@@ -812,7 +814,7 @@ public final class IndustrialBlockClusterHarvestService {
                 for (int dy = -radius; dy <= radius; dy++) {
                     for (int dz = -radius; dz <= radius; dz++) {
                         BlockPos pos = log.offset(dx, dy, dz);
-                        if (!config.contains(pos) || result.contains(pos) || !level.isLoaded(pos) || !level.getBlockState(pos).is(attachedTag)) {
+                        if (!config.contains(pos) || result.contains(pos) || !level.isLoaded(pos) || !attachedMatcher.test(level.getBlockState(pos))) {
                             continue;
                         }
                         result.add(pos.immutable());
@@ -830,27 +832,37 @@ public final class IndustrialBlockClusterHarvestService {
         return level.getBlockState(plantPos).isAir() && matchesSupport(level, plantPos.below(), step.supportBlockTag());
     }
 
-    private static boolean isTargetBlock(BlockState state, IndustrialDefinition.StepDefinition step) {
-        TagKey<Block> tag = blockTag(step.targetBlockTag());
-        return tag != null && state.is(tag);
+    private static boolean isTargetBlock(ServerLevel level, BlockState state, IndustrialDefinition.StepDefinition step) {
+        Predicate<BlockState> matcher = blockMatcher(level, step.targetBlockTag());
+        return matcher != null && matcher.test(state);
     }
 
     private static boolean matchesSupport(ServerLevel level, BlockPos pos, String supportTag) {
         BlockState state = level.getBlockState(pos);
-        TagKey<Block> tag = blockTag(supportTag);
-        return tag != null ? state.is(tag) : !state.isAir();
+        Predicate<BlockState> matcher = blockMatcher(level, supportTag);
+        return matcher != null ? matcher.test(state) : !state.isAir();
     }
 
     private static boolean isInsideAnyBuilding(ServerLevel level, BlockPos pos) {
         return PlacedBuildingService.findByContainedPos(level, pos) != null;
     }
 
-    private static TagKey<Block> blockTag(String tagId) {
-        if (tagId == null || tagId.isBlank()) {
+    /** blockMatcher: "#tag" → 标签匹配；无 # 前缀 → 直接方块 ID 匹配；解析失败返回 null。 */
+    private static Predicate<BlockState> blockMatcher(ServerLevel level, String tagOrId) {
+        if (tagOrId == null || tagOrId.isBlank()) {
             return null;
         }
         try {
-            return TagKey.create(Registries.BLOCK, ResourceLocation.parse(tagId));
+            if (tagOrId.startsWith("#")) {
+                TagKey<Block> key = TagKey.create(Registries.BLOCK, ResourceLocation.parse(tagOrId.substring(1)));
+                return state -> state.is(key);
+            }
+            ResourceLocation rl = ResourceLocation.parse(tagOrId);
+            Block block = BuiltInRegistries.BLOCK.get(rl);
+            if (block == null || block == Blocks.AIR && !tagOrId.equals("minecraft:air")) {
+                return null;
+            }
+            return state -> state.is(block);
         } catch (Exception exception) {
             return null;
         }

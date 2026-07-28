@@ -357,7 +357,7 @@ public final class IndustrialDefinitionLoader {
                 string(object, "output", ""),
                 string(object, "item", ""),
                 IndustrialItemSpecJsonParser.parse(object, errors, context + ":item"),
-                IndustrialItemSpecJsonParser.parseList(arrayAny(object, "items"), errors, context + ":items"),
+                IndustrialItemSpecJsonParser.parseList(arrayAny(object, "items", "itemSpecs"), errors, context + ":items"),
                 Math.max(1, integer(object, "ticks", 1)),
                 bool(object, "swing", false),
                 Math.max(0.1D, decimal(object, "range", 1.5D)),

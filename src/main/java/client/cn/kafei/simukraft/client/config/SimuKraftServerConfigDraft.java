@@ -158,7 +158,7 @@ final class SimuKraftServerConfigDraft {
         claimProtection = true;
         populationGrowthIntervalTicks = 24_000;
         populationGrowthMaxPerInterval = 1;
-        populationGrowthTimesPerWeek = 2;
+        populationGrowthTimesPerWeek = 7;
         npcNameStyle = CitizenNameStyle.CHINESE;
         familyPregnancyDurationDays = 3;
         familyPostpartumRecoveryDays = 1;

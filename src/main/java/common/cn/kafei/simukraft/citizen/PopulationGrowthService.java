@@ -13,8 +13,8 @@ public final class PopulationGrowthService {
         if (level == null || level.getServer() == null) {
             return 0;
         }
-        // 每游戏日检查一次（24000 ticks = 1天）
-        if (level.getGameTime() % 24_000L != 0L) {
+        // 每游戏日中午检查一次（6000 tick = 中午12点）
+        if (level.getGameTime() % 24_000L != 6_000L) {
             return 0;
         }
         int timesPerWeek = ServerConfig.populationGrowthTimesPerWeek();

@@ -113,7 +113,8 @@ public final class IndustrialWorkService {
             return false;
         }
         IndustrialControlBoxService.synchronizeBoxMetadata(level, data, building, definition);
-        if (IndustrialControlBoxService.findAssignedWorker(level, data.boxPos()) == null) {
+        CitizenData worker = IndustrialControlBoxService.findAssignedWorker(level, data.boxPos());
+        if (worker == null || worker.sick()) {
             return false;
         }
         IndustrialDefinition.RecipeDefinition recipe = definition.recipeById(data.selectedRecipeId());
@@ -176,6 +177,16 @@ public final class IndustrialWorkService {
         if (worker == null) {
             setStatus(manager, data, "gui.simukraft.industrial.status.no_worker", "");
             boxRuntime.reset();
+            boxRuntime.nextTick = gameTime + IDLE_RETRY_TICKS;
+            return;
+        }
+        if (worker.sick()) {
+            // 工人生病时自动暂停，running 改 false；康复后由 tryAutoStartStoppedBox 自动恢复
+            setStatus(manager, data, "gui.simukraft.industrial.status.worker_sick", "");
+            data.setRunning(false);
+            CitizenJobVisualService.clearMainHandOverride(worker.uuid());
+            boxRuntime.reset();
+            manager.persist(data);
             boxRuntime.nextTick = gameTime + IDLE_RETRY_TICKS;
             return;
         }
@@ -439,7 +450,7 @@ public final class IndustrialWorkService {
         if (gameTime - boxRuntime.stepStartedAt < Math.max(1, step.ticks())) {
             return StepResult.WAITING;
         }
-        IndustrialCarriedItemService.DepositResult result = IndustrialCarriedItemService.depositToContainers(level, manager, data, containers);
+        IndustrialCarriedItemService.DepositResult result = IndustrialCarriedItemService.depositToContainers(level, manager, data, containers, step.itemSpecs());
         if (result == IndustrialCarriedItemService.DepositResult.SUCCESS) {
             setContainersOpen(level, containers, false);
             setStatus(manager, data, "gui.simukraft.industrial.status.running", "");
