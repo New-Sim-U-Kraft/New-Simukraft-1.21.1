@@ -17,6 +17,14 @@ public final class BuildingMetadataReader {
                 .orElse(List.of());
     }
 
+    public static int householdCount(BuildingCatalog.BuildingDefinition definition) {
+        return householdCount(readUnitDefinitions(definition));
+    }
+
+    public static int householdCount(List<BuildingUnitDefinition> unitDefinitions) {
+        return unitDefinitions == null || unitDefinitions.isEmpty() ? 1 : unitDefinitions.size();
+    }
+
     // 支持两种格式：
     // 范围：unit: <label>, <minX>,<minY>,<minZ>~<maxX>,<maxY>,<maxZ>
     // 点列表：unit: <label>, x1,y1,z1|x2,y2,z2|...

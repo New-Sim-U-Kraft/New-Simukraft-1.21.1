@@ -47,6 +47,7 @@ public final class BuildingPreviewRenderer {
 
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES) {
             PreviewSpecialBlockRenderer.render(mesh.entityBlocks(), event.getPoseStack(), minecraft.renderBuffers().bufferSource(), event.getCamera().getPosition());
+            minecraft.renderBuffers().bufferSource().endBatch();
             return;
         }
 

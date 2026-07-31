@@ -7,6 +7,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.phys.Vec3;
 
 @SuppressWarnings({"unchecked", "null","deprecation"})
 public final class BuildingTransform {
@@ -25,6 +26,24 @@ public final class BuildingTransform {
             z = nextZ;
         }
         return new BlockPos(x, y, z);
+    }
+
+    public static Vec3 rotatePosition(Vec3 pos, int rotationDegrees) {
+        return switch (normalizedSteps(rotationDegrees)) {
+            case 1 -> new Vec3(1.0D - pos.z, pos.y, pos.x);
+            case 2 -> new Vec3(1.0D - pos.x, pos.y, 1.0D - pos.z);
+            case 3 -> new Vec3(pos.z, pos.y, 1.0D - pos.x);
+            default -> pos;
+        };
+    }
+
+    public static Rotation rotation(int rotationDegrees) {
+        return switch (Math.floorMod(rotationDegrees, 360)) {
+            case 90 -> Rotation.CLOCKWISE_90;
+            case 180 -> Rotation.CLOCKWISE_180;
+            case 270 -> Rotation.COUNTERCLOCKWISE_90;
+            default -> Rotation.NONE;
+        };
     }
 
     public static BlockState rotateState(BlockState state, int rotationDegrees) {

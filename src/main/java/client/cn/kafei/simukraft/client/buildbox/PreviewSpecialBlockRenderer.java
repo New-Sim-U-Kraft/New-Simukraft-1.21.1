@@ -9,13 +9,17 @@ import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.Sheets;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.AbstractChestBlock;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.EnderChestBlock;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.block.state.properties.ChestType;
@@ -58,11 +62,43 @@ public final class PreviewSpecialBlockRenderer {
                 renderBed(block, bedBlock, poseStack, bufferSource, cameraPos);
             } else if (state.getBlock() instanceof AbstractChestBlock<?>) {
                 renderChest(block, poseStack, bufferSource, cameraPos);
+            } else {
+                renderBlockEntity(block, poseStack, bufferSource, cameraPos);
             }
         }
 
         bufferSource.endBatch(Sheets.bedSheet());
         bufferSource.endBatch(Sheets.chestSheet());
+        bufferSource.endBatch(Sheets.bannerSheet());
+    }
+
+    private static void renderBlockEntity(PreviewBlockData block, PoseStack poseStack, MultiBufferSource bufferSource, Vec3 cameraPos) {
+        CompoundTag data = block.copyBlockEntityData();
+        if (data == null || !(block.state().getBlock() instanceof EntityBlock entityBlock)) {
+            return;
+        }
+        Minecraft minecraft = Minecraft.getInstance();
+        BlockEntity blockEntity = entityBlock.newBlockEntity(block.pos(), block.state());
+        if (blockEntity == null) {
+            return;
+        }
+        try {
+            blockEntity.setLevel(minecraft.level);
+            blockEntity.loadWithComponents(data, minecraft.level.registryAccess());
+            BlockEntityRenderer<BlockEntity> renderer = minecraft.getBlockEntityRenderDispatcher().getRenderer(blockEntity);
+            if (renderer == null) {
+                return;
+            }
+            poseStack.pushPose();
+            try {
+                poseStack.translate(block.pos().getX() - cameraPos.x, block.pos().getY() - cameraPos.y, block.pos().getZ() - cameraPos.z);
+                renderer.render(blockEntity, 0.0F, poseStack, bufferSource, block.packedLight(), net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY);
+            } finally {
+                poseStack.popPose();
+            }
+        } catch (RuntimeException exception) {
+            common.cn.kafei.simukraft.SimuKraft.LOGGER.warn("Simukraft: Failed to render preview block entity at {}", block.pos(), exception);
+        }
     }
 
     /** renderChest: 使用原版箱子模型渲染普通箱、陷阱箱和末影箱。 */

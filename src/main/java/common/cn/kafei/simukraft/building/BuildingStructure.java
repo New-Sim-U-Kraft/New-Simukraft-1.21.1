@@ -13,6 +13,7 @@ public record BuildingStructure(String category,
                                 String sizeText,
                                 BlockPos size,
                                 List<BuildingBlockData> blocks,
+                                List<BuildingEntityData> entities,
                                 List<BuildingPoiDefinition> poiDefinitions,
                                 BlockPos anchor,
                                 int blockCount) {

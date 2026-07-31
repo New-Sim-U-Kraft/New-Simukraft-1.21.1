@@ -42,7 +42,7 @@ public final class PreviewMesh implements AutoCloseable {
         if (!entityBlocks.isEmpty()) {
             // 床等特殊方块不在 VBO 里，预览平移时需要同步它们的世界坐标。
             entityBlocks = entityBlocks.stream()
-                    .map(block -> new PreviewBlockData(block.pos().offset(dx, dy, dz), block.state(), block.packedLight()))
+                    .map(block -> new PreviewBlockData(block.pos().offset(dx, dy, dz), block.state(), block.packedLight(), block.copyBlockEntityData()))
                     .toList();
         }
     }

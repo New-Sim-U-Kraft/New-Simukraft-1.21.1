@@ -8,6 +8,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.BedPart;
@@ -67,6 +68,7 @@ public final class BuildingStructureService {
                 definition.size(),
                 BuildingMetadataReader.parseSize(definition.size()),
                 List.copyOf(blocks),
+                parseEntities(loaded.get().rootTag()),
                 scanPoiDefinitions(blocks),
                 BlockPos.ZERO,
                 blocks.size()
@@ -78,12 +80,26 @@ public final class BuildingStructureService {
         for (BuildingBlockData block : structure.blocks()) {
             BlockPos rotated = BuildingTransform.rotatePosition(block.relativePos(), rotationDegrees);
             BlockState rotatedState = BuildingTransform.rotateState(block.state(), rotationDegrees);
-            placed.add(new BuildingBlockData(origin.offset(rotated), rotatedState, block.originalStructurePos()));
+            placed.add(new BuildingBlockData(origin.offset(rotated), rotatedState, block.originalStructurePos(), block.copyBlockEntityData()));
         }
         return List.copyOf(placed);
     }
 
-    private static List<BuildingBlockData> parseBlocks(CompoundTag rootTag) {
+    public static List<BuildingEntityData> resolvePlacedEntities(BuildingStructure structure, BlockPos origin, int rotationDegrees) {
+        List<BuildingEntityData> placed = new ArrayList<>();
+        for (BuildingEntityData entity : structure.entities()) {
+            Vec3 rotatedPos = BuildingTransform.rotatePosition(entity.pos(), rotationDegrees);
+            BlockPos rotatedBlockPos = BuildingTransform.rotatePosition(entity.blockPos(), rotationDegrees);
+            placed.add(new BuildingEntityData(
+                    rotatedPos.add(origin.getX(), origin.getY(), origin.getZ()),
+                    origin.offset(rotatedBlockPos),
+                    entity.copyEntityData()
+            ));
+        }
+        return List.copyOf(placed);
+    }
+
+    static List<BuildingBlockData> parseBlocks(CompoundTag rootTag) {
         List<BuildingBlockData> blocks = new ArrayList<>();
         if (rootTag.contains("Schematic", Tag.TAG_COMPOUND)) {
             return parseBlocks(rootTag.getCompound("Schematic"));
@@ -112,10 +128,54 @@ public final class BuildingStructureService {
                     continue;
                 }
                 BlockPos relative = new BlockPos(x, y, z);
-                blocks.add(new BuildingBlockData(relative, state, relative));
+                CompoundTag blockEntityData = blockTag.contains("nbt", Tag.TAG_COMPOUND) ? blockTag.getCompound("nbt") : null;
+                blocks.add(new BuildingBlockData(relative, state, relative, blockEntityData));
             }
         }
         return blocks;
+    }
+
+    static List<BuildingEntityData> parseEntities(CompoundTag rootTag) {
+        if (rootTag.contains("Schematic", Tag.TAG_COMPOUND)) {
+            return parseEntities(rootTag.getCompound("Schematic"));
+        }
+        if (!rootTag.contains("entities", Tag.TAG_LIST)) {
+            return List.of();
+        }
+
+        List<BuildingEntityData> entities = new ArrayList<>();
+        ListTag entityTags = rootTag.getList("entities", Tag.TAG_COMPOUND);
+        for (int i = 0; i < entityTags.size(); i++) {
+            CompoundTag entityTag = entityTags.getCompound(i);
+            if (!entityTag.contains("pos", Tag.TAG_LIST) || !entityTag.contains("nbt", Tag.TAG_COMPOUND)) {
+                continue;
+            }
+            ListTag posTag = entityTag.getList("pos", Tag.TAG_DOUBLE);
+            if (posTag.size() < 3) {
+                continue;
+            }
+            CompoundTag entityData = entityTag.getCompound("nbt");
+            String entityId = entityData.getString("id");
+            if (!"minecraft:item_frame".equals(entityId)
+                    && !"minecraft:glow_item_frame".equals(entityId)
+                    && !"minecraft:painting".equals(entityId)) {
+                continue;
+            }
+            Vec3 pos = new Vec3(posTag.getDouble(0), posTag.getDouble(1), posTag.getDouble(2));
+            BlockPos blockPos = readEntityBlockPos(entityTag, pos);
+            entities.add(new BuildingEntityData(pos, blockPos, entityData));
+        }
+        return List.copyOf(entities);
+    }
+
+    private static BlockPos readEntityBlockPos(CompoundTag entityTag, Vec3 pos) {
+        if (entityTag.contains("blockPos", Tag.TAG_LIST)) {
+            ListTag blockPosTag = entityTag.getList("blockPos", Tag.TAG_INT);
+            if (blockPosTag.size() >= 3) {
+                return new BlockPos(blockPosTag.getInt(0), blockPosTag.getInt(1), blockPosTag.getInt(2));
+            }
+        }
+        return BlockPos.containing(pos);
     }
 
     private static BlockState parseState(CompoundTag stateTag) {

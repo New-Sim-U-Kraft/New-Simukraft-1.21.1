@@ -20,6 +20,7 @@ import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
@@ -62,11 +63,18 @@ public final class PreviewMeshBuilder {
         try {
             for (PreviewBlockData block : allBlocks) {
                 BlockState state = block.state();
-                if (state.isAir() || state.getRenderShape() == RenderShape.INVISIBLE) {
+                if (state.isAir()) {
+                    continue;
+                }
+                RenderShape renderShape = state.getRenderShape();
+                boolean hasBlockEntity = state.getBlock() instanceof EntityBlock;
+                if (renderShape == RenderShape.INVISIBLE && !hasBlockEntity) {
                     continue;
                 }
                 BakedModel model = minecraft.getBlockRenderer().getBlockModel(state);
-                if (state.getRenderShape() == RenderShape.ENTITYBLOCK_ANIMATED || model.isCustomRenderer()) {
+                if (renderShape == RenderShape.ENTITYBLOCK_ANIMATED
+                        || (renderShape == RenderShape.INVISIBLE && hasBlockEntity)
+                        || model.isCustomRenderer()) {
                     // 箱子、床等方块实体渲染不进普通 mesh，后续如需显示可单独处理。
                     entityBlocks.add(block);
                     continue;

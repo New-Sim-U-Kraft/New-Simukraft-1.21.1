@@ -110,7 +110,7 @@ public final class BuildingPreviewManager {
         }
         int dx = accumDx, dy = accumDy, dz = accumDz;
         return PREVIEW_BLOCKS.stream()
-                .map(b -> new PreviewBlockData(b.pos().offset(dx, dy, dz), b.state(), b.packedLight()))
+                .map(b -> new PreviewBlockData(b.pos().offset(dx, dy, dz), b.state(), b.packedLight(), b.copyBlockEntityData()))
                 .toList();
     }
 
@@ -150,7 +150,7 @@ public final class BuildingPreviewManager {
         previewMinZ = Integer.MAX_VALUE; previewMaxZ = Integer.MIN_VALUE;
         for (BuildingBlockData block : blocks) {
             BlockPos pos = block.relativePos();
-            PREVIEW_BLOCKS.add(new PreviewBlockData(pos, block.state(), 15728880));
+            PREVIEW_BLOCKS.add(new PreviewBlockData(pos, block.state(), 15728880, block.copyBlockEntityData()));
             if (pos.getX() < previewMinX) previewMinX = pos.getX();
             if (pos.getX() > previewMaxX) previewMaxX = pos.getX();
             if (pos.getZ() < previewMinZ) previewMinZ = pos.getZ();

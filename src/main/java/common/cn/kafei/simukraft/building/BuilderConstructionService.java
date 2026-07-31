@@ -255,6 +255,7 @@ public final class BuilderConstructionService {
             BlockState targetState = block.state();
             BlockState currentState = level.getBlockState(worldPos);
             if (currentState.equals(targetState)) {
+                BuildingBlockPlacementService.applyBlockEntityData(level, worldPos, block.copyBlockEntityData());
                 index++;
                 continue;
             }
@@ -291,6 +292,7 @@ public final class BuilderConstructionService {
                 }
             }
             level.setBlock(worldPos, BuildingBlockPlacementService.refreshedPlacementState(level, worldPos, targetState), 3);
+            BuildingBlockPlacementService.applyBlockEntityData(level, worldPos, block.copyBlockEntityData());
             spawnBuildParticles(level, worldPos);
             addPendingBuilderXp(taskRuntime, 1);
             index++;
@@ -314,6 +316,7 @@ public final class BuilderConstructionService {
     }
 
     private static void completeTask(ServerLevel level, CitizenData citizen, LevelRuntime runtime, TaskRuntime taskRuntime, BuildingTaskData task, CachedStructure cached) {
+        BuildingBlockPlacementService.placeStructureEntities(level, cached.entities(), task.rotationDegrees());
         UUID cityId = task.cityId();
         List<BuildingPoiInstance> poiInstances = resolvePoiInstances(cached.sourceBlocks(), cached.blocks(), task);
         if (cityId != null) {
@@ -611,7 +614,8 @@ public final class BuilderConstructionService {
                         .thenComparingInt(b -> b.relativePos().getX())
                         .thenComparingInt(b -> b.relativePos().getZ()))
                 .toList();
-        return new CachedStructure(placedBlocks, sourceBlocks, buildLayerRanges(placedBlocks));
+        List<BuildingEntityData> placedEntities = BuildingStructureService.resolvePlacedEntities(structure, task.origin(), task.rotationDegrees());
+        return new CachedStructure(placedBlocks, sourceBlocks, placedEntities, buildLayerRanges(placedBlocks));
     }
 
     private static LevelRuntime runtime(ServerLevel level) {
@@ -874,7 +878,10 @@ public final class BuilderConstructionService {
         }
     }
 
-    private record CachedStructure(List<BuildingBlockData> blocks, List<BuildingBlockData> sourceBlocks, List<LayerRange> layerRanges) {
+    private record CachedStructure(List<BuildingBlockData> blocks,
+                                   List<BuildingBlockData> sourceBlocks,
+                                   List<BuildingEntityData> entities,
+                                   List<LayerRange> layerRanges) {
     }
 
     private static List<BuildingUnitDefinition> resolveUnitDefinitions(BuildingTaskData task) {

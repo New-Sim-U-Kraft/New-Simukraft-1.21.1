@@ -8,11 +8,12 @@ import client.cn.kafei.simukraft.client.input.SimuKraftKeyMappings;
 import client.cn.kafei.simukraft.client.toast.ClientInfoToast;
 import client.cn.kafei.simukraft.client.ui.SimuKraftUiTheme;
 import client.cn.kafei.simukraft.client.ui.SlidingInfoPanel;
+import common.cn.kafei.simukraft.building.BuildingCatalog;
+import common.cn.kafei.simukraft.building.BuildingMetadataReader;
 import common.cn.kafei.simukraft.building.BuildingStructure;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.state.properties.BedPart;
-import common.cn.kafei.simukraft.city.poi.CityPoiType;
 import common.cn.kafei.simukraft.network.building.BuildBoxStartConstructionPacket;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -49,9 +50,9 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
                 .filter(b -> b.state().getBlock() instanceof BedBlock
                         && b.state().getValue(BedBlock.PART) == BedPart.HEAD)
                 .count();
-        this.doorCount = Math.max(1, (int) structure.poiDefinitions().stream()
-                .filter(p -> p.poiType() == CityPoiType.RESIDENTIAL)
-                .count());
+        this.doorCount = BuildingCatalog.findBuilding(building.category(), building.metaFileName())
+                .map(BuildingMetadataReader::householdCount)
+                .orElse(1);
         panel.setVisible(sPanelVisible);
     }
 

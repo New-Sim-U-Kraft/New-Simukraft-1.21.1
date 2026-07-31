@@ -12,6 +12,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import common.cn.kafei.simukraft.building.BuildingBlockData;
+import common.cn.kafei.simukraft.building.BuildingCatalog;
+import common.cn.kafei.simukraft.building.BuildingMetadataReader;
 import common.cn.kafei.simukraft.building.BuildingStructure;
 import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.AlignItems;
@@ -27,7 +29,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.state.properties.BedPart;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
-import common.cn.kafei.simukraft.city.poi.CityPoiType;
 
 import java.util.List;
 
@@ -69,9 +70,9 @@ public final class BuildingConfirmScreen extends ModularUIScreen {
                 .filter(b -> b.state().getBlock() instanceof BedBlock
                         && b.state().getValue(BedBlock.PART) == BedPart.HEAD)
                 .count();
-        int doorCount = Math.max(1, (int) structure.poiDefinitions().stream()
-                .filter(p -> p.poiType() == CityPoiType.RESIDENTIAL)
-                .count());
+        int doorCount = BuildingCatalog.findBuilding(building.category(), building.metaFileName())
+                .map(BuildingMetadataReader::householdCount)
+                .orElse(1);
         if (bedCount > 0) {
             root.addChild(createResidentialBadge(bedCount, doorCount, regions.sceneRegion()));
         }
