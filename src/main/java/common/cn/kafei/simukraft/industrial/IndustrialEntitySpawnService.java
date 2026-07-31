@@ -41,8 +41,8 @@ public final class IndustrialEntitySpawnService {
 
     private static void spawnOne(ServerLevel level, BlockPos boxPos, PlacedBuildingRecord building, EntityType<?> type) {
         for (int attempt = 0; attempt < SPAWN_ATTEMPTS; attempt++) {
-            BlockPos pos = randomSpawnPos(level, boxPos);
-            if (!inside(building, pos) || !isClear(level, pos)) {
+            BlockPos pos = randomSpawnPos(level, building);
+            if (!isClear(level, pos)) {
                 continue;
             }
             Entity entity = type.create(level);
@@ -57,10 +57,19 @@ public final class IndustrialEntitySpawnService {
         }
     }
 
-    private static BlockPos randomSpawnPos(ServerLevel level, BlockPos boxPos) {
-        int x = boxPos.getX() + level.random.nextInt(5) - 2;
-        int z = boxPos.getZ() + level.random.nextInt(5) - 2;
-        return new BlockPos(x, boxPos.getY() + 1, z);
+    /**
+     * 在建筑实际 XZ 范围内随机取一个生成坐标
+     * 原逻辑只在 boxPos 周围 5×5 内取点，控制箱位于边缘时大量尝试落在建筑外导致生成数量不足
+     */
+    private static BlockPos randomSpawnPos(ServerLevel level, PlacedBuildingRecord building) {
+        int minX = Math.min(building.minPos().getX(), building.maxPos().getX());
+        int minZ = Math.min(building.minPos().getZ(), building.maxPos().getZ());
+        int spanX = Math.max(1, Math.abs(building.maxPos().getX() - building.minPos().getX()) + 1);
+        int spanZ = Math.max(1, Math.abs(building.maxPos().getZ() - building.minPos().getZ()) + 1);
+        int baseY = Math.min(building.minPos().getY(), building.maxPos().getY());
+        int x = minX + level.random.nextInt(spanX);
+        int z = minZ + level.random.nextInt(spanZ);
+        return new BlockPos(x, baseY, z);
     }
 
     private static boolean isClear(ServerLevel level, BlockPos pos) {
@@ -68,15 +77,6 @@ public final class IndustrialEntitySpawnService {
                 && level.getBlockState(pos).isAir()
                 && level.getBlockState(pos.above()).isAir()
                 && !level.getBlockState(pos.below()).getCollisionShape(level, pos.below()).isEmpty();
-    }
-
-    private static boolean inside(PlacedBuildingRecord building, BlockPos pos) {
-        return pos.getX() >= Math.min(building.minPos().getX(), building.maxPos().getX())
-                && pos.getX() <= Math.max(building.minPos().getX(), building.maxPos().getX())
-                && pos.getY() >= Math.min(building.minPos().getY(), building.maxPos().getY())
-                && pos.getY() <= Math.max(building.minPos().getY(), building.maxPos().getY()) + 1
-                && pos.getZ() >= Math.min(building.minPos().getZ(), building.maxPos().getZ())
-                && pos.getZ() <= Math.max(building.minPos().getZ(), building.maxPos().getZ());
     }
 
     private static boolean hasExistingSpawnedEntity(ServerLevel level, PlacedBuildingRecord building, EntityType<?> type) {

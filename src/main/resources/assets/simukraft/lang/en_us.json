@@ -1107,5 +1107,7 @@
     "status.simukraft.builder.building_layer":  "Building %1$s layer %2$s/%3$s",
     "status.simukraft.planner.resting_night":  "Resting (night): Planning",
     "status.simukraft.planner.waiting_materials":  "Waiting for blocks: Planning%s",
-    "status.simukraft.planner.working":  "Planning (%s)%s"
+    "status.simukraft.planner.working":  "Planning (%s)%s",
+    "message.simukraft.building_pack.outdated":  "§e[Building Pack] Update available (local: %s → latest: %s)",
+    "message.simukraft.building_pack.update_hint":  "§eIf you haven't modified the building pack, click to overwrite and reload: §e"
 }

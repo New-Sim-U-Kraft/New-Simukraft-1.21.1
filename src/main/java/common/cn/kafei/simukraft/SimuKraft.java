@@ -49,6 +49,7 @@ import common.cn.kafei.simukraft.network.hud.HudSyncService;
 import common.cn.kafei.simukraft.job.CityJobAssignmentService;
 import common.cn.kafei.simukraft.material.WorkMaterialPolicy;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
+import common.cn.kafei.simukraft.guard.NtIntegrityGuard;
 import common.cn.kafei.simukraft.protection.NpcBlockProtectionPolicy;
 import common.cn.kafei.simukraft.path.CitizenWanderService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
@@ -88,6 +89,7 @@ public final class SimuKraft {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public SimuKraft(IEventBus modEventBus, ModContainer modContainer) {
+        NtIntegrityGuard.verify(); // 内测版启动前校验 NT 保护层完整性，防止用户删除 JiJ 绕过
         ModFluidTypes.register(modEventBus);
         ModFluids.register(modEventBus);
         ModItems.register(modEventBus);

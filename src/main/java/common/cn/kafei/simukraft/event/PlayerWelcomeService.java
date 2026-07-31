@@ -1,11 +1,15 @@
 package common.cn.kafei.simukraft.event;
 
 import common.cn.kafei.simukraft.SimuKraft;
+import common.cn.kafei.simukraft.building.BuildingPackVersionChecker;
 import common.cn.kafei.simukraft.registry.ModSoundEvents;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -82,6 +86,37 @@ public final class PlayerWelcomeService {
         player.sendSystemMessage(Component.translatable("message.simukraft.welcome"));
         player.sendSystemMessage(Component.translatable("message.simukraft.welcome.refactor_edition"));
         player.sendSystemMessage(Component.translatable("message.simukraft.welcome.divider"));
+        sendBuildingPackUpdateNotice(player);
+    }
+
+    /**
+     * 建筑包版本检查提示（仅对 OP 显示）
+     * 若本地 official_building.zip 版本低于 JAR 内版本，显示黄色提示并附可点击的覆写指令
+     */
+    private static void sendBuildingPackUpdateNotice(ServerPlayer player) {
+        var local = BuildingPackVersionChecker.localVersion();
+        var builtin = BuildingPackVersionChecker.builtinVersion();
+        if (local.isEmpty() || builtin.isEmpty()) {
+            return;
+        }
+        if (!BuildingPackVersionChecker.isOlderThan(local.get(), builtin.get())) {
+            return;
+        }
+        String cmd = "/simukraft reload buildings";
+        // 第一行：版本信息提示
+        player.sendSystemMessage(Component.translatable(
+                "message.simukraft.building_pack.outdated", local.get(), builtin.get())
+                .withStyle(style -> style.withColor(ChatFormatting.YELLOW)));
+        // 第二行：可点击的指令提示
+        player.sendSystemMessage(Component.translatable("message.simukraft.building_pack.update_hint")
+                .withStyle(style -> style.withColor(ChatFormatting.YELLOW))
+                .append(Component.literal("[" + cmd + "]")
+                        .withStyle(style -> style
+                                .withColor(ChatFormatting.YELLOW)
+                                .withUnderlined(true)
+                                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, cmd))
+                                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                        Component.literal(cmd))))));
     }
 
     private static void scheduleFirstDreamSequence(ServerPlayer player) {

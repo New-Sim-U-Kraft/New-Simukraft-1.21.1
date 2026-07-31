@@ -17,6 +17,3 @@ pluginManagement {
 
 // 非正式版构建时，将 NT 保护模组作为 composite build 引入
 // 正式版：./gradlew build -Prelease（不引入 NT）
-if (!settings.startParameter.projectProperties.containsKey('release')) {
-    includeBuild '../NT'
-}

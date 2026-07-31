@@ -1116,5 +1116,7 @@
     "status.simukraft.builder.building_layer":  "建造中: %1$s 第%2$s/%3$s层",
     "status.simukraft.planner.resting_night":  "夜间休息中: 规划",
     "status.simukraft.planner.waiting_materials":  "缺少方块: 规划%s",
-    "status.simukraft.planner.working":  "规划中(%s)%s"
+    "status.simukraft.planner.working":  "规划中(%s)%s",
+    "message.simukraft.building_pack.outdated":  "§e[建筑包] 检测到官方建筑包有更新（本地：%s → 最新：%s）",
+    "message.simukraft.building_pack.update_hint":  "§e如未对建筑包进行修改，可点击此处一键覆写并重载：§e"
 }

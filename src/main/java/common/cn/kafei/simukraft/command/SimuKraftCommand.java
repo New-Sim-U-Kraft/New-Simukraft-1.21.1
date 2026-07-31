@@ -76,7 +76,9 @@ public final class SimuKraftCommand {
                 .requires(source -> source.hasPermission(2))
                 .executes(context -> reload(context.getSource()))
                 .then(Commands.literal("database")
-                        .executes(context -> reloadDatabase(context.getSource())))
+                        .executes(context -> reloadDatabase(context.getSource()))));
+        // buildings 单独注册，不继承 reload 的 OP 限制，非 OP 可执行但仅覆写本地文件
+        root.then(Commands.literal("reload")
                 .then(Commands.literal("buildings")
                         .executes(context -> reloadOfficialBuildings(context.getSource()))));
         root.then(Commands.literal("city")
@@ -459,17 +461,28 @@ public final class SimuKraftCommand {
         return Command.SINGLE_SUCCESS;
     }
 
-    /** reloadOfficialBuildings：强制用 jar 内置包覆写 official_building.zip，然后重载建筑目录并同步所有客户端。 */
+    /**
+     * reloadOfficialBuildings：覆写 official_building.zip + 等同于 /simukraft reload 的完整重载。
+     * OP（level 2+）：使用 reload.buildings.success 消息（含玩家同步数）。
+     * 非 OP：行为与 /simukraft reload 完全一致，使用 reload.success 消息。
+     */
     private static int reloadOfficialBuildings(CommandSourceStack source) {
         BuildingBuiltinResourceService.forceOverwrite(BuildingPackageCatalog.rootDirectory());
         BuildingCatalog.reload();
+        CommercialDefinitionLoader.clearCache();
+        IndustrialDefinitionLoader.clearCache();
+        MedicalDefinitionLoader.clearCache();
         int count = 0;
         for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
             PacketDistributor.sendToPlayer(player, new BuildingCacheReloadPacket());
             count++;
         }
         final int syncedCount = count;
-        source.sendSuccess(() -> Component.translatable("message.simukraft.reload.buildings.success", syncedCount), true);
+        if (source.hasPermission(2)) {
+            source.sendSuccess(() -> Component.translatable("message.simukraft.reload.buildings.success", syncedCount), true);
+        } else {
+            source.sendSuccess(() -> Component.translatable("message.simukraft.reload.success", syncedCount), false);
+        }
         return Command.SINGLE_SUCCESS;
     }
 

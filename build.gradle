@@ -59,6 +59,44 @@ base {
     archivesName = buildArchiveName
 }
 
+def ntJar = file('E:/Project/NT/build/libs/nt-1.0.1.jar')
+
+// 非正式版构建前校验 NT JiJ 文件存在性，缺失则立即终止构建
+// 正式版（-Prelease）跳过此校验，JiJ 不打入产物
+tasks.register('validateJijFiles') {
+    description = '校验 JiJ 依赖文件存在性（仅非正式版）'
+    def isRelease = rootProject.hasProperty('release') // 配置时捕获，避免配置缓存冲突
+    onlyIf { !isRelease }
+    doFirst {
+        if (!ntJar.exists()) {
+            throw new GradleException(
+                "\n❌ JiJ 依赖缺失，非正式版构建终止！\n" +
+                "   文件: ${ntJar.absolutePath}\n" +
+                "   请先构建 NT 保护层项目（执行其 build 任务）后重试。"
+            )
+        }
+    }
+}
+
+// jar 与 jarJar 均强制依赖校验，不可绕过
+tasks.named('jar').configure { dependsOn 'validateJijFiles' }
+tasks.whenTaskAdded { task ->
+    if (task.name == 'jarJar') {
+        task.dependsOn 'validateJijFiles'
+    }
+}
+
+// 构建时写入 build.type 标记，运行时据此判断是否为内测版
+// beta = 非正式版（默认），release = -Prelease 构建
+tasks.register('generateBuildMarker', WriteProperties) {
+    description = '生成构建类型标记文件（供运行时完整性校验使用）'
+    def buildType = rootProject.hasProperty('release') ? 'release' : 'beta' // 配置时求值
+    destinationFile = layout.buildDirectory.file('generated/buildMarker/META-INF/simukraft-build.properties')
+    property('build.type', buildType)
+}
+sourceSets.main.resources.srcDir(layout.buildDirectory.dir('generated/buildMarker'))
+tasks.named('processResources').configure { dependsOn 'generateBuildMarker' }
+
 tasks.withType(AbstractArchiveTask).configureEach {
     archiveVersion = ''
 }
@@ -159,8 +197,8 @@ configurations {
 dependencies {
     // NT 保护层：内测版通过 JiJ 嵌入，正式版构建时用 -Prelease 剔除
     if (!rootProject.hasProperty('release')) {
-        implementation 'com.nt:nt:1.0.1'
-        jarJar 'com.nt:nt:1.0.1'
+        implementation files(ntJar)
+        jarJar files(ntJar)
     }
 
     implementation "curse.maven:ldlib-626676:8152699"
