@@ -73,8 +73,8 @@ public final class CitizenProfileGenerator {
             "Smith", "Jones", "Taylor", "Brown", "Williams", "Wilson", "Davies", "Evans",
             "Thomas", "Johnson", "Roberts", "Walker", "Wright", "Thompson", "White", "Hughes"
     };
-    private static final int MALE_SKIN_COUNT = 60;
-    private static final int FEMALE_SKIN_COUNT = 60;
+    private static final int MALE_SKIN_COUNT = 64;
+    private static final int FEMALE_SKIN_COUNT = 64;
 
     private CitizenProfileGenerator() {
     }
