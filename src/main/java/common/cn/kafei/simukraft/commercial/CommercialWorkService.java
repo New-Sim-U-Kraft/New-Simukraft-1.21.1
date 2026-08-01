@@ -110,7 +110,8 @@ public final class CommercialWorkService {
             runtime.nextTick = gameTime + IDLE_RETRY_TICKS;
             return;
         }
-        if (CitizenSelfFeedingService.isSelfFeeding(level, worker.uuid())) {
+        if (CitizenSelfFeedingService.isOnHungerStrike(level, worker.uuid())) {
+            CitizenJobVisualService.clearMainHandOverride(worker.uuid());
             runtime.nextTick = gameTime + IDLE_RETRY_TICKS;
             return;
         }

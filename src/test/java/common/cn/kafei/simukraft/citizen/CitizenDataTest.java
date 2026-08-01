@@ -56,6 +56,13 @@ class CitizenDataTest {
     }
 
     @Test
+    void hungerStrikeStartsOnlyAtZeroHunger() {
+        assertTrue(CitizenSelfFeedingService.hasReachedHungerStrikeThreshold(0.0D));
+        assertFalse(CitizenSelfFeedingService.hasReachedHungerStrikeThreshold(1.0D));
+        assertFalse(CitizenSelfFeedingService.hasReachedHungerStrikeThreshold(5.0D));
+    }
+
+    @Test
     void legacyProfessionXpDisplaysAsGlobalLevelForEveryJob() {
         CitizenData data = new CitizenData(UUID.randomUUID());
         data.skills().put("builder.xp", 350);

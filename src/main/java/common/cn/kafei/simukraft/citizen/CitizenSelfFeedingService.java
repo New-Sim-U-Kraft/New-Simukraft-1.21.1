@@ -83,6 +83,19 @@ public final class CitizenSelfFeedingService {
         return level != null && citizenId != null && runtime(level).active.containsKey(citizenId);
     }
 
+    /** isOnHungerStrike: 仅有饱食度归零时才视为因饥饿而罢工。 */
+    public static boolean isOnHungerStrike(ServerLevel level, UUID citizenId) {
+        if (level == null || citizenId == null) {
+            return false;
+        }
+        CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizenId);
+        return entity != null && hasReachedHungerStrikeThreshold(entity.getHungerValue());
+    }
+
+    static boolean hasReachedHungerStrikeThreshold(double hunger) {
+        return hunger <= 0.0D;
+    }
+
     /** effectiveStatusLabel: 买饭活跃时返回运行时覆盖状态，否则返回主职业状态。 */
     public static String effectiveStatusLabel(ServerLevel level, UUID citizenId, String fallbackStatusLabel) {
         if (level == null || citizenId == null) {
