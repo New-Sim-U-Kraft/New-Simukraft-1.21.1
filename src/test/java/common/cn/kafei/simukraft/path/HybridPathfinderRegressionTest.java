@@ -237,6 +237,17 @@ class HybridPathfinderRegressionTest {
         assertNoDiagonalVerticalTransitions(result);
     }
 
+    /** An open floor trapdoor must expose a same-column fall into the lower room. */
+    @Test
+    void openTrapdoorShaftAllowsDirectDrop() {
+        Scene scene = new Scene();
+        scene.floor(0, 65, 0).passage(0, 64, 0).floor(0, 63, 0);
+        PathCase result = scene.path(0, 65, 0, 0, 63, 0);
+        assertSuccess(result);
+        assertEquals(MovementMode.FALL, lastWaypoint(result).mode());
+        assertEquals(new BlockPos(0, 63, 0), lastWaypoint(result).blockPos());
+    }
+
     /**
      * Multi-floor drop: a lower floor is reachable only when the target column has a real open
      * shaft through every intermediate layer.

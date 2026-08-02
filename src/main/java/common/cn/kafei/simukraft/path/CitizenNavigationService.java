@@ -90,8 +90,15 @@ public final class CitizenNavigationService {
         if (active != null && active.sameTarget(target)) {
             return true;
         }
-        if (runtime.pending.containsKey(citizenId)) {
-            return true;
+        RunningRequest running = runtime.pending.get(citizenId);
+        if (running != null) {
+            BlockPos requestedTarget = BlockPos.containing(target.x, target.y, target.z);
+            if (running.cacheKey().targetPos().equals(requestedTarget)
+                    && running.cacheKey().intent() == normalizedIntent) {
+                return true;
+            }
+            runtime.pending.remove(citizenId, running);
+            running.future().cancel(true);
         }
         PathRequest queued = runtime.latestRequests.get(citizenId);
         if (queued != null && queued.target().distanceToSqr(target) <= 4.0D) {
@@ -351,13 +358,19 @@ public final class CitizenNavigationService {
                 continue;
             }
             if (!level.isPositionEntityTicking(citizen.blockPosition())) {
-                continue;
+                runtime.latestRequests.put(citizenId, request);
+                if (runtime.queuedCitizenIds.add(citizenId)) {
+                    runtime.queue.offer(citizenId);
+                }
+                return;
             }
             PathRequest currentRequest = new PathRequest(citizenId, request.dimensionId(), citizen.blockPosition(), request.target(), request.intent(), level.getGameTime());
             PathCacheKey cacheKey = new PathCacheKey(currentRequest.dimensionId(), currentRequest.startPos(), currentRequest.targetBlockPos(), currentRequest.intent());
-            PathResult cached = runtime.pathCache.get(cacheKey, level.getGameTime());
+            PathResult cached = runtime.blockedSince.containsKey(citizenId)
+                    ? null
+                    : runtime.pathCache.get(cacheKey, level.getGameTime());
             if (cached != null) {
-                activate(level, runtime, cached);
+                activate(level, runtime, cached.forRequest(currentRequest));
                 processed++;
                 continue;
             }
@@ -558,7 +571,9 @@ public final class CitizenNavigationService {
                 return existing;
             }
             if (existing != null) {
-                existing.shutdownNow();
+                // Let already-submitted path futures finish when the live worker count changes.
+                // shutdownNow would remove queued AsyncSupply tasks without completing their futures.
+                existing.shutdown();
             }
             executorSize = requestedSize;
             pathExecutor = Executors.newFixedThreadPool(requestedSize, new PathThreadFactory());

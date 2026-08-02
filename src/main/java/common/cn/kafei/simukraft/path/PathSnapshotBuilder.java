@@ -1,9 +1,12 @@
 package common.cn.kafei.simukraft.path;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ByteMaps;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSets;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
@@ -114,6 +117,7 @@ final class PathSnapshotBuilder {
         CaptureData data = new CaptureData(capture.states(), capture.shapes());
         SnapshotBounds bounds = capture.bounds();
         Long2ObjectOpenHashMap<PathCell> cells = new Long2ObjectOpenHashMap<>();
+        Long2ByteOpenHashMap horizontalBarriers = new Long2ByteOpenHashMap();
         LongOpenHashSet bodyPassages = new LongOpenHashSet();
         BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
         for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
@@ -130,8 +134,17 @@ final class PathSnapshotBuilder {
                 }
             }
         }
+        for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
+            for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
+                for (int y = bounds.minY() - 1; y <= bounds.maxY() + 1; y++) {
+                    mutable.set(x, y, z);
+                    addOpenTrapdoorBarriers(data, mutable, bounds, horizontalBarriers);
+                }
+            }
+        }
         return new PathSnapshot(capture.dimensionId(), start.immutable(), target.immutable(),
-                cells, LongSets.unmodifiable(bodyPassages), bounds.minY(), bounds.maxY(), capture.createdAt(), capture.complete());
+                cells, LongSets.unmodifiable(bodyPassages), Long2ByteMaps.unmodifiable(horizontalBarriers),
+                bounds.minY(), bounds.maxY(), capture.createdAt(), capture.complete());
     }
 
     /**
@@ -290,6 +303,33 @@ final class PathSnapshotBuilder {
         return isFootPassable(cache, pos, foot)
                 && isHeadPassable(cache, pos.above(), head)
                 && hasNpcClearance(cache, pos, pos.getY(), null, null);
+    }
+
+    private static void addOpenTrapdoorBarriers(BlockDataSource cache, BlockPos trapdoorPos,
+                                                SnapshotBounds bounds, Long2ByteOpenHashMap barriers) {
+        BlockState state = cache.state(trapdoorPos);
+        if (!(state.getBlock() instanceof TrapDoorBlock)
+                || !state.hasProperty(TrapDoorBlock.OPEN)
+                || !state.getValue(TrapDoorBlock.OPEN)
+                || !state.hasProperty(TrapDoorBlock.FACING)) {
+            return;
+        }
+        // TrapDoorBlock's FACING points toward the hinge; its open shape occupies the opposite edge.
+        Direction edge = state.getValue(TrapDoorBlock.FACING).getOpposite();
+        byte mask = PathSnapshot.barrierMask(edge);
+        addBarrierIfInBounds(barriers, trapdoorPos.getX(), trapdoorPos.getY(), trapdoorPos.getZ(),
+                mask, bounds);
+        addBarrierIfInBounds(barriers, trapdoorPos.getX(), trapdoorPos.getY() - 1, trapdoorPos.getZ(),
+                mask, bounds);
+    }
+
+    private static void addBarrierIfInBounds(Long2ByteOpenHashMap barriers, int x, int y, int z,
+                                              byte mask, SnapshotBounds bounds) {
+        if (y < bounds.minY() || y > bounds.maxY()) {
+            return;
+        }
+        long key = PathCell.key(x, y, z);
+        barriers.put(key, (byte) (barriers.get(key) | mask));
     }
 
     /**

@@ -69,6 +69,8 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ExplosionEvent;
+import net.neoforged.neoforge.event.level.PistonEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
@@ -111,6 +113,10 @@ public final class SimuKraft {
         NeoForge.EVENT_BUS.addListener(this::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(this::onBlockBreak);
         NeoForge.EVENT_BUS.addListener(this::onBlockPlace);
+        NeoForge.EVENT_BUS.addListener(this::onNeighborNotify);
+        NeoForge.EVENT_BUS.addListener(this::onFluidPlaceBlock);
+        NeoForge.EVENT_BUS.addListener(this::onPistonPost);
+        NeoForge.EVENT_BUS.addListener(this::onExplosionDetonate);
         NeoForge.EVENT_BUS.addListener(this::onFarmlandTrample);
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);
         NeoForge.EVENT_BUS.addListener(this::onServerTick);
@@ -164,6 +170,30 @@ public final class SimuKraft {
         }
     }
 
+    private void onNeighborNotify(BlockEvent.NeighborNotifyEvent event) {
+        if (event.getLevel() instanceof net.minecraft.server.level.ServerLevel level) {
+            CitizenNavigationService.invalidate(level, event.getPos());
+        }
+    }
+
+    private void onFluidPlaceBlock(BlockEvent.FluidPlaceBlockEvent event) {
+        if (event.getLevel() instanceof net.minecraft.server.level.ServerLevel level) {
+            CitizenNavigationService.invalidate(level, event.getPos());
+        }
+    }
+
+    private void onPistonPost(PistonEvent.Post event) {
+        if (event.getLevel() instanceof net.minecraft.server.level.ServerLevel level) {
+            CitizenNavigationService.invalidate(level, event.getPos());
+        }
+    }
+
+    private void onExplosionDetonate(ExplosionEvent.Detonate event) {
+        if (event.getLevel() instanceof net.minecraft.server.level.ServerLevel level) {
+            CitizenNavigationService.invalidate(level, level.getSharedSpawnPos());
+        }
+    }
+
     private void onFarmlandTrample(BlockEvent.FarmlandTrampleEvent event) {
         if (event.getEntity() instanceof common.cn.kafei.simukraft.entity.CitizenEntity) {
             event.setCanceled(true);
@@ -179,6 +209,11 @@ public final class SimuKraft {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         net.minecraft.core.BlockPos clickedPos = event.getPos();
         net.minecraft.world.level.block.state.BlockState state = level.getBlockState(clickedPos);
+        if (state.getBlock() instanceof net.minecraft.world.level.block.DoorBlock
+                || state.getBlock() instanceof net.minecraft.world.level.block.FenceGateBlock
+                || state.getBlock() instanceof net.minecraft.world.level.block.TrapDoorBlock) {
+            CitizenNavigationService.invalidate(level, clickedPos);
+        }
         net.minecraft.core.BlockPos bedHeadPos = state.is(net.minecraft.world.level.block.Blocks.RED_BED)
                 ? ResidentialBedPoiService.resolveBedHeadPos(clickedPos, state)
                 : MedicalBedPoiService.resolveBedHeadPos(clickedPos, state);

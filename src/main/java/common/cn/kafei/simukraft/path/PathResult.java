@@ -13,4 +13,12 @@ public record PathResult(UUID citizenId, Vec3 target, MovementIntent intent, boo
     public static PathResult failed(PathRequest request, String reason) {
         return new PathResult(request.citizenId(), request.target(), request.intent(), false, List.of(), reason != null ? reason : "unknown");
     }
+
+    /** Rebinds a cached route to the request that is consuming it. */
+    public PathResult forRequest(PathRequest request) {
+        if (request == null) {
+            return this;
+        }
+        return new PathResult(request.citizenId(), request.target(), request.intent(), success, waypoints, reason);
+    }
 }

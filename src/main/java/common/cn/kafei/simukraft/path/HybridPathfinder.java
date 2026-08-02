@@ -117,6 +117,9 @@ final class HybridPathfinder {
                     if (dx != 0 && dz != 0 && !hasClearWalkLine(snapshot, current.pos(), next.pos())) {
                         continue;
                     }
+                    if ((dx == 0 || dz == 0) && !canCrossHorizontalBoundary(snapshot, current, next)) {
+                        continue;
+                    }
                     output.add(new Neighbor(next, walkMode(intent), distance(current, next) * next.cost()));
                 }
             }
@@ -138,6 +141,9 @@ final class HybridPathfinder {
                 }
                 PathCell next = snapshot.cell(current.x() + dx, current.y(), current.z() + dz);
                 if (next == null) {
+                    continue;
+                }
+                if ((dx == 0 || dz == 0) && !canCrossHorizontalBoundary(snapshot, current, next)) {
                     continue;
                 }
                 if (next.water()) {
@@ -171,6 +177,7 @@ final class HybridPathfinder {
         if (current.climbable()) {
             return;
         }
+        addDirectDropTransition(snapshot, current, output);
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 if (dx == 0 && dz == 0) {
@@ -184,12 +191,14 @@ final class HybridPathfinder {
                         && !up.water()
                         && !up.climbable()
                         && up.standY() - current.standY() <= 1.25D
+                        && canCrossHorizontalBoundary(snapshot, current, up)
                         && hasVerticalPassage(snapshot, current, up)) {
                     output.add(new Neighbor(up, MovementMode.JUMP, 2.5D + distance(current, up)));
                 }
                 if (up != null
                         && up.climbable()
                         && up.standY() - current.standY() <= 1.25D
+                        && canCrossHorizontalBoundary(snapshot, current, up)
                         && hasVerticalPassage(snapshot, current, up)) {
                     output.add(new Neighbor(up, MovementMode.CLIMB, 8.0D + distance(current, up)));
                 }
@@ -197,6 +206,7 @@ final class HybridPathfinder {
                 if (ladderBelow != null
                         && ladderBelow.climbable()
                         && current.standY() - ladderBelow.standY() <= 1.25D
+                        && canCrossHorizontalBoundary(snapshot, current, ladderBelow)
                         && hasVerticalPassage(snapshot, current, ladderBelow)) {
                     output.add(new Neighbor(ladderBelow, MovementMode.CLIMB, 8.0D + distance(current, ladderBelow)));
                 }
@@ -205,6 +215,7 @@ final class HybridPathfinder {
                     if (down != null
                             && !down.climbable()
                             && current.standY() - down.standY() <= 3.5D
+                            && canCrossHorizontalBoundary(snapshot, current, down)
                             && hasVerticalPassage(snapshot, current, down)) {
                         output.add(new Neighbor(down, down.water() ? MovementMode.SWIM : MovementMode.FALL,
                                 down.water() ? 1.8D : fallCost(current.standY() - down.standY())));
@@ -216,6 +227,28 @@ final class HybridPathfinder {
         PathCell waterBelow = snapshot.cell(current.x(), current.y() - 1, current.z());
         if (waterBelow != null && waterBelow.water() && hasVerticalPassage(snapshot, current, waterBelow)) {
             output.add(new Neighbor(waterBelow, MovementMode.SWIM, 1.8D));
+        }
+    }
+
+    /**
+     * Adds a straight fall through an open shaft, such as an open floor trapdoor. The destination
+     * must already be a valid occupiable cell, and every intermediate body column must be open; a
+     * solid floor therefore cannot be skipped just because it happens to have a lower cell below it.
+     */
+    private static void addDirectDropTransition(PathSnapshot snapshot, PathCell current,
+                                                List<Neighbor> output) {
+        for (int fall = 1; fall <= 3; fall++) {
+            PathCell down = snapshot.cell(current.x(), current.y() - fall, current.z());
+            if (down == null || down.climbable()) {
+                continue;
+            }
+            double heightDrop = current.standY() - down.standY();
+            if (heightDrop < 0.25D || heightDrop > 3.5D || !hasVerticalPassage(snapshot, current, down)) {
+                break;
+            }
+            output.add(new Neighbor(down, down.water() ? MovementMode.SWIM : MovementMode.FALL,
+                    down.water() ? 1.8D : fallCost(heightDrop)));
+            break;
         }
     }
 
@@ -245,6 +278,9 @@ final class HybridPathfinder {
                     if (diagonal && !diagonalClear(snapshot, current, dx, dz)) {
                         continue;
                     }
+                    if (!diagonal && (dx != 0 || dz != 0) && !canCrossHorizontalBoundary(snapshot, current, next)) {
+                        continue;
+                    }
                     if (next.water()) {
                         output.add(new Neighbor(next, MovementMode.SWIM, distance(current, next) * next.cost()));
                         continue;
@@ -271,12 +307,14 @@ final class HybridPathfinder {
                         // sweep the body through the destination-level corner column.
                         if (!diagonal
                                 && next.standY() - current.standY() <= 1.25D
+                                && canCrossHorizontalBoundary(snapshot, current, next)
                                 && hasVerticalPassage(snapshot, current, next)) {
                             output.add(new Neighbor(next, MovementMode.JUMP, 2.5D + distance(current, next)));
                         }
                     } else {
                         if (!diagonal
                                 && current.standY() - next.standY() <= 3.5D
+                                && canCrossHorizontalBoundary(snapshot, current, next)
                                 && hasVerticalPassage(snapshot, current, next)) {
                             output.add(new Neighbor(next, MovementMode.FALL, fallCost(current.standY() - next.standY())));
                         }
@@ -371,6 +409,7 @@ final class HybridPathfinder {
                     if (down != null
                             && !down.climbable()
                             && current.standY() - down.standY() <= 3.5D
+                            && canCrossHorizontalBoundary(snapshot, current, down)
                             && hasVerticalPassage(snapshot, current, down)) {
                         output.add(new Neighbor(down, down.water() ? MovementMode.SWIM : MovementMode.FALL,
                                 down.water() ? 1.8D : fallCost(current.standY() - down.standY())));
@@ -382,12 +421,33 @@ final class HybridPathfinder {
     }
 
     /**
-     * Returns whether both orthogonal columns flanking a diagonal step exist at the current level,
-     * i.e. the diagonal does not clip the solid corner block between them.
+     * Returns whether both orthogonal routes around a diagonal step are clear. A thin wall panel
+     * on either route still intersects the body while it cuts the shared corner.
      */
     private static boolean diagonalClear(PathSnapshot snapshot, PathCell current, int dx, int dz) {
-        return snapshot.cell(current.x() + dx, current.y(), current.z()) != null
-                && snapshot.cell(current.x(), current.y(), current.z() + dz) != null;
+        PathCell acrossX = snapshot.cell(current.x() + dx, current.y(), current.z());
+        PathCell acrossZ = snapshot.cell(current.x(), current.y(), current.z() + dz);
+        PathCell target = snapshot.cell(current.x() + dx, current.y(), current.z() + dz);
+        return target != null
+                && acrossX != null
+                && acrossZ != null
+                && canCrossHorizontalBoundary(snapshot, current, acrossX)
+                && canCrossHorizontalBoundary(snapshot, acrossX, target)
+                && canCrossHorizontalBoundary(snapshot, current, acrossZ)
+                && canCrossHorizontalBoundary(snapshot, acrossZ, target);
+    }
+
+    /** Returns whether a one-block horizontal move clears thin collision panels at both feet levels. */
+    private static boolean canCrossHorizontalBoundary(PathSnapshot snapshot, PathCell from, PathCell to) {
+        int horizontalDistance = Math.abs(to.x() - from.x()) + Math.abs(to.z() - from.z());
+        if (horizontalDistance != 1) {
+            return horizontalDistance == 0;
+        }
+        if (snapshot.blocksHorizontalBoundary(from.x(), from.y(), from.z(), to.x(), to.z())) {
+            return false;
+        }
+        return from.y() == to.y()
+                || !snapshot.blocksHorizontalBoundary(from.x(), to.y(), from.z(), to.x(), to.z());
     }
 
     /**
@@ -603,6 +663,11 @@ final class HybridPathfinder {
             PathCell current = snapshot.cell(x, from.getY(), z);
             if (current == null || !canWalkOnSameLayer(previous, current)) {
                 return false;
+            }
+            if (stepX == 0 || stepZ == 0) {
+                if (!canCrossHorizontalBoundary(snapshot, previous, current)) {
+                    return false;
+                }
             }
             if (stepX != 0 && stepZ != 0 && !diagonalClear(snapshot, previous, stepX, stepZ)) {
                 return false;

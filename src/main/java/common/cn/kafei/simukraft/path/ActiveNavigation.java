@@ -165,7 +165,7 @@ final class ActiveNavigation {
         citizen.getMoveControl().setWantedPosition(commandTarget.x, commandTarget.y, commandTarget.z, speed);
         applyClimbMotion(citizen, commandTarget, commandMode);
         if (shouldTriggerJump(citizen, waypointIndex, waypoint)) {
-            citizen.getJumpControl().jump();
+            citizen.triggerPathJump();
             jumpTriggered = true;
         }
         level.getGameTime();
