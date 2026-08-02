@@ -30,13 +30,19 @@ public final class IndustrialEntitySpawnService {
         if (type.isEmpty()) {
             return;
         }
-        if (!hasExistingSpawnedEntity(level, building, type.get())) {
-            for (int index = 0; index < spawn.count(); index++) {
+        int existingCount = countExistingEntities(level, building, type.get());
+        int needed = spawn.count() - existingCount;
+        if (needed > 0) {
+            for (int index = 0; index < needed; index++) {
                 spawnOne(level, data.boxPos(), building, type.get());
             }
         }
-        data.setSpawnEntityDone(true);
-        manager.persist(data);
+        // 数量达标或至少成功生成了1只时标记完成，完全失败则允许下次重试
+        int afterCount = countExistingEntities(level, building, type.get());
+        if (afterCount >= spawn.count() || afterCount > existingCount) {
+            data.setSpawnEntityDone(true);
+            manager.persist(data);
+        }
     }
 
     private static void spawnOne(ServerLevel level, BlockPos boxPos, PlacedBuildingRecord building, EntityType<?> type) {
@@ -66,7 +72,7 @@ public final class IndustrialEntitySpawnService {
         int minZ = Math.min(building.minPos().getZ(), building.maxPos().getZ());
         int spanX = Math.max(1, Math.abs(building.maxPos().getX() - building.minPos().getX()) + 1);
         int spanZ = Math.max(1, Math.abs(building.maxPos().getZ() - building.minPos().getZ()) + 1);
-        int baseY = Math.min(building.minPos().getY(), building.maxPos().getY());
+        int baseY = Math.min(building.minPos().getY(), building.maxPos().getY()) + 1; // 地板上方一格，动物站立位置
         int x = minX + level.random.nextInt(spanX);
         int z = minZ + level.random.nextInt(spanZ);
         return new BlockPos(x, baseY, z);
@@ -79,9 +85,9 @@ public final class IndustrialEntitySpawnService {
                 && !level.getBlockState(pos.below()).getCollisionShape(level, pos.below()).isEmpty();
     }
 
-    private static boolean hasExistingSpawnedEntity(ServerLevel level, PlacedBuildingRecord building, EntityType<?> type) {
+    private static int countExistingEntities(ServerLevel level, PlacedBuildingRecord building, EntityType<?> type) {
         AABB bounds = buildingBounds(building).inflate(2.0D);
-        return !level.getEntitiesOfClass(Entity.class, bounds, entity -> entity.getType() == type).isEmpty();
+        return level.getEntitiesOfClass(Entity.class, bounds, entity -> entity.getType() == type).size();
     }
 
     private static AABB buildingBounds(PlacedBuildingRecord building) {
