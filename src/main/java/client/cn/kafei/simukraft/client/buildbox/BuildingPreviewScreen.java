@@ -131,15 +131,15 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
         panel.drawSectionTitle(g, Component.translatable("gui.building_preview.section.preview_move"), curY);
         curY += font.lineHeight + 8;
         int arrowCX = pX + 30;
-        panel.drawKeyCap(g, Component.literal("↑"), arrowCX,        curY,        kw, kh);
-        panel.drawKeyCap(g, Component.literal("←"), arrowCX - step, curY + step, kw, kh);
-        panel.drawKeyCap(g, Component.literal("↓"), arrowCX,        curY + step, kw, kh);
-        panel.drawKeyCap(g, Component.literal("→"), arrowCX + step, curY + step, kw, kh);
+        panel.drawKeyCap(g, SimuKraftKeyMappings.display(SimuKraftKeyMappings.PREVIEW_MOVE_FORWARD),  arrowCX,        curY,        kw, kh);
+        panel.drawKeyCap(g, SimuKraftKeyMappings.display(SimuKraftKeyMappings.PREVIEW_MOVE_LEFT),    arrowCX - step, curY + step, kw, kh);
+        panel.drawKeyCap(g, SimuKraftKeyMappings.display(SimuKraftKeyMappings.PREVIEW_MOVE_BACKWARD),arrowCX,        curY + step, kw, kh);
+        panel.drawKeyCap(g, SimuKraftKeyMappings.display(SimuKraftKeyMappings.PREVIEW_MOVE_RIGHT),   arrowCX + step, curY + step, kw, kh);
         g.drawCenteredString(font, Component.translatable("gui.building_preview.label.move"),
                 arrowCX, curY + step * 2 + 2, SimuKraftUiTheme.TEXT_MUTED_COLOR);
         int heightCX = pX + 62;
-        panel.drawKeyCap(g, Component.literal("+"), heightCX, curY,        kw, kh);
-        panel.drawKeyCap(g, Component.literal("-"), heightCX, curY + step, kw, kh);
+        panel.drawKeyCap(g, SimuKraftKeyMappings.display(SimuKraftKeyMappings.PREVIEW_MOVE_UP),   heightCX, curY,        kw, kh);
+        panel.drawKeyCap(g, SimuKraftKeyMappings.display(SimuKraftKeyMappings.PREVIEW_MOVE_DOWN), heightCX, curY + step, kw, kh);
         g.drawCenteredString(font, Component.translatable("gui.building_preview.label.height"),
                 heightCX, curY + step * 2 + 2, SimuKraftUiTheme.TEXT_MUTED_COLOR);
         int rotateCX = pX + 86;

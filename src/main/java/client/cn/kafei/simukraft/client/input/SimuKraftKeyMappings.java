@@ -58,7 +58,19 @@ public final class SimuKraftKeyMappings {
     }
 
     public static Component display(KeyMapping mapping) {
-        return mapping == null ? Component.literal("?") : mapping.getTranslatedKeyMessage();
+        if (mapping == null) return Component.literal("?");
+        InputConstants.Key key = mapping.getKey();
+        if (key.getType() == InputConstants.Type.KEYSYM) {
+            String arrow = switch (key.getValue()) {
+                case GLFW.GLFW_KEY_UP    -> "↑";
+                case GLFW.GLFW_KEY_DOWN  -> "↓";
+                case GLFW.GLFW_KEY_LEFT  -> "←";
+                case GLFW.GLFW_KEY_RIGHT -> "→";
+                default -> null;
+            };
+            if (arrow != null) return Component.literal(arrow);
+        }
+        return mapping.getTranslatedKeyMessage();
     }
 
     private static KeyMapping key(String name, int keyCode) {
