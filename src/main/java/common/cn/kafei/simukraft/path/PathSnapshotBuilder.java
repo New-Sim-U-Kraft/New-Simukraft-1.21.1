@@ -60,25 +60,42 @@ final class PathSnapshotBuilder {
     /**
      * Immutable block data captured on the server thread for a bounded volume.
      *
-     * <p>Both {@code states} and {@code shapes} cover {@code bounds} plus a one-block vertical
-     * fringe ({@code minY-1} to {@code maxY+1}) so that {@link #buildFromCapture} can read
-     * {@code pos.below()} and {@code pos.above()} without a bounds check. The maps are written
-     * once during capture and never modified afterward, so worker threads may read them freely.
+     * <p>Both maps sparsely cover {@code bounds} plus a one-block vertical fringe
+     * ({@code minY-1} to {@code maxY+1}) so that {@link #buildFromCapture} can read
+     * {@code pos.below()} and {@code pos.above()} without a bounds check. Missing entries mean
+     * air / empty collision. The maps are written once during capture and never modified afterward,
+     * so worker threads may read them freely.
      *
      * @param complete false when at least one chunk in the volume was unloaded at capture time
      */
     record ChunkDataCapture(
             Long2ObjectOpenHashMap<BlockState> states,
             Long2ObjectOpenHashMap<VoxelShape> shapes,
+            Long2ObjectOpenHashMap<SectionDataCapture> sections,
             SnapshotBounds bounds,
             net.minecraft.resources.ResourceLocation dimensionId,
             long createdAt,
             boolean complete) {
+        ChunkDataCapture(Long2ObjectOpenHashMap<BlockState> states,
+                         Long2ObjectOpenHashMap<VoxelShape> shapes,
+                         SnapshotBounds bounds,
+                         net.minecraft.resources.ResourceLocation dimensionId,
+                         long createdAt,
+                         boolean complete) {
+            this(states, shapes, null, bounds, dimensionId, createdAt, complete);
+        }
+    }
+
+    /** Immutable raw data for one 16x16x16 world section. */
+    record SectionDataCapture(
+            Long2ObjectOpenHashMap<BlockState> states,
+            Long2ObjectOpenHashMap<VoxelShape> shapes) {
     }
 
     /**
      * Phase 1 — server thread. Reads every {@link BlockState} and {@link VoxelShape} in the
-     * bounded volume (plus a one-block vertical fringe) into a {@link ChunkDataCapture}.
+     * bounded volume (plus a one-block vertical fringe) into a {@link ChunkDataCapture}; air and
+     * empty collision shapes are omitted.
      * Context-sensitive shapes (fences, walls, iron bars) are resolved here while the live
      * {@link ServerLevel} is available. Returns incomplete data if any column's chunk is unloaded.
      */
@@ -99,14 +116,53 @@ final class PathSnapshotBuilder {
                 }
                 for (int y = scanMinY; y <= scanMaxY; y++) {
                     mutable.set(x, y, z);
-                    long key = mutable.asLong();
-                    BlockState state = level.getBlockState(mutable);
-                    states.put(key, state);
-                    shapes.put(key, state.getCollisionShape(level, mutable));
+                    captureBlock(level, mutable, states, shapes);
                 }
             }
         }
         return new ChunkDataCapture(states, shapes, bounds, level.dimension().location(), level.getGameTime(), complete);
+    }
+
+    /** captureSection: 在主线程冻结一个区段的方块状态与实际碰撞形状。 */
+    static SectionDataCapture captureSection(ServerLevel level, int sectionX, int sectionY, int sectionZ) {
+        Long2ObjectOpenHashMap<BlockState> states = new Long2ObjectOpenHashMap<>();
+        Long2ObjectOpenHashMap<VoxelShape> shapes = new Long2ObjectOpenHashMap<>();
+        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
+        int minX = sectionX << 4;
+        int minY = sectionY << 4;
+        int minZ = sectionZ << 4;
+        for (int x = minX; x < minX + 16; x++) {
+            for (int z = minZ; z < minZ + 16; z++) {
+                for (int y = minY; y < minY + 16; y++) {
+                    mutable.set(x, y, z);
+                    captureBlock(level, mutable, states, shapes);
+                }
+            }
+        }
+        return new SectionDataCapture(states, shapes);
+    }
+
+    /** composeCapture: 创建独立区段索引视图，避免在主线程复制区段中的每个方块。 */
+    static ChunkDataCapture composeCapture(ServerLevel level, SnapshotBounds bounds,
+                                           Long2ObjectOpenHashMap<SectionDataCapture> sections, boolean complete) {
+        return new ChunkDataCapture(null, null, sections, bounds,
+                level.dimension().location(), level.getGameTime(), complete);
+    }
+
+    /** captureBlock: 省略空气和空碰撞，保留异步构建所需的完整非空气状态。 */
+    private static void captureBlock(ServerLevel level, BlockPos.MutableBlockPos pos,
+                                     Long2ObjectOpenHashMap<BlockState> states,
+                                     Long2ObjectOpenHashMap<VoxelShape> shapes) {
+        BlockState state = level.getBlockState(pos);
+        if (state.isAir()) {
+            return;
+        }
+        long key = pos.asLong();
+        states.put(key, state);
+        VoxelShape shape = state.getCollisionShape(level, pos);
+        if (!shape.isEmpty()) {
+            shapes.put(key, shape);
+        }
     }
 
     /**
@@ -114,7 +170,7 @@ final class PathSnapshotBuilder {
      * {@link PathCell}s and body passages. Never touches the live world.
      */
     static PathSnapshot buildFromCapture(ChunkDataCapture capture, BlockPos start, BlockPos target) {
-        CaptureData data = new CaptureData(capture.states(), capture.shapes());
+        CaptureData data = new CaptureData(capture);
         SnapshotBounds bounds = capture.bounds();
         Long2ObjectOpenHashMap<PathCell> cells = new Long2ObjectOpenHashMap<>();
         Long2ByteOpenHashMap horizontalBarriers = new Long2ByteOpenHashMap();
@@ -509,22 +565,44 @@ final class PathSnapshotBuilder {
         private static final VoxelShape EMPTY = net.minecraft.world.phys.shapes.Shapes.empty();
         private final Long2ObjectOpenHashMap<BlockState> states;
         private final Long2ObjectOpenHashMap<VoxelShape> shapes;
+        private final Long2ObjectOpenHashMap<SectionDataCapture> sections;
 
-        private CaptureData(Long2ObjectOpenHashMap<BlockState> states, Long2ObjectOpenHashMap<VoxelShape> shapes) {
-            this.states = states;
-            this.shapes = shapes;
+        private CaptureData(ChunkDataCapture capture) {
+            this.states = capture.states();
+            this.shapes = capture.shapes();
+            this.sections = capture.sections();
         }
 
         @Override
         public BlockState state(BlockPos pos) {
-            BlockState s = states.get(pos.asLong());
+            BlockState s;
+            if (sections == null) {
+                s = states.get(pos.asLong());
+            } else {
+                SectionDataCapture section = sections.get(sectionKey(pos));
+                s = section == null ? null : section.states().get(pos.asLong());
+            }
             return s != null ? s : AIR;
         }
 
         @Override
         public VoxelShape shape(BlockPos pos, BlockState state) {
-            VoxelShape s = shapes.get(pos.asLong());
+            VoxelShape s;
+            if (sections == null) {
+                s = shapes.get(pos.asLong());
+            } else {
+                SectionDataCapture section = sections.get(sectionKey(pos));
+                s = section == null ? null : section.shapes().get(pos.asLong());
+            }
             return s != null ? s : EMPTY;
+        }
+
+        /** sectionKey: 根据方块坐标定位只读的 16x16x16 快照区段。 */
+        private static long sectionKey(BlockPos pos) {
+            return SectionPos.asLong(
+                    SectionPos.blockToSectionCoord(pos.getX()),
+                    SectionPos.blockToSectionCoord(pos.getY()),
+                    SectionPos.blockToSectionCoord(pos.getZ()));
         }
     }
 }

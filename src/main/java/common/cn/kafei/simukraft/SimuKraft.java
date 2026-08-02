@@ -293,6 +293,7 @@ public final class SimuKraft {
         PlayerWelcomeService.clearServerCaches(event.getServer());
         SimuSqliteStorage.clearServerCache(event.getServer());
         CityPoiManager.clearGlobalCache();
+        common.cn.kafei.simukraft.util.SaveScopedCacheKey.clearServerCache(event.getServer());
     }
 
     private void saveDimensionSqlite(ServerLevel level) {

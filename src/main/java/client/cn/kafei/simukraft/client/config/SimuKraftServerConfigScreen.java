@@ -154,7 +154,7 @@ public final class SimuKraftServerConfigScreen {
 
         page.addChild(SimuKraftConfigWidgets.section(Component.translatable("gui.simukraft.config.section.pathfinding")));
         page.addChild(SimuKraftConfigWidgets.row(Component.translatable("config.simukraft.npc_pathfinding.maxLoadedCitizenEntities"),
-                SimuKraftConfigWidgets.intField(draft.pathMaxLoadedCitizenEntities, 1, 1000, value -> draft.pathMaxLoadedCitizenEntities = value)));
+                SimuKraftConfigWidgets.intField(draft.pathMaxLoadedCitizenEntities, 1, 5000, value -> draft.pathMaxLoadedCitizenEntities = value)));
         page.addChild(SimuKraftConfigWidgets.row(Component.translatable("config.simukraft.npc_pathfinding.maxActivePathingCitizens"),
                 SimuKraftConfigWidgets.intField(draft.pathMaxActiveCitizens, 1, 5000, value -> draft.pathMaxActiveCitizens = value)));
         page.addChild(SimuKraftConfigWidgets.row(Component.translatable("config.simukraft.npc_pathfinding.maxNewPathRequestsPerTick"),

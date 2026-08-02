@@ -44,6 +44,7 @@ public final class CitizenManager extends SavedData {
     private final Set<UUID> pendingSaves = ConcurrentHashMap.newKeySet();
     // 分帧处理居民状态，避免城市人口变大后单 tick 扫全量。
     private final ConcurrentLinkedQueue<UUID> aiQueue = new ConcurrentLinkedQueue<>();
+    private final Set<UUID> queuedAiCitizenIds = ConcurrentHashMap.newKeySet();
     private final ConcurrentMap<UUID, Long> lastHungerDecayTick = new ConcurrentHashMap<>();
     private final AtomicInteger dirtyCounter = new AtomicInteger();
     private volatile boolean sqliteLoaded;
@@ -118,6 +119,7 @@ public final class CitizenManager extends SavedData {
     public synchronized void reloadFromSqlite(ServerLevel level) {
         citizens.clear();
         aiQueue.clear();
+        queuedAiCitizenIds.clear();
         sqliteLoaded = false;
         loadFromSqlite(storageLevel(level));
     }
@@ -142,6 +144,7 @@ public final class CitizenManager extends SavedData {
         // SQLite 加载后重建 AI 队列，保证旧存档居民也会继续参与状态 tick。
         citizens.clear();
         aiQueue.clear();
+        queuedAiCitizenIds.clear();
         for (int i = 0; i < citizensTag.size(); i++) {
             CompoundTag citizenTag = citizensTag.getCompound(i);
             boolean repairedDeadHousing = deadCitizenHasHome(citizenTag);
@@ -177,7 +180,7 @@ public final class CitizenManager extends SavedData {
         }
         citizens.put(data.uuid(), data);
         if (!data.dead()) {
-            aiQueue.offer(data.uuid());
+            enqueueAiTick(data.uuid());
         }
     }
 
@@ -272,7 +275,7 @@ public final class CitizenManager extends SavedData {
             if (existing != null) {
                 data = existing;
             } else {
-                aiQueue.offer(data.uuid());
+                enqueueAiTick(data.uuid());
                 saveCitizenIncremental(data);
                 markDirtySoon();
             }
@@ -282,9 +285,7 @@ public final class CitizenManager extends SavedData {
             return data;
         }
         reconcileEntityInventory(entity);
-        if (!aiQueue.contains(data.uuid())) {
-            aiQueue.offer(data.uuid());
-        }
+        enqueueAiTick(data.uuid());
         if (entity.level() instanceof ServerLevel level) {
             CitizenProfileGenerator.fillMissingProfile(data, level.random, level.getDayTime() / 24000L);
         }
@@ -323,6 +324,7 @@ public final class CitizenManager extends SavedData {
         }
         data.markDead(deathDay);
         aiQueue.remove(uuid);
+        queuedAiCitizenIds.remove(uuid);
         saveCitizenIncremental(data);
         setDirty();
     }
@@ -331,6 +333,7 @@ public final class CitizenManager extends SavedData {
         citizens.remove(uuid);
         inventoryBackups.remove(uuid);
         aiQueue.remove(uuid);
+        queuedAiCitizenIds.remove(uuid);
         deleteCitizenIncremental(uuid);
         setDirty();
     }
@@ -358,10 +361,11 @@ public final class CitizenManager extends SavedData {
             if (uuid == null) {
                 break;
             }
+            queuedAiCitizenIds.remove(uuid);
             CitizenData data = citizens.get(uuid);
             if (data != null && !data.dead()) {
                 tickCitizenData(level, data);
-                aiQueue.offer(uuid);
+                enqueueAiTick(uuid);
                 processed++;
             }
         }
@@ -370,6 +374,13 @@ public final class CitizenManager extends SavedData {
             setDirty();
         }
         tickFamilySystemsIfNewDay(level);
+    }
+
+    /** enqueueAiTick: 用 O(1) UUID 索引保持轮询队列中每位市民至多一项。 */
+    private void enqueueAiTick(UUID citizenId) {
+        if (citizenId != null && queuedAiCitizenIds.add(citizenId)) {
+            aiQueue.offer(citizenId);
+        }
     }
 
     private void tickFamilySystemsIfNewDay(ServerLevel level) {

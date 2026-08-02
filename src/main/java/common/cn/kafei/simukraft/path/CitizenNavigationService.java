@@ -303,6 +303,7 @@ public final class CitizenNavigationService {
         processQueuedRequests(level, runtime);
         if (level.getGameTime() % 200L == 0L) {
             runtime.pathCache.cleanup(level.getGameTime());
+            runtime.snapshotCache.cleanup(level.getGameTime());
             runtime.cooldowns.entrySet().removeIf(entry -> entry.getValue() <= level.getGameTime());
             PathCrowdCoordinator.cleanup(level);
         }

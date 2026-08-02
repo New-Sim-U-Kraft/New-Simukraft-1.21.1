@@ -208,7 +208,7 @@ public final class ServerConfig {
         PATH_MAX_LOADED_CITIZEN_ENTITIES = builder
                 .comment("Maximum loaded citizen entities allowed to start new pathing work.")
                 .translation("config.simukraft.npc_pathfinding.maxLoadedCitizenEntities")
-                .defineInRange("maxLoadedCitizenEntities", 180, 1, 1000);
+                .defineInRange("maxLoadedCitizenEntities", 180, 1, 5000);
         PATH_MAX_ACTIVE_CITIZENS = builder
                 .comment("Maximum citizens that may actively follow custom paths at once.")
                 .translation("config.simukraft.npc_pathfinding.maxActivePathingCitizens")

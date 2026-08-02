@@ -181,6 +181,16 @@ public class CitizenEntity extends PathfinderMob {
         this.goalSelector.addGoal(2, new RandomLookAroundGoal(this));
     }
 
+    /**
+     * City-scale movement is coordinated by {@link CitizenNavigationService}; letting thousands
+     * of citizens also perform vanilla entity pushing turns a dense crowd into a collision hot
+     * path. Block collision, interaction and the coordinator's logical yielding stay enabled.
+     */
+    @Override
+    public boolean isPushable() {
+        return false;
+    }
+
     @Override
     public void handlePortal() {
         // NPC 不允许通过任何传送门（下界门、末地门、折跃门等）

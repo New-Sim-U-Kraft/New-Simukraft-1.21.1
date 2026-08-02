@@ -3,11 +3,17 @@ package common.cn.kafei.simukraft.path;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -24,7 +30,11 @@ final class PathCrowdCoordinator {
     private static final double OPPOSING_DOT = -0.25D;
     private static final double SAME_DOT = 0.35D;
     private static final long STATE_TTL_TICKS = 40L;
+    private static final long YIELD_CACHE_TICKS = 2L;
+    private static final double YIELD_CACHE_DIRECTION_DOT = 0.98D;
+    private static final double GRID_CELL_SIZE = 4.0D;
     private static final ConcurrentMap<String, ConcurrentMap<UUID, CrowdMoveState>> STATES = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, CrowdSpatialIndex> SPATIAL_INDEXES = new ConcurrentHashMap<>();
 
     private PathCrowdCoordinator() {
     }
@@ -38,7 +48,20 @@ final class PathCrowdCoordinator {
             clear(level, citizenId);
             return;
         }
-        states(level).put(citizenId, new CrowdMoveState(direction.x, direction.z, level.getGameTime()));
+        ConcurrentMap<UUID, CrowdMoveState> states = states(level);
+        CrowdMoveState previous = states.get(citizenId);
+        long lastYieldCheckTick = Long.MIN_VALUE;
+        boolean lastShouldYield = false;
+        if (hasSameDirection(direction, previous)) {
+            lastYieldCheckTick = previous.lastYieldCheckTick();
+            lastShouldYield = previous.lastShouldYield();
+        }
+        states.put(citizenId, new CrowdMoveState(
+                direction.x,
+                direction.z,
+                level.getGameTime(),
+                lastYieldCheckTick,
+                lastShouldYield));
     }
 
     static boolean shouldYield(ServerLevel level, CitizenEntity citizen, Vec3 commandTarget) {
@@ -53,6 +76,10 @@ final class PathCrowdCoordinator {
 
         ConcurrentMap<UUID, CrowdMoveState> states = states(level);
         long now = level.getGameTime();
+        CrowdMoveState ownState = states.get(citizen.getUUID());
+        if (hasCachedYieldDecision(direction, ownState, now)) {
+            return ownState.lastShouldYield();
+        }
         AABB searchBox = new AABB(
                 current.x - SEARCH_RADIUS,
                 current.y - 0.75D,
@@ -60,6 +87,11 @@ final class PathCrowdCoordinator {
                 current.x + SEARCH_RADIUS,
                 current.y + 1.75D,
                 current.z + SEARCH_RADIUS);
+        CrowdSpatialIndex spatialIndex = spatialIndex(level);
+        int minCellX = cellCoordinate(current.x - SEARCH_RADIUS);
+        int maxCellX = cellCoordinate(current.x + SEARCH_RADIUS);
+        int minCellZ = cellCoordinate(current.z - SEARCH_RADIUS);
+        int maxCellZ = cellCoordinate(current.z + SEARCH_RADIUS);
 
         int sameNearby = 0;
         int opposingAhead = 0;
@@ -67,57 +99,65 @@ final class PathCrowdCoordinator {
         UUID closestOpposingId = null;
         double closestAhead = Double.MAX_VALUE;
 
-        for (CitizenEntity other : level.getEntitiesOfClass(CitizenEntity.class, searchBox, other -> other != citizen && !other.isRemoved())) {
-            Vec3 offset = other.position().subtract(current);
-            double horizontalDistanceSqr = offset.x * offset.x + offset.z * offset.z;
-            if (horizontalDistanceSqr < 0.0001D || horizontalDistanceSqr > SEARCH_RADIUS * SEARCH_RADIUS) {
-                continue;
-            }
-
-            Direction otherDirection = directionFor(other, states.get(other.getUUID()), now);
-            if (otherDirection == null) {
-                if (isStationaryBlocker(citizen, other, direction, offset)) {
-                    return true;
+        for (int cellX = minCellX; cellX <= maxCellX; cellX++) {
+            for (int cellZ = minCellZ; cellZ <= maxCellZ; cellZ++) {
+                List<CitizenEntity> nearby = spatialIndex.cell(cellX, cellZ);
+                if (nearby == null) {
+                    continue;
                 }
-                continue;
-            }
+                for (CitizenEntity other : nearby) {
+                    if (other == citizen || other.isRemoved() || !other.getBoundingBox().intersects(searchBox)) {
+                        continue;
+                    }
+                    Vec3 offset = other.position().subtract(current);
+                    double horizontalDistanceSqr = offset.x * offset.x + offset.z * offset.z;
+                    if (horizontalDistanceSqr < 0.0001D || horizontalDistanceSqr > SEARCH_RADIUS * SEARCH_RADIUS) {
+                        continue;
+                    }
 
-            double dot = direction.dot(otherDirection);
-            localFlowDot += dot;
-            if (dot > SAME_DOT) {
-                sameNearby++;
-                continue;
-            }
-            if (dot >= OPPOSING_DOT) {
-                continue;
-            }
+                    Direction otherDirection = directionFor(other, states.get(other.getUUID()), now);
+                    if (otherDirection == null) {
+                        if (isStationaryBlocker(citizen, other, direction, offset)) {
+                            return cacheYieldDecision(states, citizen.getUUID(), direction, now, true);
+                        }
+                        continue;
+                    }
 
-            double ahead = offset.x * direction.x + offset.z * direction.z;
-            if (ahead < -0.15D || ahead > FRONT_DISTANCE) {
-                continue;
-            }
-            double lateralSqr = horizontalDistanceSqr - ahead * ahead;
-            if (lateralSqr > LANE_RADIUS * LANE_RADIUS) {
-                continue;
-            }
+                    double dot = direction.dot(otherDirection);
+                    localFlowDot += dot;
+                    if (dot > SAME_DOT) {
+                        sameNearby++;
+                        continue;
+                    }
+                    if (dot >= OPPOSING_DOT) {
+                        continue;
+                    }
 
-            opposingAhead++;
-            if (ahead < closestAhead) {
-                closestAhead = ahead;
-                closestOpposingId = other.getUUID();
+                    double ahead = offset.x * direction.x + offset.z * direction.z;
+                    if (ahead < -0.15D || ahead > FRONT_DISTANCE) {
+                        continue;
+                    }
+                    double lateralSqr = horizontalDistanceSqr - ahead * ahead;
+                    if (lateralSqr > LANE_RADIUS * LANE_RADIUS) {
+                        continue;
+                    }
+
+                    opposingAhead++;
+                    if (ahead < closestAhead) {
+                        closestAhead = ahead;
+                        closestOpposingId = other.getUUID();
+                    }
+                }
             }
         }
 
         if (opposingAhead == 0) {
-            return false;
+            return cacheYieldDecision(states, citizen.getUUID(), direction, now, false);
         }
-        if (localFlowDot <= -1.2D && opposingAhead > sameNearby) {
-            return true;
-        }
-        if (opposingAhead >= 2 && sameNearby == 0) {
-            return true;
-        }
-        return closestOpposingId != null && citizen.getUUID().compareTo(closestOpposingId) > 0;
+        boolean shouldYield = (localFlowDot <= -1.2D && opposingAhead > sameNearby)
+                || (opposingAhead >= 2 && sameNearby == 0)
+                || (closestOpposingId != null && citizen.getUUID().compareTo(closestOpposingId) > 0);
+        return cacheYieldDecision(states, citizen.getUUID(), direction, now, shouldYield);
     }
 
     static void clear(ServerLevel level, UUID citizenId) {
@@ -137,10 +177,12 @@ final class PathCrowdCoordinator {
     static void clearServerCaches(MinecraftServer server) {
         if (server == null) {
             STATES.clear();
+            SPATIAL_INDEXES.clear();
             return;
         }
         String prefix = serverKey(server) + "|";
         STATES.keySet().removeIf(key -> key.startsWith(prefix));
+        SPATIAL_INDEXES.keySet().removeIf(key -> key.startsWith(prefix));
     }
 
     private static boolean isStationaryBlocker(CitizenEntity citizen, CitizenEntity other, Direction direction, Vec3 offset) {
@@ -167,8 +209,39 @@ final class PathCrowdCoordinator {
         return new Direction(motion.x / speed, motion.z / speed);
     }
 
+    private static boolean hasSameDirection(Direction direction, CrowdMoveState state) {
+        return state != null && direction.x * state.dirX() + direction.z * state.dirZ() >= YIELD_CACHE_DIRECTION_DOT;
+    }
+
+    private static boolean hasCachedYieldDecision(Direction direction, CrowdMoveState state, long now) {
+        return hasSameDirection(direction, state)
+                && state.lastYieldCheckTick() != Long.MIN_VALUE
+                && now >= state.lastYieldCheckTick()
+                && now - state.lastYieldCheckTick() <= YIELD_CACHE_TICKS;
+    }
+
+    private static boolean cacheYieldDecision(
+            ConcurrentMap<UUID, CrowdMoveState> states,
+            UUID citizenId,
+            Direction direction,
+            long now,
+            boolean shouldYield) {
+        states.put(citizenId, new CrowdMoveState(direction.x, direction.z, now, now, shouldYield));
+        return shouldYield;
+    }
+
     private static ConcurrentMap<UUID, CrowdMoveState> states(ServerLevel level) {
         return STATES.computeIfAbsent(levelKey(level), key -> new ConcurrentHashMap<>());
+    }
+
+    private static CrowdSpatialIndex spatialIndex(ServerLevel level) {
+        CrowdSpatialIndex index = SPATIAL_INDEXES.computeIfAbsent(levelKey(level), key -> new CrowdSpatialIndex());
+        index.rebuildIfNeeded(level);
+        return index;
+    }
+
+    private static int cellCoordinate(double coordinate) {
+        return (int) Math.floor(coordinate / GRID_CELL_SIZE);
     }
 
     private static final java.util.WeakHashMap<MinecraftServer, String> SERVER_KEY_CACHE = new java.util.WeakHashMap<>();
@@ -183,7 +256,36 @@ final class PathCrowdCoordinator {
                 s.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize().toString().toLowerCase(Locale.ROOT));
     }
 
-    private record CrowdMoveState(double dirX, double dirZ, long gameTime) {
+    private record CrowdMoveState(
+            double dirX,
+            double dirZ,
+            long gameTime,
+            long lastYieldCheckTick,
+            boolean lastShouldYield) {
+    }
+
+    private static final class CrowdSpatialIndex {
+        private final Map<Long, List<CitizenEntity>> cells = new HashMap<>();
+        private long indexedGameTime = Long.MIN_VALUE;
+
+        private void rebuildIfNeeded(ServerLevel level) {
+            long gameTime = level.getGameTime();
+            if (indexedGameTime == gameTime) {
+                return;
+            }
+            cells.clear();
+            for (Entity entity : level.getAllEntities()) {
+                if (entity instanceof CitizenEntity citizen && !citizen.isRemoved()) {
+                    long cellKey = ChunkPos.asLong(cellCoordinate(citizen.getX()), cellCoordinate(citizen.getZ()));
+                    cells.computeIfAbsent(cellKey, ignored -> new ArrayList<>()).add(citizen);
+                }
+            }
+            indexedGameTime = gameTime;
+        }
+
+        private List<CitizenEntity> cell(int cellX, int cellZ) {
+            return cells.get(ChunkPos.asLong(cellX, cellZ));
+        }
     }
 
     private record Direction(double x, double z) {

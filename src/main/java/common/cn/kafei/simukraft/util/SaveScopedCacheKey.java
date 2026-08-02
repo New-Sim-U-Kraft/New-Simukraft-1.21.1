@@ -6,9 +6,13 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.storage.LevelResource;
 
 import java.nio.file.Path;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @SuppressWarnings("null")
 public final class SaveScopedCacheKey {
+    private static final ConcurrentMap<MinecraftServer, String> SERVER_KEYS = new ConcurrentHashMap<>();
+
     private SaveScopedCacheKey() {
     }
 
@@ -17,11 +21,25 @@ public final class SaveScopedCacheKey {
         if (server == null) {
             return "unknown_server";
         }
+        return SERVER_KEYS.computeIfAbsent(server, SaveScopedCacheKey::resolveServerKey);
+    }
+
+    /** resolveServerKey: 仅在服务器实例首次使用时规范化存档根目录。 */
+    private static String resolveServerKey(MinecraftServer server) {
         try {
             Path worldPath = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
             return worldPath.toString();
         } catch (RuntimeException exception) {
             return "server@" + Integer.toHexString(System.identityHashCode(server));
+        }
+    }
+
+    /** clearServerCache: 关服后释放服务器实例到存档键的强引用。 */
+    public static void clearServerCache(MinecraftServer server) {
+        if (server != null) {
+            SERVER_KEYS.remove(server);
+        } else {
+            SERVER_KEYS.clear();
         }
     }
 
