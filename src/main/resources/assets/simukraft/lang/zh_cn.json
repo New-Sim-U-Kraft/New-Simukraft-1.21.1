@@ -1,5 +1,6 @@
-﻿{
+{
     "itemGroup.simukraft":  "新：模拟大都市",
+    "itemGroup.simukraft.building_blocks":  "NSUK建筑方块",
     "block.simukraft.blue_light_block":  "NSUK-蓝色灯块",
     "block.simukraft.build_box":  "NSUK-建造盒",
     "block.simukraft.cheese_block":  "NSUK-奶酪块",
@@ -7,6 +8,7 @@
     "block.simukraft.commercial_control_box":  "NSUK-商业建筑类控制箱",
     "block.simukraft.green_light_block":  "NSUK-绿色灯块",
     "block.simukraft.industrial_control_box":  "NSUK-工业建筑类控制箱",
+    "block.simukraft.industrial_housing":  "NSUK-工业外壳",
     "block.simukraft.medical_control_box":  "NSUK-医疗建筑类控制箱",
     "block.simukraft.logistics_client_box":  "NSUK-物流客户端",
     "block.simukraft.logistics_server_box":  "NSUK-物流服务端",

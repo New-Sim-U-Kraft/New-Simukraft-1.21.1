@@ -30,6 +30,24 @@ public final class ModCreativeModeTabs {
                 output.accept(ModBlocks.LOGISTICS_SERVER_BOX.get());
                 output.accept(ModBlocks.LOGISTICS_CLIENT_BOX.get());
                 output.accept(ModBlocks.NSUK_FARMLAND_BOX.get());
+                // 杂项
+                output.accept(ModBlocks.CHEESE_BLOCK.get());
+                output.accept(ModItems.MANIFEST.get());
+                output.accept(ModItems.GOLD_COIN.get());
+                output.accept(ModItems.HAMBURGER.get());
+                output.accept(ModItems.FRENCH_FRIES.get());
+                output.accept(ModItems.CHEESE_CHUNK.get());
+                output.accept(ModItems.CHEESE_BURGER.get());
+            })
+            .build());
+
+    // NSUK建筑方块标签页 - 专门存放装饰与建筑类方块
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> BUILDING_BLOCKS_TAB = CREATIVE_MODE_TABS.register("building_blocks_tab", () -> CreativeModeTab.builder()
+            .title(Component.translatable("itemGroup.simukraft.building_blocks"))
+            .icon(() -> new ItemStack(ModBlocks.RED_LIGHT_BLOCK.get()))
+            .displayItems((parameters, output) -> {
+                // 工业外壳
+                output.accept(ModBlocks.INDUSTRIAL_HOUSING.get());
                 // 发光方块（彩虹顺序）
                 output.accept(ModBlocks.RED_LIGHT_BLOCK.get());
                 output.accept(ModBlocks.ORANGE_LIGHT_BLOCK.get());
@@ -39,14 +57,6 @@ public final class ModCreativeModeTabs {
                 output.accept(ModBlocks.PURPLE_LIGHT_BLOCK.get());
                 output.accept(ModBlocks.WHITE_LIGHT_BLOCK.get());
                 output.accept(ModBlocks.RAINBOW_LIGHT_BLOCK.get());
-                // 杂项
-                output.accept(ModBlocks.CHEESE_BLOCK.get());
-                output.accept(ModItems.MANIFEST.get());
-                output.accept(ModItems.GOLD_COIN.get());
-                output.accept(ModItems.HAMBURGER.get());
-                output.accept(ModItems.FRENCH_FRIES.get());
-                output.accept(ModItems.CHEESE_CHUNK.get());
-                output.accept(ModItems.CHEESE_BURGER.get());
             })
             .build());
 
