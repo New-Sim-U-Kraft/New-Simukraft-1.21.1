@@ -20,7 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 final class PlannerNetworkValidation {
     private static final int MAX_HORIZONTAL_DISTANCE_FROM_BOX = 96;
     private static final int MAX_VERTICAL_DISTANCE_FROM_BOX = 64;

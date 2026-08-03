@@ -6,7 +6,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.List;
 import java.util.Map;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 final class IndustrialMachineOutputMatcher {
     private IndustrialMachineOutputMatcher() {
     }

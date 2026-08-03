@@ -23,7 +23,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.Map;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @OnlyIn(Dist.CLIENT)
 public final class PlannerOperationScreenOpener {
     private static final int BUTTON_WIDTH = 150;

@@ -14,7 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class SimuSqliteDatabase implements Closeable {
     private static final String STORAGE_DIR = SimuKraft.MOD_ID;
     private static final String DATABASE_FILE = SimuKraft.MOD_ID + ".sqlite";

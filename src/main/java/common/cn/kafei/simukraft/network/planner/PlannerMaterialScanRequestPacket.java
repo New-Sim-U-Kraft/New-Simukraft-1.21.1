@@ -26,7 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record PlannerMaterialScanRequestPacket(BlockPos buildBoxPos,
                                                BlockPos min,
                                                BlockPos max,

@@ -23,7 +23,7 @@ import net.minecraft.server.level.ServerLevel;
 
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record CitizenInfoResponsePacket(UUID citizenId, String name, String gender, int age, int lifespan,
                                         double health, double hunger, int armor, boolean sick, boolean child,
                                         String workStatus, String statusLabel, String jobType, String jobId, String jobName, String cityName, String homeName,

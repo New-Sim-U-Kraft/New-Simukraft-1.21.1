@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class IndustrialInventoryService {
     private IndustrialInventoryService() {
     }

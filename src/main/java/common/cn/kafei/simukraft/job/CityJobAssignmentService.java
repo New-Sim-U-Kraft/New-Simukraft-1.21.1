@@ -18,7 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CityJobAssignmentService {
     // 职位占用统计按存档+城市缓存，分配/解雇后通过 invalidate 重建。
     private static final ConcurrentMap<AssignmentCacheKey, AssignmentIndex> INDICES = new ConcurrentHashMap<>();

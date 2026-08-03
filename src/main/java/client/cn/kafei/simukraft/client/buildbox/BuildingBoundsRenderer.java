@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @OnlyIn(Dist.CLIENT)
 public final class BuildingBoundsRenderer {
     private static final int COLOR_CITY_BORDER = 0x553C66FF;

@@ -11,7 +11,7 @@ import net.minecraft.world.phys.AABB;
 
 import java.util.Optional;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class IndustrialEntitySpawnService {
     private static final int SPAWN_ATTEMPTS = 24;
 

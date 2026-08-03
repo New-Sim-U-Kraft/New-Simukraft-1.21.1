@@ -42,7 +42,7 @@ import java.util.OptionalDouble;
  * <p>{@link #build} is a convenience wrapper that calls both phases on the current thread and is
  * retained for the debug-path code path.
  */
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 final class PathSnapshotBuilder {
     private static final int HORIZONTAL_PADDING = 12;
     private static final int VERTICAL_PADDING = 8;

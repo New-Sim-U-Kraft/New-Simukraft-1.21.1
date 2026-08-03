@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @OnlyIn(Dist.CLIENT)
 public final class NpcPathDebugRenderer {
     private static final Map<UUID, DebugPath> PATHS = new ConcurrentHashMap<>();

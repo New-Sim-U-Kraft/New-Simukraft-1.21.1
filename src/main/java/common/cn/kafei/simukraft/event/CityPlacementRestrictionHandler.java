@@ -36,7 +36,7 @@ import net.neoforged.neoforge.event.level.BlockEvent;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CityPlacementRestrictionHandler {
     private CityPlacementRestrictionHandler() {
     }

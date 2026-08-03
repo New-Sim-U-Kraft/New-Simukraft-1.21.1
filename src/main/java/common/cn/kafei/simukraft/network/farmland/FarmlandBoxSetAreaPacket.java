@@ -18,7 +18,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record FarmlandBoxSetAreaPacket(BlockPos pos, BlockPos min, BlockPos max) implements CustomPacketPayload {
     public static final Type<FarmlandBoxSetAreaPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "farmland_box_set_area"));
     public static final StreamCodec<RegistryFriendlyByteBuf, FarmlandBoxSetAreaPacket> STREAM_CODEC = StreamCodec.of(FarmlandBoxSetAreaPacket::encode, FarmlandBoxSetAreaPacket::decode);

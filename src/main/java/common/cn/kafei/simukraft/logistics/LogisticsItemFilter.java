@@ -6,7 +6,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.world.item.ItemStack;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record LogisticsItemFilter(String itemId, String stackTag) {
     public LogisticsItemFilter {
         itemId = itemId != null ? itemId.trim() : "";

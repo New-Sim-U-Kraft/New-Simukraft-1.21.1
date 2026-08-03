@@ -10,7 +10,7 @@ import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 class CitizenDataTest {
     @Test
     void deadWorkStatusClearsHomeOnLoad() {

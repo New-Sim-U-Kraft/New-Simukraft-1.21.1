@@ -14,7 +14,7 @@ import net.minecraft.util.RandomSource;
 
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class NpcPregnancyService {
     private NpcPregnancyService() {
     }

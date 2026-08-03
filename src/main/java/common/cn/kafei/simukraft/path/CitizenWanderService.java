@@ -21,7 +21,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CitizenWanderService {
     private static final int AUTO_SCAN_INTERVAL_TICKS = 200;
     private static final int AUTO_MAX_REQUESTS_PER_SCAN = 3;

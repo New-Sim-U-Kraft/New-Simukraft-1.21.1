@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
  * 周期性整表 saveToSqlite 由服务端 tick/关服流程调用。
  */
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class FarmlandBoxManager extends SavedData {
     private static final ExecutorService IO_EXECUTOR = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "simukraft-farmland-io"); t.setDaemon(true); return t; });
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_farmland_boxes";

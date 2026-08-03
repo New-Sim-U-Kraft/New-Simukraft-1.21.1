@@ -26,7 +26,7 @@ import net.neoforged.neoforge.common.SoundActions;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class IndustrialBlockActionService {
     private IndustrialBlockActionService() {
     }

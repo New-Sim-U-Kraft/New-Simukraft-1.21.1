@@ -27,7 +27,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CitizenEmploymentService {
     private CitizenEmploymentService() {
     }

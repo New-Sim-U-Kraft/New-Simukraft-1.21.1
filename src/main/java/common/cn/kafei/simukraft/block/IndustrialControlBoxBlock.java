@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.BlockHitResult;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class IndustrialControlBoxBlock extends Block {
     public IndustrialControlBoxBlock() {
         super(BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(0.8F).sound(SoundType.METAL));

@@ -7,7 +7,7 @@ import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.util.Mth;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @OnlyIn(Dist.CLIENT)
 public final class CitizenAnimationActions {
     private CitizenAnimationActions() {

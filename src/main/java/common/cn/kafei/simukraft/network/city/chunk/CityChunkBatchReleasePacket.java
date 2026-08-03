@@ -23,7 +23,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record CityChunkBatchReleasePacket(BlockPos pos, List<ChunkEntry> chunks) implements CustomPacketPayload {
     private static final int MAX_CHUNKS = 256;
     public static final Type<CityChunkBatchReleasePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_chunk_batch_release"));

@@ -8,7 +8,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CityCoreAccessValidator {
     private static final double CITY_CORE_ACCESS_DISTANCE = 8.0D;
 

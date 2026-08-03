@@ -7,7 +7,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 final class FarmlandWorkGeometry {
     static final double ACTION_REACH = 2.4D;
     private static final int WATER_STRIDE = 4;

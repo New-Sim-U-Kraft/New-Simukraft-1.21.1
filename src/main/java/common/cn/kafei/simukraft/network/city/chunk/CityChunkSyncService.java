@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CityChunkSyncService {
     private CityChunkSyncService() {
     }

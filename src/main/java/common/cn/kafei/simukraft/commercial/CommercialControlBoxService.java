@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CommercialControlBoxService {
     private CommercialControlBoxService() {
     }

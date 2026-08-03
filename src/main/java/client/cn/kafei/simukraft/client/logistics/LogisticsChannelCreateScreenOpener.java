@@ -19,7 +19,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @OnlyIn(Dist.CLIENT)
 public final class LogisticsChannelCreateScreenOpener {
     private LogisticsChannelCreateScreenOpener() {

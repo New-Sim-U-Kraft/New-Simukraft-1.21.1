@@ -33,7 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record CreatePlanningTaskPacket(BlockPos buildBoxPos,
                                        BlockPos min,
                                        BlockPos max,

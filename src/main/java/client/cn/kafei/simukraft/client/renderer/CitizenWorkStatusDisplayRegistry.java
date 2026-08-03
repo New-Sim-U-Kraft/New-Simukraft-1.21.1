@@ -21,7 +21,7 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @OnlyIn(Dist.CLIENT)
 public final class CitizenWorkStatusDisplayRegistry {
     public static final int PRIORITY_LIFE_STATE = 1100;

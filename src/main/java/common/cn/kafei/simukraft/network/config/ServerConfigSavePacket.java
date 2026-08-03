@@ -15,7 +15,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record ServerConfigSavePacket(
         double cityChunkPrice,
         boolean blacklistProtection,

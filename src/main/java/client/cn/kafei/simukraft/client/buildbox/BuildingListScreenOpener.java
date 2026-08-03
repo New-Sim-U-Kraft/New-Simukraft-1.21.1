@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @EventBusSubscriber(value = Dist.CLIENT)
 @OnlyIn(Dist.CLIENT)
 public final class BuildingListScreenOpener {

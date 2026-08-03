@@ -9,7 +9,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record WorkMaterialRequest(ItemStack displayStack, Set<Item> acceptedItems, Predicate<ItemStack> matcher) {
     public static final WorkMaterialRequest EMPTY = new WorkMaterialRequest(ItemStack.EMPTY, Set.of(), ItemStack::isEmpty);
 

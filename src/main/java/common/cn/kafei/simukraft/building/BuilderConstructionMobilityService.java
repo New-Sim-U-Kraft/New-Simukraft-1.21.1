@@ -9,7 +9,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class BuilderConstructionMobilityService {
     private static final double READY_DISTANCE_SQR = 9.0D;
 

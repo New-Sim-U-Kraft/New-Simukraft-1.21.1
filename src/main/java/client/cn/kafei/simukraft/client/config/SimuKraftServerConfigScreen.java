@@ -15,7 +15,7 @@ import net.minecraft.network.chat.Component;
 
 import java.util.List;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class SimuKraftServerConfigScreen {
     private static final int WINDOW_WIDTH = 600;
     private static final int MIN_WINDOW_WIDTH = 360;

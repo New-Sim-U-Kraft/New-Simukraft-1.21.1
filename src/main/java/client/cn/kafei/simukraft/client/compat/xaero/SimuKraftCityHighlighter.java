@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @OnlyIn(Dist.CLIENT)
 public final class SimuKraftCityHighlighter extends ChunkHighlighter {
     private static final int[] CITY_COLORS = {

@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record CommercialTradeOpenResponsePacket(BlockPos boxPos,
                                                 UUID workerId,
                                                 String shopName,

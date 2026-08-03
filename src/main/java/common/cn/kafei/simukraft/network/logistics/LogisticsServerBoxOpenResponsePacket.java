@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record LogisticsServerBoxOpenResponsePacket(BlockPos boxPos,
                                                    boolean hasCity,
                                                    UUID cityId,

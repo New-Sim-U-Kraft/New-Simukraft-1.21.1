@@ -16,7 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class PlacedBuildingService {
     // 已完成建筑属于存档数据，缓存键必须包含存档和维度。
     private static final ConcurrentMap<String, List<PlacedBuildingRecord>> BY_DIMENSION = new ConcurrentHashMap<>();

@@ -70,7 +70,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @OnlyIn(Dist.CLIENT)
 public final class CityCoreScreenOpener {
     private static final int BUTTON_WIDTH = 120;

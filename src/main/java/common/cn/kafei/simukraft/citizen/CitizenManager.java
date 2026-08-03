@@ -23,7 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CitizenManager extends SavedData {
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_citizens";
     private static final String INVENTORY_BACKUPS_TAG = "CitizenInventories";

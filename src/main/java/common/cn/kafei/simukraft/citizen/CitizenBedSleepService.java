@@ -15,7 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CitizenBedSleepService {
     // levelKey → bedHeadPos → citizenUUID
     private static final ConcurrentMap<String, ConcurrentMap<BlockPos, UUID>> OCCUPIED_BEDS = new ConcurrentHashMap<>();

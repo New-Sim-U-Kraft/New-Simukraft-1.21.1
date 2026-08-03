@@ -9,7 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class IndustrialBoxSqliteRepository {
     private final SimuSqliteDatabase database;
 

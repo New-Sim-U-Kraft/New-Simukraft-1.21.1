@@ -44,7 +44,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class ManifestItem extends Item {
     private static final String TAG_MATERIALS = "Materials";
     private static final String TAG_CHECKED = "Checked";

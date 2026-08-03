@@ -22,7 +22,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record NpcHireListRequestPacket(BlockPos sourcePos, String sourceType, String role) implements CustomPacketPayload {
     public static final Type<NpcHireListRequestPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "npc_hire_list_request"));
     public static final StreamCodec<RegistryFriendlyByteBuf, NpcHireListRequestPacket> STREAM_CODEC = StreamCodec.of(NpcHireListRequestPacket::encode, NpcHireListRequestPacket::decode);

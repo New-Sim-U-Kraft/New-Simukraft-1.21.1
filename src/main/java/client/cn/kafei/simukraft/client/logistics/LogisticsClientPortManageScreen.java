@@ -15,7 +15,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @OnlyIn(Dist.CLIENT)
 final class LogisticsClientPortManageScreen extends Screen {
     private final LogisticsClientBoxOpenResponsePacket packet;

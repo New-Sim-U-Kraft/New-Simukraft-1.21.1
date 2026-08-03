@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CityPoiManager extends SavedData {
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_city_pois";
     private static final Factory<CityPoiManager> FACTORY = new Factory<>(CityPoiManager::new, CityPoiManager::load, null);

@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class ResidentialControlBoxService {
     private ResidentialControlBoxService() {
     }

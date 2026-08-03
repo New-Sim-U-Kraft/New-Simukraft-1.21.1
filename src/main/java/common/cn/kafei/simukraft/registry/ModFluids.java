@@ -11,7 +11,7 @@ import net.neoforged.neoforge.fluids.BaseFlowingFluid;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class ModFluids {
     public static final DeferredRegister<Fluid> FLUIDS = DeferredRegister.create(BuiltInRegistries.FLUID, SimuKraft.MOD_ID);
 

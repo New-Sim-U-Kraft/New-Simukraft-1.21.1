@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class EconomyService {
     private EconomyService() {
     }

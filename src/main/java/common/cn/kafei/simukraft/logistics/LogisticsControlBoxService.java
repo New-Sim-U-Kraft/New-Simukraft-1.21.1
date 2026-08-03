@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class LogisticsControlBoxService {
     private LogisticsControlBoxService() {
     }

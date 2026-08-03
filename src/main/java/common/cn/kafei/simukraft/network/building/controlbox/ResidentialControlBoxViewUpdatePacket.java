@@ -9,7 +9,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record ResidentialControlBoxViewUpdatePacket(ResidentialControlBoxOpenResponsePacket view) implements CustomPacketPayload {
     public static final Type<ResidentialControlBoxViewUpdatePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "residential_control_box_view_update"));
     public static final StreamCodec<RegistryFriendlyByteBuf, ResidentialControlBoxViewUpdatePacket> STREAM_CODEC = StreamCodec.of(ResidentialControlBoxViewUpdatePacket::encode, ResidentialControlBoxViewUpdatePacket::decode);

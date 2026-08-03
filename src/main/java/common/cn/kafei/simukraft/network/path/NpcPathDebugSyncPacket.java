@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record NpcPathDebugSyncPacket(UUID citizenId, boolean success, String reason, String status, List<PathPoint> points) implements CustomPacketPayload {
     public static final Type<NpcPathDebugSyncPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "npc_path_debug_sync"));
     public static final StreamCodec<RegistryFriendlyByteBuf, NpcPathDebugSyncPacket> STREAM_CODEC = StreamCodec.of(NpcPathDebugSyncPacket::encode, NpcPathDebugSyncPacket::decode);

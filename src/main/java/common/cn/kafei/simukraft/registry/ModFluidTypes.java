@@ -9,7 +9,7 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class ModFluidTypes {
     public static final DeferredRegister<FluidType> FLUID_TYPES = DeferredRegister.create(NeoForgeRegistries.Keys.FLUID_TYPES, SimuKraft.MOD_ID);
 

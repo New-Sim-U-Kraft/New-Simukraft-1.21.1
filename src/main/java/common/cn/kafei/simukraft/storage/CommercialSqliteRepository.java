@@ -12,7 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CommercialSqliteRepository {
     private final SimuSqliteDatabase database;
 

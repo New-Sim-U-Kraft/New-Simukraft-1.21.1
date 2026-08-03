@@ -21,7 +21,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
  * 复用 BuildingBoundsRenderer 渲染；离开视线或打开界面时清除。设置界面期间(有屏幕)不参与，避免和候选区域冲突。
  */
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @EventBusSubscriber(value = Dist.CLIENT)
 @OnlyIn(Dist.CLIENT)
 public final class FarmlandHoverPreview {

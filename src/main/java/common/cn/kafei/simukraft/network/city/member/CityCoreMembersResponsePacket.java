@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record CityCoreMembersResponsePacket(BlockPos pos, UUID cityId, String cityName, double funds, int cityLevel, List<MemberEntry> members, List<CandidateEntry> onlineCandidates, CityPermissionLevel viewerPermission, boolean canManageCity) implements CustomPacketPayload {
     public static final Type<CityCoreMembersResponsePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_core_members_response"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CityCoreMembersResponsePacket> STREAM_CODEC = StreamCodec.of(CityCoreMembersResponsePacket::encode, CityCoreMembersResponsePacket::decode);

@@ -5,7 +5,7 @@ import net.minecraft.nbt.CompoundTag;
 
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record CityPoiData(UUID poiId, UUID cityId, BlockPos pos, CityPoiType type, int capacity, boolean active, UUID unitId) {
     public CompoundTag toTag() {
         CompoundTag tag = new CompoundTag();

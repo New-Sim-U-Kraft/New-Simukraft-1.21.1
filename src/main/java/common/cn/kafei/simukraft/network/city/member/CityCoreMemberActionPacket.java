@@ -30,7 +30,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record CityCoreMemberActionPacket(BlockPos pos, Action action, UUID targetId, String targetName, CityPermissionLevel permissionLevel) implements CustomPacketPayload {
     public static final Type<CityCoreMemberActionPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_core_member_action"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CityCoreMemberActionPacket> STREAM_CODEC = StreamCodec.of(CityCoreMemberActionPacket::encode, CityCoreMemberActionPacket::decode);

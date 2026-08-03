@@ -27,7 +27,7 @@ import org.joml.Matrix4f;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @OnlyIn(Dist.CLIENT)
 final class LogisticsNetworkMapScreen extends Screen {
     private static final int MARKER_SIZE = 5;

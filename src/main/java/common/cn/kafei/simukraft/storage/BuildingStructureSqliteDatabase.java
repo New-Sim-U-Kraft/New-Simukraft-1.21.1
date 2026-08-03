@@ -13,7 +13,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class BuildingStructureSqliteDatabase implements Closeable {
     private static final String STORAGE_DIR = SimuKraft.MOD_ID;
     private static final String DATABASE_FILE = SimuKraft.MOD_ID + "_buildings.sqlite";

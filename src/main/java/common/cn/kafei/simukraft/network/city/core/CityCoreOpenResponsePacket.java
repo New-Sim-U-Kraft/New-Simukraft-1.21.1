@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record CityCoreOpenResponsePacket(BlockPos pos, boolean hasCity, UUID cityId, String cityName, double funds, int cityLevel, int memberCount, int cityPopulation, int housingCapacity, CityPermissionLevel permissionLevel, boolean canCreateCity, boolean canManageCity, List<FinanceEntry> financeEntries, List<PoiStat> poiStats, List<JobStat> jobStats) implements CustomPacketPayload {
     public static final Type<CityCoreOpenResponsePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_core_open_response"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CityCoreOpenResponsePacket> STREAM_CODEC = StreamCodec.of(CityCoreOpenResponsePacket::encode, CityCoreOpenResponsePacket::decode);

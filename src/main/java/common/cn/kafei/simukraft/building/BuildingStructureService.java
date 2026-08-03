@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class BuildingStructureService {
     private static final Map<String, String> LEGACY_BLOCK_REMAPS = Map.of(
             "minecraft:grass", "minecraft:short_grass"

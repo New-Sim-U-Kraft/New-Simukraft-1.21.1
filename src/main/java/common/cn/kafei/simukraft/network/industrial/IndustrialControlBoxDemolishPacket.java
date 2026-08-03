@@ -19,7 +19,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record IndustrialControlBoxDemolishPacket(BlockPos pos) implements CustomPacketPayload {
     public static final Type<IndustrialControlBoxDemolishPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "industrial_control_box_demolish"));
     public static final StreamCodec<RegistryFriendlyByteBuf, IndustrialControlBoxDemolishPacket> STREAM_CODEC = StreamCodec.of(IndustrialControlBoxDemolishPacket::encode, IndustrialControlBoxDemolishPacket::decode);

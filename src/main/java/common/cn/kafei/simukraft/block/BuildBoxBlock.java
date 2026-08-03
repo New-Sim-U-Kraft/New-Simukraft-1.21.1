@@ -17,7 +17,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.BlockHitResult;
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public class BuildBoxBlock extends Block {
     public BuildBoxBlock() {
         super(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(0.8F).sound(SoundType.WOOD));

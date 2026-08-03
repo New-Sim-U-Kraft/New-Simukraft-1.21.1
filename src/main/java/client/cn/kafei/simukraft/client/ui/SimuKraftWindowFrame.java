@@ -13,7 +13,7 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @OnlyIn(Dist.CLIENT)
 public final class SimuKraftWindowFrame {
     private static final int TITLE_BAR_HEIGHT = 24;

@@ -18,7 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class IndustrialMachineOperationService {
     private static final String DEFAULT_INPUT_CONTAINER = "input";
     private static final String DEFAULT_OUTPUT_CONTAINER = "output";

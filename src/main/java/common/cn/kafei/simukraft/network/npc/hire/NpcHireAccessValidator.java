@@ -26,7 +26,7 @@ import javax.annotation.Nullable;
 import java.util.Locale;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 final class NpcHireAccessValidator {
     private static final String BUILD_BOX_SOURCE_TYPE = "build_box";
     private static final String BUILDER_ROLE = "builder";

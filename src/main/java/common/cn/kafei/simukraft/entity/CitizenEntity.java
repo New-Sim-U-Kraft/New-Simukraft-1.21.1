@@ -45,7 +45,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public class CitizenEntity extends PathfinderMob {
     // DEFAULT_HUNGER：NPC 饱食度只写入实体 NBT，缺少旧标签时使用满值初始化。
     public static final double DEFAULT_HUNGER = 20.0D;

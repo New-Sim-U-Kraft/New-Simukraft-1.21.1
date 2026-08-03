@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CommercialStockManager extends SavedData {
     private static final ExecutorService IO_EXECUTOR = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "simukraft-commercial-stock-io"); t.setDaemon(true); return t; });
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_commercial_stock";

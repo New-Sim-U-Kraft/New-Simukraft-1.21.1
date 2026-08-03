@@ -10,7 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 final class IndustrialItemSpecJsonParser {
     private IndustrialItemSpecJsonParser() {
     }

@@ -5,7 +5,7 @@ import net.minecraft.nbt.CompoundTag;
 import java.util.Objects;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CityMemberData {
     private final UUID playerId;
     private String playerName;

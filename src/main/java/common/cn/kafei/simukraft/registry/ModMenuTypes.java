@@ -12,7 +12,7 @@ import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class ModMenuTypes {
     public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(BuiltInRegistries.MENU, SimuKraft.MOD_ID);
 

@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class WorkMaterialPolicy {
     private static final ConcurrentMap<String, WorkMaterialRequest> REQUEST_CACHE = new ConcurrentHashMap<>();
     private static volatile ConfigSnapshot cachedSnapshot = null;

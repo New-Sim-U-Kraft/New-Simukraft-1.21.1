@@ -7,7 +7,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.List;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record CommercialOffer(String id,
                               CommercialVisibility visibleTo,
                               List<CommercialResource> cost,

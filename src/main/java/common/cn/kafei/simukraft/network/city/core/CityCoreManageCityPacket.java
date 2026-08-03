@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public record CityCoreManageCityPacket(BlockPos pos, Action action, String value) implements CustomPacketPayload {
     public static final Type<CityCoreManageCityPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_core_manage_city"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CityCoreManageCityPacket> STREAM_CODEC = StreamCodec.of(CityCoreManageCityPacket::encode, CityCoreManageCityPacket::decode);

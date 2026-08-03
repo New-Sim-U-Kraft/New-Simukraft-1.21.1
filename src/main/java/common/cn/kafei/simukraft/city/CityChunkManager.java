@@ -16,7 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class CityChunkManager extends SavedData {
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_city_chunks";
     private static final Factory<CityChunkManager> FACTORY = new Factory<>(CityChunkManager::new, CityChunkManager::load, null);

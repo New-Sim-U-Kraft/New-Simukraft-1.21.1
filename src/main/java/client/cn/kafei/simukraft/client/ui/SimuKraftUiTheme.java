@@ -13,7 +13,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 @OnlyIn(Dist.CLIENT)
 public final class SimuKraftUiTheme {
     public static final ResourceLocation DEFAULT_STYLESHEET = StylesheetManager.ORE;

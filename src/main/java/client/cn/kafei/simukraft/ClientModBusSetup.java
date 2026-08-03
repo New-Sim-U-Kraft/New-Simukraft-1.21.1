@@ -35,7 +35,7 @@ import net.neoforged.neoforge.common.NeoForge;
 /**
  * ClientModBusSetup: 客户端 MOD 总线初始化入口，避免 common 主类直接引用客户端类。
  */
-@SuppressWarnings({"removal", "null"})
+@SuppressWarnings({"removal", "Null"})
 @OnlyIn(Dist.CLIENT)
 @EventBusSubscriber(modid = SimuKraft.MOD_ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
 public final class ClientModBusSetup {

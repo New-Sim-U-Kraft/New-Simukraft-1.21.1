@@ -35,7 +35,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class ResidentialRentService {
     private static final long TICKS_PER_DAY = 24_000L;
     private static final ConcurrentMap<String, Long> LAST_COLLECTED_RENT_DAY = new ConcurrentHashMap<>();

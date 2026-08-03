@@ -15,7 +15,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public final class BuildingBlockPlacementService {
     private BuildingBlockPlacementService() {
     }

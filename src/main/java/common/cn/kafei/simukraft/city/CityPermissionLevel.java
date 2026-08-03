@@ -4,7 +4,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import io.netty.buffer.ByteBuf;
 
-@SuppressWarnings("null")
+@SuppressWarnings("Null")
 public enum CityPermissionLevel {
     CITIZEN(0),
     OFFICIAL(1),

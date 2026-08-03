@@ -9,7 +9,7 @@ import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.Vec3;
 
-@SuppressWarnings({"unchecked", "null","deprecation"})
+@SuppressWarnings({"unchecked", "Null","deprecation"})
 public final class BuildingTransform {
     private BuildingTransform() {
     }
