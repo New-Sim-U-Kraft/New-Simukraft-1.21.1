@@ -1,6 +1,8 @@
 {
   "replace": false,
   "values": [
-    "simukraft:industrial_housing"
+    "simukraft:industrial_housing",
+    "simukraft:industrial_housing_stairs",
+    "simukraft:industrial_housing_slab"
   ]
 }

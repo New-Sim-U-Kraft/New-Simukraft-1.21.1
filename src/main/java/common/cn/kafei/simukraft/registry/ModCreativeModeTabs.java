@@ -51,6 +51,8 @@ public final class ModCreativeModeTabs {
             .displayItems((parameters, output) -> {
                 // 工业外壳
                 output.accept(ModBlocks.INDUSTRIAL_HOUSING.get());
+                output.accept(ModBlocks.INDUSTRIAL_HOUSING_STAIRS.get());
+                output.accept(ModBlocks.INDUSTRIAL_HOUSING_SLAB.get());
                 // 发光方块（彩虹顺序）
                 output.accept(ModBlocks.RED_LIGHT_BLOCK.get());
                 output.accept(ModBlocks.ORANGE_LIGHT_BLOCK.get());

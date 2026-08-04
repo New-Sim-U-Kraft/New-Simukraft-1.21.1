@@ -9,6 +9,8 @@
     "block.simukraft.green_light_block":  "NSUK-绿色灯块",
     "block.simukraft.industrial_control_box":  "NSUK-工业建筑类控制箱",
     "block.simukraft.industrial_housing":  "NSUK-工业外壳",
+    "block.simukraft.industrial_housing_stairs":  "NSUK-工业外壳楼梯",
+    "block.simukraft.industrial_housing_slab":  "NSUK-工业外壳台阶",
     "block.simukraft.medical_control_box":  "NSUK-医疗建筑类控制箱",
     "block.simukraft.logistics_client_box":  "NSUK-物流客户端",
     "block.simukraft.logistics_server_box":  "NSUK-物流服务端",

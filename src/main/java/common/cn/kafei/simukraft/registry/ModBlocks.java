@@ -15,7 +15,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.bus.api.IEventBus;
@@ -37,6 +39,8 @@ public final class ModBlocks {
     public static final DeferredBlock<Block> GREEN_LIGHT_BLOCK = registerBlock("green_light_block", ModBlocks::lightBlock);
     public static final DeferredBlock<Block> INDUSTRIAL_CONTROL_BOX = registerBlock("industrial_control_box", IndustrialControlBoxBlock::new);
     public static final DeferredBlock<Block> INDUSTRIAL_HOUSING = registerBlock("industrial_housing", ModBlocks::industrialHousing);
+    public static final DeferredBlock<Block> INDUSTRIAL_HOUSING_SLAB = registerBlock("industrial_housing_slab", ModBlocks::industrialHousingSlab);
+    public static final DeferredBlock<Block> INDUSTRIAL_HOUSING_STAIRS = registerBlock("industrial_housing_stairs", ModBlocks::industrialHousingStairs);
     public static final DeferredBlock<Block> LOGISTICS_CLIENT_BOX = registerBlock("logistics_client_box", LogisticsClientBoxBlock::new);
     public static final DeferredBlock<Block> LOGISTICS_SERVER_BOX = registerBlock("logistics_server_box", LogisticsServerBoxBlock::new);
     public static final DeferredBlock<Block> MEDICAL_CONTROL_BOX = registerBlock("medical_control_box", MedicalControlBoxBlock::new);
@@ -69,10 +73,25 @@ public final class ModBlocks {
         return new Block(BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(0.8F).sound(SoundType.METAL));
     }
 
-    // 工业外壳：完全继承铁块参数
+    /** industrialHousingProperties: 创建工业外壳系列的共用方块属性。 */
     @SuppressWarnings("deprecation")
+    private static BlockBehaviour.Properties industrialHousingProperties() {
+        return BlockBehaviour.Properties.ofLegacyCopy(Blocks.IRON_BLOCK);
+    }
+
+    // 工业外壳：完全继承铁块参数
     private static Block industrialHousing() {
-        return new Block(BlockBehaviour.Properties.ofLegacyCopy(Blocks.IRON_BLOCK));
+        return new Block(industrialHousingProperties());
+    }
+
+    /** industrialHousingSlab: 创建与工业外壳属性一致的台阶。 */
+    private static Block industrialHousingSlab() {
+        return new SlabBlock(industrialHousingProperties());
+    }
+
+    /** industrialHousingStairs: 创建与工业外壳属性一致的楼梯。 */
+    private static Block industrialHousingStairs() {
+        return new StairBlock(Blocks.IRON_BLOCK.defaultBlockState(), industrialHousingProperties());
     }
 
     private static Block lightBlock() {

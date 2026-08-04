@@ -1,0 +1,34 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "simukraft:industrial_housing_slab"
+        }
+      ],
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "functions": [
+        {
+          "function": "minecraft:set_count",
+          "count": 2.0,
+          "conditions": [
+            {
+              "condition": "minecraft:block_state_property",
+              "block": "simukraft:industrial_housing_slab",
+              "properties": {
+                "type": "double"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

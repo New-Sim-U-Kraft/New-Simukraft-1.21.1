@@ -1,0 +1,15 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "simukraft:block/industrial_housing_slab"
+    },
+    "type=double": {
+      "model": "simukraft:block/industrial_housing"
+    },
+    "type=top": {
+      "model": "simukraft:block/industrial_housing_slab",
+      "x": 180,
+      "uvlock": true
+    }
+  }
+}
