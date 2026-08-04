@@ -21,6 +21,7 @@ import client.cn.kafei.simukraft.client.logistics.LogisticsServerBoxScreenOpener
 import client.cn.kafei.simukraft.client.medical.MedicalControlBoxScreenOpener;
 import client.cn.kafei.simukraft.client.path.NpcPathDebugRenderer;
 import client.cn.kafei.simukraft.client.toast.ClientInfoToast;
+import client.cn.kafei.simukraft.client.geology.GeologicalSurveyHintOverlay;
 import common.cn.kafei.simukraft.network.building.BuildingCacheReloadPacket;
 import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxBoundsUpdatePacket;
 import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxOpenResponsePacket;
@@ -35,6 +36,7 @@ import common.cn.kafei.simukraft.network.commercial.CommercialControlBoxOpenResp
 import common.cn.kafei.simukraft.network.commercial.CommercialTradeOpenResponsePacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxBoundsResponsePacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.geology.GeologicalSurveyHintPacket;
 import common.cn.kafei.simukraft.network.hud.HudSyncPacket;
 import common.cn.kafei.simukraft.network.industrial.IndustrialControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.industrial.IndustrialControlBoxViewUpdatePacket;
@@ -208,5 +210,11 @@ public final class ClientboundNetworkHandlerImpl implements ClientboundNetworkHa
     @Override
     public void handleInfoToast(InfoToastPacket packet) {
         ClientInfoToast.show(packet.title(), packet.message(), packet.style(), packet.iconStack());
+    }
+
+    /** handleGeologicalSurveyHint: 显示地质锤准星提示。 */
+    @Override
+    public void handleGeologicalSurveyHint(GeologicalSurveyHintPacket packet) {
+        GeologicalSurveyHintOverlay.show(packet.message());
     }
 }

@@ -38,6 +38,9 @@ public final class ModCreativeModeTabs {
                 output.accept(ModItems.FRENCH_FRIES.get());
                 output.accept(ModItems.CHEESE_CHUNK.get());
                 output.accept(ModItems.CHEESE_BURGER.get());
+                // 矿物钻井用具
+                output.accept(ModItems.GEOLOGICAL_HAMMER.get());
+                output.accept(ModItems.DRILL_ROD_SEGMENT.get());
             })
             .build());
 

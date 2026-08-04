@@ -72,13 +72,14 @@ import common.cn.kafei.simukraft.network.config.ServerConfigSavePacket;
 import common.cn.kafei.simukraft.network.path.NpcPathDebugRequestPacket;
 import common.cn.kafei.simukraft.network.path.NpcPathDebugSyncPacket;
 import common.cn.kafei.simukraft.network.toast.InfoToastPacket;
+import common.cn.kafei.simukraft.network.geology.GeologicalSurveyHintPacket;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 @SuppressWarnings("Null")
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "23";
+    private static final String NETWORK_VERSION = "24";
 
     private ModNetwork() {
     }
@@ -158,5 +159,6 @@ public final class ModNetwork {
         registrar.playToClient(PlannerMaterialScanResponsePacket.TYPE, PlannerMaterialScanResponsePacket.STREAM_CODEC, PlannerMaterialScanResponsePacket::handle);
         registrar.playToClient(NpcPathDebugSyncPacket.TYPE, NpcPathDebugSyncPacket.STREAM_CODEC, NpcPathDebugSyncPacket::handle);
         registrar.playToClient(InfoToastPacket.TYPE, InfoToastPacket.STREAM_CODEC, InfoToastPacket::handle);
+        registrar.playToClient(GeologicalSurveyHintPacket.TYPE, GeologicalSurveyHintPacket.STREAM_CODEC, GeologicalSurveyHintPacket::handle);
     }
 }

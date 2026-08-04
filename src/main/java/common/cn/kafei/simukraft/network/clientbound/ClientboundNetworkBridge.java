@@ -13,6 +13,7 @@ import common.cn.kafei.simukraft.network.commercial.CommercialControlBoxOpenResp
 import common.cn.kafei.simukraft.network.commercial.CommercialTradeOpenResponsePacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxBoundsResponsePacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.geology.GeologicalSurveyHintPacket;
 import common.cn.kafei.simukraft.network.hud.HudSyncPacket;
 import common.cn.kafei.simukraft.network.industrial.IndustrialControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.industrial.IndustrialControlBoxViewUpdatePacket;
@@ -171,5 +172,10 @@ public final class ClientboundNetworkBridge {
     /** handleInfoToast: 分发客户端提示消息。 */
     public static void handleInfoToast(InfoToastPacket packet) {
         HANDLER.get().handleInfoToast(packet);
+    }
+
+    /** handleGeologicalSurveyHint: 转发地质锤准星提示。 */
+    public static void handleGeologicalSurveyHint(GeologicalSurveyHintPacket packet) {
+        HANDLER.get().handleGeologicalSurveyHint(packet);
     }
 }

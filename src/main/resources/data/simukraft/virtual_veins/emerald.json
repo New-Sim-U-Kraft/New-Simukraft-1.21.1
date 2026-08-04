@@ -1,0 +1,16 @@
+{
+  "id": "emerald_vein",
+  "display_name": "绿宝石矿脉",
+  "priority": 70,
+  "conditions": {
+    "continentalness": [0.0300, 1.0000],
+    "erosion": [-1.0000, -0.3750],
+    "depth": [0.0000, 1.0000],
+    "temperature": [-1.0000, 0.2000],
+    "humidity": [-1.0000, 0.3000],
+    "weirdness": [0.5666, 1.0000]
+  },
+  "y_range": [96, 192],
+  "product": "minecraft:emerald",
+  "production": { "min_amount": 8, "max_amount": 8, "period_ticks": 6000 }
+}

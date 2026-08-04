@@ -13,6 +13,7 @@ import common.cn.kafei.simukraft.network.commercial.CommercialControlBoxOpenResp
 import common.cn.kafei.simukraft.network.commercial.CommercialTradeOpenResponsePacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxBoundsResponsePacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.geology.GeologicalSurveyHintPacket;
 import common.cn.kafei.simukraft.network.hud.HudSyncPacket;
 import common.cn.kafei.simukraft.network.industrial.IndustrialControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.industrial.IndustrialControlBoxViewUpdatePacket;
@@ -131,5 +132,9 @@ public interface ClientboundNetworkHandler {
 
     /** handleInfoToast: 处理客户端提示消息。 */
     default void handleInfoToast(InfoToastPacket packet) {
+    }
+
+    /** handleGeologicalSurveyHint: 处理地质锤准星提示。 */
+    default void handleGeologicalSurveyHint(GeologicalSurveyHintPacket packet) {
     }
 }

@@ -1,0 +1,16 @@
+{
+  "id": "redstone_vein",
+  "display_name": "红石矿脉",
+  "priority": 45,
+  "conditions": {
+    "continentalness": [-0.1100, 1.0000],
+    "erosion": [-1.0000, 0.0500],
+    "depth": [1.0000, 1.0000],
+    "temperature": [-1.0000, 1.0000],
+    "humidity": [-1.0000, 1.0000],
+    "weirdness": [-1.0000, 1.0000]
+  },
+  "y_range": [-64, -32],
+  "product": "minecraft:redstone",
+  "production": { "min_amount": 20, "max_amount": 20, "period_ticks": 1200 }
+}

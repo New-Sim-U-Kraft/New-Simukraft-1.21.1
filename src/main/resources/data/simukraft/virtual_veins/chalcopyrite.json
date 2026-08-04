@@ -1,0 +1,16 @@
+{
+  "id": "chalcopyrite_vein",
+  "display_name": "黄铜矿脉",
+  "priority": 40,
+  "conditions": {
+    "continentalness": [0.0300, 1.0000],
+    "erosion": [-1.0000, -0.2225],
+    "depth": [0.0000, 0.0000],
+    "temperature": [-0.1500, 1.0000],
+    "humidity": [-0.3500, 0.3000],
+    "weirdness": [0.4000, 1.0000]
+  },
+  "y_range": [-48, 0],
+  "product": "minecraft:raw_copper",
+  "production": { "min_amount": 1, "max_amount": 20, "period_ticks": 1200 }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "bituminous_coal_vein",
+  "display_name": "烟煤矿脉",
+  "priority": 20,
+  "conditions": {
+    "continentalness": [0.0300, 1.0000],
+    "erosion": [-1.0000, 0.0500],
+    "depth": [0.0000, 1.0000],
+    "temperature": [-0.4500, 0.5500],
+    "humidity": [-0.3500, 1.0000],
+    "weirdness": [0.2666, 1.0000]
+  },
+  "y_range": [0, 48],
+  "product": "minecraft:coal",
+  "production": { "min_amount": 1, "max_amount": 10, "period_ticks": 1200 }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "gold_vein",
+  "display_name": "金矿脉",
+  "priority": 60,
+  "conditions": {
+    "continentalness": [0.0300, 1.0000],
+    "erosion": [-1.0000, -0.3750],
+    "depth": [1.0000, 1.0000],
+    "temperature": [-0.4500, 0.5500],
+    "humidity": [-1.0000, 0.3000],
+    "weirdness": [0.4000, 1.0000]
+  },
+  "y_range": [-56, -16],
+  "product": "minecraft:raw_gold",
+  "production": { "min_amount": 5, "max_amount": 5, "period_ticks": 3600 }
+}

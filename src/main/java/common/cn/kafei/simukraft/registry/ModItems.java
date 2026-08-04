@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft.registry;
 
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.item.ManifestItem;
+import common.cn.kafei.simukraft.item.GeologicalHammerItem;
 import common.cn.kafei.simukraft.item.PortableCityCoreItem;
 import common.cn.kafei.simukraft.item.food.BuffFoodItem;
 import common.cn.kafei.simukraft.item.food.ModFoods;
@@ -21,6 +22,9 @@ public final class ModItems {
     public static final DeferredHolder<Item, Item> FRENCH_FRIES = ITEMS.register("french_fries", () -> new BuffFoodItem(new Item.Properties().food(ModFoods.FRENCH_FRIES)));
     public static final DeferredHolder<Item, Item> CHEESE_CHUNK = ITEMS.register("cheese_chunk", () -> new BuffFoodItem(new Item.Properties().food(ModFoods.CHEESE_CHUNK)));
     public static final DeferredHolder<Item, Item> CHEESE_BURGER = ITEMS.register("cheese_burger", () -> new BuffFoodItem(new Item.Properties().food(ModFoods.CHEESE_BURGER)));
+    // 矿物钻井用具
+    public static final DeferredHolder<Item, Item> GEOLOGICAL_HAMMER = ITEMS.register("geological_hammer", GeologicalHammerItem::new);
+    public static final DeferredHolder<Item, Item> DRILL_ROD_SEGMENT = ITEMS.register("drill_rod_segment", () -> new Item(new Item.Properties()));
 
     private ModItems() {
     }

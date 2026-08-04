@@ -1,0 +1,16 @@
+{
+  "id": "lignite_vein",
+  "display_name": "褐煤矿脉",
+  "priority": 10,
+  "conditions": {
+    "continentalness": [-0.1100, 0.3000],
+    "erosion": [0.0500, 1.0000],
+    "depth": [0.0000, 1.0000],
+    "temperature": [-0.1500, 0.5500],
+    "humidity": [0.1000, 1.0000],
+    "weirdness": [-0.2666, 0.2666]
+  },
+  "y_range": [48, 96],
+  "product": "minecraft:coal",
+  "production": { "min_amount": 4, "max_amount": 13, "period_ticks": 1200 }
+}

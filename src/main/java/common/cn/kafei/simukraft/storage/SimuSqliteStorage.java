@@ -1,6 +1,9 @@
 package common.cn.kafei.simukraft.storage;
 
 import common.cn.kafei.simukraft.SimuKraft;
+import common.cn.kafei.simukraft.virtualvein.VirtualVeinConsumption;
+import common.cn.kafei.simukraft.virtualvein.VirtualVeinFieldKey;
+import common.cn.kafei.simukraft.virtualvein.VirtualVeinFieldProfile;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -9,6 +12,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -27,6 +31,7 @@ public final class SimuSqliteStorage {
     private final LogisticsSqliteRepository logistics;
     private final FamilySqliteRepository families;
     private final BuildingAbandonmentRepository buildingAbandonment;
+    private final VirtualVeinSqliteRepository virtualVeins;
 
     private SimuSqliteStorage(SimuSqliteDatabase database) {
         this.cities = new CitySqliteRepository(database);
@@ -41,6 +46,7 @@ public final class SimuSqliteStorage {
         this.logistics = new LogisticsSqliteRepository(database);
         this.families = new FamilySqliteRepository(database);
         this.buildingAbandonment = new BuildingAbandonmentRepository(database);
+        this.virtualVeins = new VirtualVeinSqliteRepository(database);
     }
 
     public static SimuSqliteStorage open(MinecraftServer server) {
@@ -444,6 +450,30 @@ public final class SimuSqliteStorage {
         if (storage != null && buildingId != null) {
             storage.buildingAbandonment.upsert(buildingId, cityId, index, lastTickDay);
         }
+    }
+
+    /** findVirtualVeinField: 查询已经建立的虚拟矿区档案。 */
+    public static Optional<VirtualVeinFieldProfile> findVirtualVeinField(ServerLevel level, VirtualVeinFieldKey key) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null && key != null ? storage.virtualVeins.find(dimensionId(level), key) : Optional.empty();
+    }
+
+    /** createVirtualVeinFieldIfAbsent: 原子建立虚拟矿区档案。 */
+    public static Optional<VirtualVeinFieldProfile> createVirtualVeinFieldIfAbsent(ServerLevel level, VirtualVeinFieldProfile profile) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null && profile != null ? storage.virtualVeins.createIfAbsent(profile) : Optional.empty();
+    }
+
+    /** repairLegacyVirtualVeinField: 修复旧六项函数匹配逻辑误建的空矿区档案。 */
+    public static Optional<VirtualVeinFieldProfile> repairLegacyVirtualVeinField(ServerLevel level, VirtualVeinFieldProfile profile) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null && profile != null ? storage.virtualVeins.replaceLegacyEmptyProfile(profile) : Optional.empty();
+    }
+
+    /** consumeVirtualVein: 原子扣减指定矿脉槽位的储量。 */
+    public static Optional<VirtualVeinConsumption> consumeVirtualVein(ServerLevel level, VirtualVeinFieldKey key, int slotIndex, int amount) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null && key != null ? storage.virtualVeins.consume(dimensionId(level), key, slotIndex, amount) : Optional.empty();
     }
 
 }

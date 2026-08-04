@@ -64,6 +64,7 @@ import common.cn.kafei.simukraft.registry.ModRecipeSerializers;
 import common.cn.kafei.simukraft.registry.ModSoundEvents;
 import common.cn.kafei.simukraft.event.PlayerWelcomeService;
 import common.cn.kafei.simukraft.storage.SimuSqliteStorage;
+import common.cn.kafei.simukraft.virtualvein.VirtualVeinService;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
@@ -292,6 +293,7 @@ public final class SimuKraft {
         NpcBlockProtectionPolicy.clearCache();
         PlayerWelcomeService.clearServerCaches(event.getServer());
         SimuSqliteStorage.clearServerCache(event.getServer());
+        VirtualVeinService.clearServerCache(event.getServer());
         CityPoiManager.clearGlobalCache();
         common.cn.kafei.simukraft.util.SaveScopedCacheKey.clearServerCache(event.getServer());
     }

@@ -1,6 +1,7 @@
 package client.cn.kafei.simukraft;
 
 import client.cn.kafei.simukraft.client.ClientHUDOverlay;
+import client.cn.kafei.simukraft.client.geology.GeologicalSurveyHintOverlay;
 import client.cn.kafei.simukraft.client.CityEntryHud;
 import client.cn.kafei.simukraft.client.ClientSimukraftData;
 import client.cn.kafei.simukraft.client.buildbox.BuildingCacheService;
@@ -32,6 +33,7 @@ public final class ClientSetup {
     @SubscribeEvent
     public static void onRenderGuiPost(RenderGuiEvent.Post event) {
         ClientHUDOverlay.render(event);
+        GeologicalSurveyHintOverlay.render(event);
         CityEntryHud.render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(true));
     }
 
@@ -50,6 +52,7 @@ public final class ClientSetup {
         ClientCityMapTerrainCache.getInstance().clear();
         ClientSimukraftData.resetAllClientState();
         ClientHUDOverlay.resetCache();
+        GeologicalSurveyHintOverlay.clear();
         SimuMapManager.shutdownIfPresent();
         FreeCameraManager.deactivate();
         TwoPointSelectionManager.clear();

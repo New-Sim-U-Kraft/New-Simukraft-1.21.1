@@ -1,0 +1,16 @@
+{
+  "id": "malachite_vein",
+  "display_name": "孔雀石矿脉",
+  "priority": 35,
+  "conditions": {
+    "continentalness": [-0.1100, 0.5500],
+    "erosion": [0.0500, 1.0000],
+    "depth": [0.0000, 1.0000],
+    "temperature": [0.2000, 1.0000],
+    "humidity": [-1.0000, 0.1000],
+    "weirdness": [-0.4000, 0.4000]
+  },
+  "y_range": [48, 96],
+  "product": "minecraft:raw_copper",
+  "production": { "min_amount": 11, "max_amount": 11, "period_ticks": 1200 }
+}

@@ -7,6 +7,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public final class SimuSqliteSchema {
+    private static final String VIRTUAL_VEIN_FIELD_TABLE = "virtual_vein_fields";
+    private static final String LEGACY_VIRTUAL_VEIN_FIELD_TABLE = "virtual_vein_fields_legacy_v3";
+
     private SimuSqliteSchema() {
     }
 
@@ -21,6 +24,7 @@ public final class SimuSqliteSchema {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS city_members(city_id TEXT NOT NULL, player_id TEXT NOT NULL, player_name TEXT NOT NULL, permission_level TEXT NOT NULL, PRIMARY KEY(city_id, player_id), FOREIGN KEY(city_id) REFERENCES cities(city_id) ON DELETE CASCADE)");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS finance_transactions(id INTEGER PRIMARY KEY AUTOINCREMENT, city_id TEXT NOT NULL, sort_index INTEGER NOT NULL, time INTEGER NOT NULL, actor_id TEXT, actor_name TEXT NOT NULL, amount REAL NOT NULL, balance_after REAL NOT NULL, type TEXT NOT NULL, reason TEXT NOT NULL, FOREIGN KEY(city_id) REFERENCES cities(city_id) ON DELETE CASCADE)");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS city_chunks(city_id TEXT NOT NULL, chunk_long INTEGER NOT NULL, PRIMARY KEY(city_id, chunk_long))");
+            ensureVirtualVeinFieldTable(connection);
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS city_pois(poi_id TEXT PRIMARY KEY, dimension_id TEXT NOT NULL DEFAULT 'minecraft:overworld', city_id TEXT NOT NULL, pos_long INTEGER NOT NULL, type TEXT NOT NULL, capacity INTEGER NOT NULL, active INTEGER NOT NULL)");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS citizens(uuid TEXT PRIMARY KEY, name TEXT NOT NULL, gender TEXT NOT NULL, age INTEGER NOT NULL, lifespan INTEGER NOT NULL, job_type TEXT NOT NULL, job_id TEXT NOT NULL, status TEXT NOT NULL, work_status TEXT NOT NULL, work_need_detail TEXT NOT NULL, status_label TEXT NOT NULL, is_working INTEGER NOT NULL, npc_id INTEGER NOT NULL, skin_path TEXT NOT NULL, city_id TEXT, home_id TEXT, workplace_id TEXT, workplace_pos_long INTEGER, health REAL NOT NULL, happiness REAL NOT NULL, sick INTEGER NOT NULL, child INTEGER NOT NULL, child_growth_due_day INTEGER NOT NULL, born_day INTEGER NOT NULL, last_age_growth_day INTEGER NOT NULL DEFAULT -1, disease_id TEXT NOT NULL DEFAULT 'NONE', disease_since_day INTEGER NOT NULL DEFAULT 0, disease_treatment_ticks INTEGER NOT NULL DEFAULT 0, medical_bed_poi_id TEXT, postpartum_until_day INTEGER NOT NULL DEFAULT 0, last_hospital_meal_day INTEGER NOT NULL DEFAULT -1)");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS citizen_skills(citizen_id TEXT NOT NULL, skill_key TEXT NOT NULL, skill_value INTEGER NOT NULL, PRIMARY KEY(citizen_id, skill_key), FOREIGN KEY(citizen_id) REFERENCES citizens(uuid) ON DELETE CASCADE)");
@@ -112,6 +116,80 @@ public final class SimuSqliteSchema {
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_family_members_citizen ON family_members(citizen_id)");
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to initialize Sim-U-Kraft SQLite database", exception);
+        }
+    }
+
+    /** ensureVirtualVeinFieldTable: 迁移 256 格群系边界矿区所需的复合主键。 */
+    private static void ensureVirtualVeinFieldTable(Connection connection) throws SQLException {
+        if (!tableExists(connection, VIRTUAL_VEIN_FIELD_TABLE)) {
+            try (Statement statement = connection.createStatement()) {
+                createVirtualVeinFieldTable(statement, VIRTUAL_VEIN_FIELD_TABLE);
+            }
+            return;
+        }
+        if (!hasColumn(connection, VIRTUAL_VEIN_FIELD_TABLE, "field_biome_id")) {
+            migrateVirtualVeinFieldTable(connection);
+            return;
+        }
+        try (Statement statement = connection.createStatement()) {
+            createVirtualVeinFieldTable(statement, VIRTUAL_VEIN_FIELD_TABLE);
+        }
+    }
+
+    /** migrateVirtualVeinFieldTable: 保留旧矿区档案并补齐群系复合主键。 */
+    private static void migrateVirtualVeinFieldTable(Connection connection) throws SQLException {
+        if (tableExists(connection, LEGACY_VIRTUAL_VEIN_FIELD_TABLE)) {
+            throw new SQLException("Incomplete virtual vein field migration backup exists");
+        }
+        boolean autoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate("ALTER TABLE " + VIRTUAL_VEIN_FIELD_TABLE + " RENAME TO " + LEGACY_VIRTUAL_VEIN_FIELD_TABLE);
+            createVirtualVeinFieldTable(statement, VIRTUAL_VEIN_FIELD_TABLE);
+            statement.executeUpdate("INSERT INTO " + VIRTUAL_VEIN_FIELD_TABLE + "("
+                    + "dimension_id, field_cell_x, field_cell_z, field_biome_id, center_x, center_z, center_biome_id, created_game_time, vein_count, generation_version, "
+                    + "slot0_vein_id, slot0_display_name, slot0_product_id, slot0_min_y, slot0_max_y, slot0_amount, slot0_period_ticks, slot0_initial_reserve, slot0_remaining_reserve, slot0_state, "
+                    + "slot1_vein_id, slot1_display_name, slot1_product_id, slot1_min_y, slot1_max_y, slot1_amount, slot1_period_ticks, slot1_initial_reserve, slot1_remaining_reserve, slot1_state) "
+                    + "SELECT dimension_id, field_cell_x, field_cell_z, center_biome_id, center_x, center_z, center_biome_id, created_game_time, vein_count, generation_version, "
+                    + "slot0_vein_id, slot0_display_name, slot0_product_id, slot0_min_y, slot0_max_y, slot0_amount, slot0_period_ticks, slot0_initial_reserve, slot0_remaining_reserve, slot0_state, "
+                    + "slot1_vein_id, slot1_display_name, slot1_product_id, slot1_min_y, slot1_max_y, slot1_amount, slot1_period_ticks, slot1_initial_reserve, slot1_remaining_reserve, slot1_state "
+                    + "FROM " + LEGACY_VIRTUAL_VEIN_FIELD_TABLE);
+            statement.executeUpdate("DROP TABLE " + LEGACY_VIRTUAL_VEIN_FIELD_TABLE);
+            connection.commit();
+        } catch (SQLException exception) {
+            connection.rollback();
+            throw exception;
+        } finally {
+            connection.setAutoCommit(autoCommit);
+        }
+    }
+
+    /** createVirtualVeinFieldTable: 创建当前版本的虚拟矿区档案表。 */
+    private static void createVirtualVeinFieldTable(Statement statement, String tableName) throws SQLException {
+        statement.executeUpdate("CREATE TABLE IF NOT EXISTS " + tableName + "("
+                + "dimension_id TEXT NOT NULL, field_cell_x INTEGER NOT NULL, field_cell_z INTEGER NOT NULL, field_biome_id TEXT NOT NULL, center_x INTEGER NOT NULL, center_z INTEGER NOT NULL, center_biome_id TEXT NOT NULL, created_game_time INTEGER NOT NULL, vein_count INTEGER NOT NULL, generation_version INTEGER NOT NULL DEFAULT 3, "
+                + "slot0_vein_id TEXT NOT NULL DEFAULT '', slot0_display_name TEXT NOT NULL DEFAULT '', slot0_product_id TEXT NOT NULL DEFAULT '', slot0_min_y INTEGER NOT NULL DEFAULT 0, slot0_max_y INTEGER NOT NULL DEFAULT 0, slot0_amount INTEGER NOT NULL DEFAULT 0, slot0_period_ticks INTEGER NOT NULL DEFAULT 0, slot0_initial_reserve INTEGER NOT NULL DEFAULT 0, slot0_remaining_reserve INTEGER NOT NULL DEFAULT 0, slot0_state TEXT NOT NULL DEFAULT 'EMPTY', "
+                + "slot1_vein_id TEXT NOT NULL DEFAULT '', slot1_display_name TEXT NOT NULL DEFAULT '', slot1_product_id TEXT NOT NULL DEFAULT '', slot1_min_y INTEGER NOT NULL DEFAULT 0, slot1_max_y INTEGER NOT NULL DEFAULT 0, slot1_amount INTEGER NOT NULL DEFAULT 0, slot1_period_ticks INTEGER NOT NULL DEFAULT 0, slot1_initial_reserve INTEGER NOT NULL DEFAULT 0, slot1_remaining_reserve INTEGER NOT NULL DEFAULT 0, slot1_state TEXT NOT NULL DEFAULT 'EMPTY', "
+                + "PRIMARY KEY(dimension_id, field_cell_x, field_cell_z, field_biome_id))");
+    }
+
+    /** tableExists: 判断 SQLite 业务表是否已经存在。 */
+    private static boolean tableExists(Connection connection, String tableName) throws SQLException {
+        try (Statement statement = connection.createStatement();
+             var resultSet = statement.executeQuery("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '" + tableName + "'")) {
+            return resultSet.next();
+        }
+    }
+
+    private static boolean hasColumn(Connection connection, String tableName, String columnName) throws SQLException {
+        try (Statement statement = connection.createStatement();
+             var resultSet = statement.executeQuery("PRAGMA table_info(" + tableName + ")")) {
+            while (resultSet.next()) {
+                if (columnName.equalsIgnoreCase(resultSet.getString("name"))) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 

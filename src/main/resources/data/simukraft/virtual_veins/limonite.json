@@ -1,0 +1,16 @@
+{
+  "id": "limonite_vein",
+  "display_name": "褐铁矿脉",
+  "priority": 30,
+  "conditions": {
+    "continentalness": [-0.1100, 0.3000],
+    "erosion": [0.0500, 1.0000],
+    "depth": [0.0000, 1.0000],
+    "temperature": [-0.1500, 0.5500],
+    "humidity": [0.1000, 1.0000],
+    "weirdness": [-0.4000, 0.4000]
+  },
+  "y_range": [64, 128],
+  "product": "minecraft:raw_iron",
+  "production": { "min_amount": 2, "max_amount": 11, "period_ticks": 1200 }
+}

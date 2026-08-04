@@ -1,0 +1,16 @@
+{
+  "id": "diamond_vein",
+  "display_name": "钻石矿脉",
+  "priority": 80,
+  "conditions": {
+    "continentalness": [0.0300, 1.0000],
+    "erosion": [-1.0000, -0.3750],
+    "depth": [1.0000, 1.0000],
+    "temperature": [-0.4500, 0.5500],
+    "humidity": [-1.0000, 0.3000],
+    "weirdness": [0.4000, 1.0000]
+  },
+  "y_range": [-64, -32],
+  "product": "minecraft:diamond",
+  "production": { "min_amount": 3, "max_amount": 6, "period_ticks": 1200 }
+}
