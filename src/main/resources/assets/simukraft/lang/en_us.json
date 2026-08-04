@@ -34,6 +34,8 @@
     "item.simukraft.portable_city_core":  "NSUK Portable City Core",
     "item.simukraft.geological_hammer":  "NSUK Geological Hammer",
     "item.simukraft.drill_rod_segment":  "NSUK Drill Rod Segment",
+    "item.simukraft.shallow_drill_bit":  "NSUK Shallow Drill Bit",
+    "item.simukraft.deep_drill_bit":  "NSUK Deep Drill Bit",
     "message.simukraft.geological_hammer.not_overworld": "The geological hammer only analyses Overworld fields",
     "message.simukraft.geological_hammer.too_deep": "Only shallow minerals above Y=%s can be analysed",
     "message.simukraft.geological_hammer.result": "%s -> %s\nRecommended drilling: Y=%s to Y=%s",

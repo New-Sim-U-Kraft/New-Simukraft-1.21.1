@@ -34,6 +34,8 @@
     "item.simukraft.portable_city_core":  "NSUK-便携式城市核心",
     "item.simukraft.geological_hammer":  "NSUK-地质锤",
     "item.simukraft.drill_rod_segment":  "NSUK-钻杆段",
+    "item.simukraft.shallow_drill_bit":  "NSUK-浅层钻头",
+    "item.simukraft.deep_drill_bit":  "NSUK-深层钻头",
     "message.simukraft.geological_hammer.not_overworld": "地质锤只能分析主世界矿区",
     "message.simukraft.geological_hammer.too_deep": "只能分析 Y=%s 以上的浅层矿物",
     "message.simukraft.geological_hammer.result": "%s -> %s\n建议钻探：Y=%s 至 Y=%s",
