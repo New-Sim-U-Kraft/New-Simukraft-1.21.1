@@ -8,6 +8,7 @@ import common.cn.kafei.simukraft.block.IndustrialControlBoxBlock;
 import common.cn.kafei.simukraft.block.LogisticsClientBoxBlock;
 import common.cn.kafei.simukraft.block.LogisticsServerBoxBlock;
 import common.cn.kafei.simukraft.block.MedicalControlBoxBlock;
+import common.cn.kafei.simukraft.block.MineralDrillingControlBoxBlock;
 import common.cn.kafei.simukraft.block.MilkLiquidBlock;
 import common.cn.kafei.simukraft.block.ResidentialControlBoxBlock;
 import net.minecraft.world.item.BlockItem;
@@ -41,6 +42,7 @@ public final class ModBlocks {
     public static final DeferredBlock<Block> INDUSTRIAL_HOUSING = registerBlock("industrial_housing", ModBlocks::industrialHousing);
     public static final DeferredBlock<Block> INDUSTRIAL_HOUSING_SLAB = registerBlock("industrial_housing_slab", ModBlocks::industrialHousingSlab);
     public static final DeferredBlock<Block> INDUSTRIAL_HOUSING_STAIRS = registerBlock("industrial_housing_stairs", ModBlocks::industrialHousingStairs);
+    public static final DeferredBlock<Block> MINERAL_DRILLING_CONTROL_BOX = registerBlock("mineral_drilling_control_box", MineralDrillingControlBoxBlock::new);
     public static final DeferredBlock<Block> LOGISTICS_CLIENT_BOX = registerBlock("logistics_client_box", LogisticsClientBoxBlock::new);
     public static final DeferredBlock<Block> LOGISTICS_SERVER_BOX = registerBlock("logistics_server_box", LogisticsServerBoxBlock::new);
     public static final DeferredBlock<Block> MEDICAL_CONTROL_BOX = registerBlock("medical_control_box", MedicalControlBoxBlock::new);

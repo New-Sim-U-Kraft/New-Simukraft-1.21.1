@@ -24,6 +24,7 @@ public final class ModCreativeModeTabs {
                 // 控制箱
                 output.accept(ModBlocks.COMMERCIAL_CONTROL_BOX.get());
                 output.accept(ModBlocks.INDUSTRIAL_CONTROL_BOX.get());
+                output.accept(ModBlocks.MINERAL_DRILLING_CONTROL_BOX.get());
                 output.accept(ModBlocks.MEDICAL_CONTROL_BOX.get());
                 output.accept(ModBlocks.RESIDENTIAL_CONTROL_BOX.get());
                 output.accept(ModBlocks.OTHER_CONTROL_BOX.get());

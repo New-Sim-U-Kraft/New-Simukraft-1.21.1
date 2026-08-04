@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "simukraft:block/mineral_drilling_control_box_0",
+    "down": "simukraft:block/mineral_drilling_control_box_3",
+    "up": "simukraft:block/mineral_drilling_control_box_3",
+    "north": "simukraft:block/mineral_drilling_control_box_0",
+    "east": "simukraft:block/mineral_drilling_control_box_3",
+    "south": "simukraft:block/mineral_drilling_control_box_3",
+    "west": "simukraft:block/mineral_drilling_control_box_3"
+  }
+}

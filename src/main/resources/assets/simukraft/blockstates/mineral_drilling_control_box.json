@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=east": {"model": "simukraft:block/mineral_drilling_control_box", "y": 90},
+    "facing=north": {"model": "simukraft:block/mineral_drilling_control_box"},
+    "facing=south": {"model": "simukraft:block/mineral_drilling_control_box", "y": 180},
+    "facing=west": {"model": "simukraft:block/mineral_drilling_control_box", "y": 270}
+  }
+}
