@@ -30,7 +30,8 @@ import net.minecraft.world.level.Level;
 
 import java.util.List;
 
-/** GeologicalHammerItem: 勘探当前位置所属矿区的浅层矿脉。 */
+/** GeologicalHammerItem: 勘探当前位置所属矿区的矿脉。 */
+@SuppressWarnings("null")
 public final class GeologicalHammerItem extends PickaxeItem {
     private static final int MAX_DURABILITY = 800;
     private static final int BLOCK_DAMAGE = 2;

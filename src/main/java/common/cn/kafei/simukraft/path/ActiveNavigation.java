@@ -9,6 +9,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings("null")
 /** Drives a single citizen's per-tick movement along an already-computed {@link PathResult}. */
 final class ActiveNavigation {
     private static final double PASSED_WAYPOINT_DOT_EPSILON = 1.05D;
@@ -17,7 +18,6 @@ final class ActiveNavigation {
     private static final double ACTION_PASSED_VERTICAL_TOLERANCE = 2.25D;
     private static final double TURN_DOT_THRESHOLD = 0.906D;
     private static final double STALLED_SOFT_SKIP_DISTANCE = 2.25D;
-    private static final double ACTION_START_DISTANCE = 0.65D;
     private static final double CLIMB_VERTICAL_ARRIVAL_DISTANCE = 0.03D;
     private static final double CLIMB_VERTICAL_ASSIST_DISTANCE = 0.75D;
     private static final double CLIMB_VERTICAL_SPEED = 0.16D;
@@ -113,7 +113,7 @@ final class ActiveNavigation {
         }
 
         PathWaypoint commandWaypoint = waypoint;
-        Vec3 commandTarget = commandTarget(citizen.position(), waypointIndex, waypoint, commandWaypoint);
+        Vec3 commandTarget = commandTarget(citizen, waypointIndex, waypoint, commandWaypoint);
         MovementMode commandMode = commandMode(commandTarget, commandWaypoint);
         CitizenDoorService.tryOpenWoodenDoor(level, citizen, waypoint, openedDoors);
         if (ClimbWaypointPolicy.isLandingAfterDescendingClimb(waypoints, waypointIndex)) {
@@ -221,9 +221,14 @@ final class ActiveNavigation {
         return hasPassedWaypoint(position, index, waypoint);
     }
 
-    private Vec3 commandTarget(Vec3 position, int index, PathWaypoint waypoint, PathWaypoint commandWaypoint) {
-        if (waypoint.mode() == MovementMode.JUMP && index > 0 && !jumpTriggered && !isNearActionStart(position, index)) {
-            return waypoints.get(index - 1).position();
+    /** commandTarget: 未到台阶起跳预备点时只推进到边缘，避免在上一格中心提前起跳。 */
+    private Vec3 commandTarget(CitizenEntity citizen, int index, PathWaypoint waypoint, PathWaypoint commandWaypoint) {
+        Vec3 position = citizen.position();
+        if (waypoint.mode() == MovementMode.JUMP && index > 0 && !jumpTriggered) {
+            PathWaypoint start = waypoints.get(index - 1);
+            if (!isAtJumpLaunch(citizen, start, waypoint)) {
+                return JumpWaypointPolicy.launchTarget(start, waypoint, citizen.getBbWidth());
+            }
         }
         if (waypoint.mode() == MovementMode.CLIMB) {
             return ClimbWaypointPolicy.commandTarget(position, waypoints, index);
@@ -267,7 +272,8 @@ final class ActiveNavigation {
         if (waypoint.mode() != MovementMode.JUMP || index <= 0 || jumpTriggered) {
             return false;
         }
-        if (!isNearActionStart(citizen.position(), index)) {
+        PathWaypoint start = waypoints.get(index - 1);
+        if (!isAtJumpLaunch(citizen, start, waypoint)) {
             return false;
         }
         if (waypoint.position().y <= waypoints.get(index - 1).position().y + 0.25D) {
@@ -275,6 +281,13 @@ final class ActiveNavigation {
         }
         // 水中 onGround 始终为 false，但从水面跳上岸同样需要触发跳跃
         return citizen.onGround() || citizen.isInWater();
+    }
+
+    /** isAtJumpLaunch: 水中保留较宽横向容差，陆地必须对准台阶中心线后才允许起跳。 */
+    private boolean isAtJumpLaunch(CitizenEntity citizen, PathWaypoint start, PathWaypoint landing) {
+        return citizen.isInWater()
+                ? JumpWaypointPolicy.isAtFluidLaunchPoint(citizen.position(), start, landing, citizen.getBbWidth())
+                : JumpWaypointPolicy.isAtLaunchPoint(citizen.position(), start, landing, citizen.getBbWidth());
     }
 
     /**
@@ -343,17 +356,6 @@ final class ActiveNavigation {
             return new Vec3(facing.getStepX(), 0.0D, facing.getStepZ());
         }
         return Vec3.ZERO;
-    }
-
-    private boolean isNearActionStart(Vec3 position, int index) {
-        if (index <= 0) {
-            return true;
-        }
-        Vec3 start = waypoints.get(index - 1).position();
-        double dx = position.x - start.x;
-        double dz = position.z - start.z;
-        return dx * dx + dz * dz <= ACTION_START_DISTANCE * ACTION_START_DISTANCE
-                && Math.abs(position.y - start.y) <= 0.75D;
     }
 
     private boolean isActionMode(MovementMode mode) {

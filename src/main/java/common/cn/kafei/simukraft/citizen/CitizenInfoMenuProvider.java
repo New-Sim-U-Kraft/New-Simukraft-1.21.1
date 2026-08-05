@@ -14,6 +14,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 
 /** 通过原版容器打开流程同步 NPC 真实物品栏。 */
+@SuppressWarnings("null")
 public final class CitizenInfoMenuProvider implements MenuProvider {
     private final CitizenInfoResponsePacket packet;
     private final CitizenEntity entity;

@@ -12,7 +12,7 @@ import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import java.util.Locale;
 import java.util.Objects;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 public final class ClientHUDOverlay {
     private static final int HUD_COLOR = 0xFFFFFF;

@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class ManifestControlBoxSnapshotService {
     private static final int COMMERCIAL_MATERIAL_RADIUS_XZ = 5;
     private static final int COMMERCIAL_MATERIAL_RADIUS_Y = 2;

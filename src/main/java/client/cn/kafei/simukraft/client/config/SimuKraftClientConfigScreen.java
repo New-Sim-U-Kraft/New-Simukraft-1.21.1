@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class SimuKraftClientConfigScreen {
     private static final int WINDOW_WIDTH = 280;
     private static final int WINDOW_HEIGHT = 240;

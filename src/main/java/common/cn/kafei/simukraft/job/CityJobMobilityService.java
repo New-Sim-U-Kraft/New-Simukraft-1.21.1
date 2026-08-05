@@ -17,7 +17,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.Locale;
 import java.util.UUID;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CityJobMobilityService {
     private CityJobMobilityService() {
     }

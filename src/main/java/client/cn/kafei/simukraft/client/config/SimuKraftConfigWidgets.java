@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class SimuKraftConfigWidgets {
     static final int WINDOW_BG = 0xE6202020;
     static final int PANEL_BG = 0xCC2A2A2A;

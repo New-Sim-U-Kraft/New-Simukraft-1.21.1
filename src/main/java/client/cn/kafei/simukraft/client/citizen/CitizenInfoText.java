@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Locale;
 
 /** NPC 信息界面的文本格式化器。 */
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CitizenInfoText {
     private CitizenInfoText() {
     }

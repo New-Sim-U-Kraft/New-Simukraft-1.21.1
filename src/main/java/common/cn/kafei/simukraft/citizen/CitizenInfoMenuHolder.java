@@ -9,6 +9,7 @@ import common.cn.kafei.simukraft.network.citizen.info.CitizenInfoResponsePacket;
 import net.minecraft.world.entity.player.Player;
 
 /** 为 NPC 信息界面提供服务端真实槽位与客户端 LDLib 布局。 */
+@SuppressWarnings("null")
 public final class CitizenInfoMenuHolder implements IContainerUIHolder {
     private final CitizenInfoResponsePacket packet;
     private final CitizenInventory inventory;

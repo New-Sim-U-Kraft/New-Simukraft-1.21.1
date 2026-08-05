@@ -15,7 +15,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record LogisticsServerBoxOpenRequestPacket(BlockPos pos) implements CustomPacketPayload {
     public static final Type<LogisticsServerBoxOpenRequestPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "logistics_server_box_open_request"));
     public static final StreamCodec<RegistryFriendlyByteBuf, LogisticsServerBoxOpenRequestPacket> STREAM_CODEC = StreamCodec.of(LogisticsServerBoxOpenRequestPacket::encode, LogisticsServerBoxOpenRequestPacket::decode);

@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 public final class PreviewMeshBuilder {
     private PreviewMeshBuilder() {

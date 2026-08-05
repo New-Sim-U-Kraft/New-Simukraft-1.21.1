@@ -23,7 +23,7 @@ import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CommercialWorkService {
     private static final ConcurrentMap<String, LevelRuntime> RUNTIMES = new ConcurrentHashMap<>();
     private static final long IDLE_RETRY_TICKS = 80L;

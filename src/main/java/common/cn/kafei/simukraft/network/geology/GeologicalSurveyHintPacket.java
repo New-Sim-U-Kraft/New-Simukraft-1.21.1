@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** GeologicalSurveyHintPacket: 向客户端传递地质锤的短文本提示。 */
+@SuppressWarnings("null")
 public record GeologicalSurveyHintPacket(Component message) implements CustomPacketPayload {
     public static final Type<GeologicalSurveyHintPacket> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "geological_survey_hint"));

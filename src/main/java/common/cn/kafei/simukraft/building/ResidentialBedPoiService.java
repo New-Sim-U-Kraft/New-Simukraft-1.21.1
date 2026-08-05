@@ -19,7 +19,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class ResidentialBedPoiService {
     private static final ConcurrentMap<String, Set<BlockPos>> RECORDED_BED_HEADS = new ConcurrentHashMap<>();
 

@@ -13,7 +13,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CommercialTradeAccessValidator {
     private static final double TRADE_RANGE_SQR = 4.5D * 4.5D;
 

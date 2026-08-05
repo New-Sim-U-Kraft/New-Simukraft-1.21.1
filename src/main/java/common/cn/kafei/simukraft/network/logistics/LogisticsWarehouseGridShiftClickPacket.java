@@ -12,7 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record LogisticsWarehouseGridShiftClickPacket(BlockPos pos, ItemStack target) implements CustomPacketPayload {
     public static final Type<LogisticsWarehouseGridShiftClickPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "logistics_warehouse_grid_shift_click"));
     public static final StreamCodec<RegistryFriendlyByteBuf, LogisticsWarehouseGridShiftClickPacket> STREAM_CODEC = StreamCodec.of(LogisticsWarehouseGridShiftClickPacket::encode, LogisticsWarehouseGridShiftClickPacket::decode);

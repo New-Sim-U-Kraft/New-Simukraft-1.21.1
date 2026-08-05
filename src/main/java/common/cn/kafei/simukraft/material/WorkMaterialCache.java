@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * NPC 工作材料缓存：只读取紧贴工作方块的容器，建造/生产时按缓存槽位定点扣料。
  */
-
+@SuppressWarnings("null")
 public final class WorkMaterialCache {
     private static final long CONTAINER_DISCOVERY_INTERVAL_TICKS = 40L;
     private static final long INVENTORY_REFRESH_INTERVAL_TICKS = 20L;

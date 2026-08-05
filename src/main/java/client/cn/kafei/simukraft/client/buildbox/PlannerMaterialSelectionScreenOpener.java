@@ -43,7 +43,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 public final class PlannerMaterialSelectionScreenOpener {
     private static final int MAX_CONTENT_WIDTH = 760;

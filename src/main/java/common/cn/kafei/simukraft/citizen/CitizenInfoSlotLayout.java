@@ -13,6 +13,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 /** NPC 信息容器的真实槽位布局，服务端和客户端必须使用相同添加顺序。 */
+@SuppressWarnings("null")
 public final class CitizenInfoSlotLayout {
     public static final int WORKSPACE_WIDTH = 430;
     public static final int WORKSPACE_HEIGHT = 228;

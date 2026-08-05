@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.BlockHitResult;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class LogisticsClientBoxBlock extends Block {
     public LogisticsClientBoxBlock() {
         super(BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_ORANGE).strength(1.0F).sound(SoundType.METAL));

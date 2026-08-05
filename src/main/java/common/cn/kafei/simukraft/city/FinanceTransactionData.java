@@ -4,7 +4,7 @@ import net.minecraft.nbt.CompoundTag;
 
 import java.util.UUID;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record FinanceTransactionData(long time, UUID actorId, String actorName, double amount, double balanceAfter,
                                      Type type, String reason) {
     public CompoundTag toTag() {

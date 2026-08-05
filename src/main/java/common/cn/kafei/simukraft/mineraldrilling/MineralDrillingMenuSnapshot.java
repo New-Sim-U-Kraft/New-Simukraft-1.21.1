@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 /** MineralDrillingMenuSnapshot: 限长编码控制箱打开时的客户端初始视图。 */
+@SuppressWarnings("null")
 public record MineralDrillingMenuSnapshot(BlockPos boxPos,
                                          boolean hasBuilding,
                                          String buildingName,

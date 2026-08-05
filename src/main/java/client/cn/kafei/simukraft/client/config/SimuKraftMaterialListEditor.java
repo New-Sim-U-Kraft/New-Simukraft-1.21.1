@@ -24,7 +24,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class SimuKraftMaterialListEditor {
     private static final int ROW_HEIGHT = 32;
     private static final int ICON_SIZE = 18;

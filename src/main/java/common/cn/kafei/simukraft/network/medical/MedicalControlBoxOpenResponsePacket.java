@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 /** 医疗控制箱服务端视图响应。 */
+@SuppressWarnings("null")
 public record MedicalControlBoxOpenResponsePacket(BlockPos boxPos,
                                                   boolean hasBuilding,
                                                   String buildingName,

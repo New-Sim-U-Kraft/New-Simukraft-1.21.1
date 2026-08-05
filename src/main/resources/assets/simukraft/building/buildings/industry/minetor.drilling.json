@@ -1,0 +1,15 @@
+{
+  "type": "drilling",
+  "id": "simukraft:mineral_drilling_platform",
+  "containers": {
+    "output": {
+      "type": "structure_pos",
+      "positions": [
+        [7, 8, 1],
+        [8, 8, 1],
+        [8, 8, 2],
+        [8, 8, 3],
+      ]
+    }
+  }
+}

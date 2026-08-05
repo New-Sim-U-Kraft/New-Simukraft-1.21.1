@@ -14,7 +14,7 @@ import java.util.Objects;
 
 /** AnimatedIconButton：带旋转角标动画的图标按钮，用于打开配置选择界面。 */
 @OnlyIn(Dist.CLIENT)
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class AnimatedIconButton extends Button {
 
     // 主图标：模组 logo（居中显示）

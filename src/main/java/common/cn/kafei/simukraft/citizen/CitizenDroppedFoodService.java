@@ -11,7 +11,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.Comparator;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CitizenDroppedFoodService {
     private static final double EAT_RADIUS = 2.0D;
     private static final double EAT_DISTANCE_SQR = EAT_RADIUS * EAT_RADIUS;

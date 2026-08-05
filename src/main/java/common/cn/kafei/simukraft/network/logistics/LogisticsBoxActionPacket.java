@@ -20,7 +20,7 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record LogisticsBoxActionPacket(BlockPos boxPos,
                                        Action action,
                                        UUID clientId,

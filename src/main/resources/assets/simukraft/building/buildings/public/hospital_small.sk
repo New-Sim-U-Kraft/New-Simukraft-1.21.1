@@ -1,0 +1,11 @@
+name:医院
+size:36 x 20 x 25
+amount:180.00元
+author:XiaoFei小非
+description:提供九张医疗床位，可治疗低生命值、疾病并支持孕晚期住院、分娩和产后恢复
+tags:price_high,material_high,stage_late
+structure:hospital_small.nbt
+medical:hospital_small.json
+job_type:doctor
+job_name:医生
+canParturition:true

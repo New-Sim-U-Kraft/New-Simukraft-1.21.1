@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class LogisticsSqliteRepository {
     private final SimuSqliteDatabase database;
 

@@ -1,6 +1,5 @@
 package common.cn.kafei.simukraft.storage;
 
-import common.cn.kafei.simukraft.storage.core.CommitAwareWrite;
 import common.cn.kafei.simukraft.storage.core.SqliteConnectionPool;
 import common.cn.kafei.simukraft.storage.core.StorageMetrics;
 import common.cn.kafei.simukraft.storage.core.TransactionRunner;

@@ -1,0 +1,304 @@
+{
+  "id": "simukraft:ironworks",
+  "name": "冶铁厂",
+  "jobType": "iron_smelter",
+  "jobName": "冶铁工人",
+  "heldItem": "minecraft:iron_ingot",
+  "points": {
+    "boiler_stand": {
+      "type": "structure_pos",
+      "pos": [15, 1, 19]
+    },
+    "boiler_target": {
+      "type": "structure_pos",
+      "pos": [19, 1, 19]
+    },
+    "mold_stand": {
+      "type": "structure_pos",
+      "pos": [13, 1, 4]
+    },
+    "mold_target": {
+      "type": "structure_pos",
+      "pos": [16, 1, 4]
+    },
+    "cooling_stand": {
+      "type": "structure_pos",
+      "pos": [9, 1, 5]
+    },
+    "cooling_target": {
+      "type": "structure_pos",
+      "pos": [5, 1, 5]
+    }
+  },
+  "containers": {
+    "input": {
+      "type": "structure_pos",
+      "positions": [[2, 2, 16], [3, 2, 16], [4, 2, 16], [5, 2, 16], [6, 2, 16]]
+    },
+    "output": {
+      "type": "structure_pos",
+      "positions": [[2, 2, 16], [3, 2, 16], [4, 2, 16], [5, 2, 16], [6, 2, 16]]
+    }
+  },
+  "recipes": [
+    {
+      "id": "industrial_housing",
+      "name": "工业外壳",
+      "heldItem": "simukraft:industrial_housing",
+      "inputs": [
+        { "item": "minecraft:iron_ingot", "count": 20 },
+        { "item": "minecraft:coal", "count": 10 }
+      ],
+      "outputs": [
+        { "item": "simukraft:industrial_housing", "baseAmount": 10, "probability": 1.0, "ignoreMultiplier": true }
+      ],
+      "steps": [
+        { "type": "move_to_container", "container": "input", "range": 1.2 },
+        { "type": "look_at_container", "container": "input" },
+        { "type": "inspect_container", "container": "input", "ticks": 20 },
+        { "type": "require_inputs", "container": "input" },
+        { "type": "set_status", "statusText": "正在烧锅炉" },
+        { "type": "set_held_item", "item": "minecraft:coal" },
+        { "type": "move_to", "point": "boiler_stand", "range": 1.2 },
+        { "type": "look_at", "point": "boiler_target" },
+        { "type": "use_item", "ticks": 100, "swing": true },
+        { "type": "set_status", "statusText": "正在浇灌模具" },
+        { "type": "set_held_item", "item": "minecraft:iron_ingot" },
+        { "type": "move_to", "point": "mold_stand", "range": 1.2 },
+        { "type": "look_at", "point": "mold_target" },
+        { "type": "use_item", "ticks": 80, "swing": true },
+        { "type": "set_status", "statusText": "正在冷却铸件" },
+        { "type": "move_to", "point": "cooling_stand", "range": 1.2 },
+        { "type": "look_at", "point": "cooling_target" },
+        { "type": "use_item", "ticks": 60, "swing": true },
+        { "type": "set_held_item" },
+        { "type": "move_to_container", "container": "output", "range": 1.2 },
+        { "type": "look_at_container", "container": "output" },
+        { "type": "inspect_container", "container": "output", "ticks": 20 },
+        { "type": "craft_recipe", "input": "input", "output": "output" }
+      ]
+    },
+    {
+      "id": "industrial_housing_stairs",
+      "name": "工业外壳楼梯",
+      "heldItem": "simukraft:industrial_housing_stairs",
+      "inputs": [
+        { "item": "minecraft:iron_ingot", "count": 20 },
+        { "item": "minecraft:coal", "count": 10 }
+      ],
+      "outputs": [
+        { "item": "simukraft:industrial_housing_stairs", "baseAmount": 10, "probability": 1.0, "ignoreMultiplier": true }
+      ],
+      "steps": [
+        { "type": "move_to_container", "container": "input", "range": 1.2 },
+        { "type": "look_at_container", "container": "input" },
+        { "type": "inspect_container", "container": "input", "ticks": 20 },
+        { "type": "require_inputs", "container": "input" },
+        { "type": "set_status", "statusText": "正在烧锅炉" },
+        { "type": "set_held_item", "item": "minecraft:coal" },
+        { "type": "move_to", "point": "boiler_stand", "range": 1.2 },
+        { "type": "look_at", "point": "boiler_target" },
+        { "type": "use_item", "ticks": 100, "swing": true },
+        { "type": "set_status", "statusText": "正在浇灌模具" },
+        { "type": "set_held_item", "item": "minecraft:iron_ingot" },
+        { "type": "move_to", "point": "mold_stand", "range": 1.2 },
+        { "type": "look_at", "point": "mold_target" },
+        { "type": "use_item", "ticks": 80, "swing": true },
+        { "type": "set_status", "statusText": "正在冷却铸件" },
+        { "type": "move_to", "point": "cooling_stand", "range": 1.2 },
+        { "type": "look_at", "point": "cooling_target" },
+        { "type": "use_item", "ticks": 60, "swing": true },
+        { "type": "set_held_item" },
+        { "type": "move_to_container", "container": "output", "range": 1.2 },
+        { "type": "look_at_container", "container": "output" },
+        { "type": "inspect_container", "container": "output", "ticks": 20 },
+        { "type": "craft_recipe", "input": "input", "output": "output" }
+      ]
+    },
+    {
+      "id": "industrial_housing_slab",
+      "name": "工业外壳台阶",
+      "heldItem": "simukraft:industrial_housing_slab",
+      "inputs": [
+        { "item": "minecraft:iron_ingot", "count": 20 },
+        { "item": "minecraft:coal", "count": 10 }
+      ],
+      "outputs": [
+        { "item": "simukraft:industrial_housing_slab", "baseAmount": 20, "probability": 1.0, "ignoreMultiplier": true }
+      ],
+      "steps": [
+        { "type": "move_to_container", "container": "input", "range": 1.2 },
+        { "type": "look_at_container", "container": "input" },
+        { "type": "inspect_container", "container": "input", "ticks": 20 },
+        { "type": "require_inputs", "container": "input" },
+        { "type": "set_status", "statusText": "正在烧锅炉" },
+        { "type": "set_held_item", "item": "minecraft:coal" },
+        { "type": "move_to", "point": "boiler_stand", "range": 1.2 },
+        { "type": "look_at", "point": "boiler_target" },
+        { "type": "use_item", "ticks": 100, "swing": true },
+        { "type": "set_status", "statusText": "正在浇灌模具" },
+        { "type": "set_held_item", "item": "minecraft:iron_ingot" },
+        { "type": "move_to", "point": "mold_stand", "range": 1.2 },
+        { "type": "look_at", "point": "mold_target" },
+        { "type": "use_item", "ticks": 80, "swing": true },
+        { "type": "set_status", "statusText": "正在冷却铸件" },
+        { "type": "move_to", "point": "cooling_stand", "range": 1.2 },
+        { "type": "look_at", "point": "cooling_target" },
+        { "type": "use_item", "ticks": 60, "swing": true },
+        { "type": "set_held_item" },
+        { "type": "move_to_container", "container": "output", "range": 1.2 },
+        { "type": "look_at_container", "container": "output" },
+        { "type": "inspect_container", "container": "output", "ticks": 20 },
+        { "type": "craft_recipe", "input": "input", "output": "output" }
+      ]
+    },
+    {
+      "id": "drill_rod_segment",
+      "name": "钻杆段",
+      "heldItem": "simukraft:drill_rod_segment",
+      "inputs": [
+        { "item": "simukraft:industrial_housing", "count": 1 },
+        { "item": "minecraft:iron_ingot", "count": 2 }
+      ],
+      "outputs": [
+        { "item": "simukraft:drill_rod_segment", "baseAmount": 1, "probability": 1.0, "ignoreMultiplier": true }
+      ],
+      "steps": [
+        { "type": "move_to_container", "container": "input", "range": 1.2 },
+        { "type": "look_at_container", "container": "input" },
+        { "type": "inspect_container", "container": "input", "ticks": 20 },
+        { "type": "require_inputs", "container": "input" },
+        { "type": "set_status", "statusText": "正在烧锅炉" },
+        { "type": "set_held_item", "item": "minecraft:coal" },
+        { "type": "move_to", "point": "boiler_stand", "range": 1.2 },
+        { "type": "look_at", "point": "boiler_target" },
+        { "type": "use_item", "ticks": 100, "swing": true },
+        { "type": "set_status", "statusText": "正在浇灌模具" },
+        { "type": "set_held_item", "item": "minecraft:iron_ingot" },
+        { "type": "move_to", "point": "mold_stand", "range": 1.2 },
+        { "type": "look_at", "point": "mold_target" },
+        { "type": "use_item", "ticks": 80, "swing": true },
+        { "type": "set_status", "statusText": "正在冷却铸件" },
+        { "type": "move_to", "point": "cooling_stand", "range": 1.2 },
+        { "type": "look_at", "point": "cooling_target" },
+        { "type": "use_item", "ticks": 60, "swing": true },
+        { "type": "set_held_item" },
+        { "type": "move_to_container", "container": "output", "range": 1.2 },
+        { "type": "look_at_container", "container": "output" },
+        { "type": "inspect_container", "container": "output", "ticks": 20 },
+        { "type": "craft_recipe", "input": "input", "output": "output" }
+      ]
+    },
+    {
+      "id": "geological_hammer",
+      "name": "地质锤",
+      "heldItem": "simukraft:geological_hammer",
+      "inputs": [
+        { "item": "minecraft:stick", "count": 2 },
+        { "item": "simukraft:industrial_housing", "count": 3 }
+      ],
+      "outputs": [
+        { "item": "simukraft:geological_hammer", "baseAmount": 1, "probability": 1.0, "ignoreMultiplier": true }
+      ],
+      "steps": [
+        { "type": "move_to_container", "container": "input", "range": 1.2 },
+        { "type": "look_at_container", "container": "input" },
+        { "type": "inspect_container", "container": "input", "ticks": 20 },
+        { "type": "require_inputs", "container": "input" },
+        { "type": "set_status", "statusText": "正在烧锅炉" },
+        { "type": "set_held_item", "item": "minecraft:coal" },
+        { "type": "move_to", "point": "boiler_stand", "range": 1.2 },
+        { "type": "look_at", "point": "boiler_target" },
+        { "type": "use_item", "ticks": 100, "swing": true },
+        { "type": "set_status", "statusText": "正在浇灌模具" },
+        { "type": "set_held_item", "item": "minecraft:iron_ingot" },
+        { "type": "move_to", "point": "mold_stand", "range": 1.2 },
+        { "type": "look_at", "point": "mold_target" },
+        { "type": "use_item", "ticks": 80, "swing": true },
+        { "type": "set_status", "statusText": "正在冷却铸件" },
+        { "type": "move_to", "point": "cooling_stand", "range": 1.2 },
+        { "type": "look_at", "point": "cooling_target" },
+        { "type": "use_item", "ticks": 60, "swing": true },
+        { "type": "set_held_item" },
+        { "type": "move_to_container", "container": "output", "range": 1.2 },
+        { "type": "look_at_container", "container": "output" },
+        { "type": "inspect_container", "container": "output", "ticks": 20 },
+        { "type": "craft_recipe", "input": "input", "output": "output" }
+      ]
+    },
+    {
+      "id": "deep_drill_bit",
+      "name": "深层钻头",
+      "heldItem": "simukraft:deep_drill_bit",
+      "inputs": [
+        { "item": "simukraft:industrial_housing", "count": 1 },
+        { "item": "minecraft:diamond", "count": 3 }
+      ],
+      "outputs": [
+        { "item": "simukraft:deep_drill_bit", "baseAmount": 1, "probability": 1.0, "ignoreMultiplier": true }
+      ],
+      "steps": [
+        { "type": "move_to_container", "container": "input", "range": 1.2 },
+        { "type": "look_at_container", "container": "input" },
+        { "type": "inspect_container", "container": "input", "ticks": 20 },
+        { "type": "require_inputs", "container": "input" },
+        { "type": "set_status", "statusText": "正在烧锅炉" },
+        { "type": "set_held_item", "item": "minecraft:coal" },
+        { "type": "move_to", "point": "boiler_stand", "range": 1.2 },
+        { "type": "look_at", "point": "boiler_target" },
+        { "type": "use_item", "ticks": 100, "swing": true },
+        { "type": "set_status", "statusText": "正在浇灌模具" },
+        { "type": "set_held_item", "item": "minecraft:iron_ingot" },
+        { "type": "move_to", "point": "mold_stand", "range": 1.2 },
+        { "type": "look_at", "point": "mold_target" },
+        { "type": "use_item", "ticks": 80, "swing": true },
+        { "type": "set_status", "statusText": "正在冷却铸件" },
+        { "type": "move_to", "point": "cooling_stand", "range": 1.2 },
+        { "type": "look_at", "point": "cooling_target" },
+        { "type": "use_item", "ticks": 60, "swing": true },
+        { "type": "set_held_item" },
+        { "type": "move_to_container", "container": "output", "range": 1.2 },
+        { "type": "look_at_container", "container": "output" },
+        { "type": "inspect_container", "container": "output", "ticks": 20 },
+        { "type": "craft_recipe", "input": "input", "output": "output" }
+      ]
+    },
+    {
+      "id": "shallow_drill_bit",
+      "name": "浅层钻头",
+      "heldItem": "simukraft:shallow_drill_bit",
+      "inputs": [
+        { "item": "simukraft:industrial_housing", "count": 1 },
+        { "item": "minecraft:iron_ingot", "count": 3 }
+      ],
+      "outputs": [
+        { "item": "simukraft:shallow_drill_bit", "baseAmount": 1, "probability": 1.0, "ignoreMultiplier": true }
+      ],
+      "steps": [
+        { "type": "move_to_container", "container": "input", "range": 1.2 },
+        { "type": "look_at_container", "container": "input" },
+        { "type": "inspect_container", "container": "input", "ticks": 20 },
+        { "type": "require_inputs", "container": "input" },
+        { "type": "set_status", "statusText": "正在烧锅炉" },
+        { "type": "set_held_item", "item": "minecraft:coal" },
+        { "type": "move_to", "point": "boiler_stand", "range": 1.2 },
+        { "type": "look_at", "point": "boiler_target" },
+        { "type": "use_item", "ticks": 100, "swing": true },
+        { "type": "set_status", "statusText": "正在浇灌模具" },
+        { "type": "set_held_item", "item": "minecraft:iron_ingot" },
+        { "type": "move_to", "point": "mold_stand", "range": 1.2 },
+        { "type": "look_at", "point": "mold_target" },
+        { "type": "use_item", "ticks": 80, "swing": true },
+        { "type": "set_status", "statusText": "正在冷却铸件" },
+        { "type": "move_to", "point": "cooling_stand", "range": 1.2 },
+        { "type": "look_at", "point": "cooling_target" },
+        { "type": "use_item", "ticks": 60, "swing": true },
+        { "type": "set_held_item" },
+        { "type": "move_to_container", "container": "output", "range": 1.2 },
+        { "type": "look_at_container", "container": "output" },
+        { "type": "inspect_container", "container": "output", "ticks": 20 },
+        { "type": "craft_recipe", "input": "input", "output": "output" }
+      ]
+    }
+  ]
+}

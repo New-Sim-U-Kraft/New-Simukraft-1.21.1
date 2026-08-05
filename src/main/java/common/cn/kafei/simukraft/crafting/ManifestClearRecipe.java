@@ -12,7 +12,7 @@ import net.minecraft.world.item.crafting.CustomRecipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.Level;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class ManifestClearRecipe extends CustomRecipe {
     public ManifestClearRecipe(CraftingBookCategory category) {
         super(category);

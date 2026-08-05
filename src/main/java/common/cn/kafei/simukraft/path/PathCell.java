@@ -2,7 +2,14 @@ package common.cn.kafei.simukraft.path;
 
 import net.minecraft.core.BlockPos;
 
-public record PathCell(BlockPos pos, int x, int y, int z, double standY, boolean water, boolean climbable, boolean woodenDoor, double cost) {
+public record PathCell(BlockPos pos, int x, int y, int z, double standY, boolean water, boolean climbable,
+                       boolean woodenDoor, boolean floorSupported, double cost) {
+    /** PathCell: 兼容未区分梯子下方支撑面的旧调用，默认视为无支撑。 */
+    public PathCell(BlockPos pos, int x, int y, int z, double standY, boolean water, boolean climbable,
+                    boolean woodenDoor, double cost) {
+        this(pos, x, y, z, standY, water, climbable, woodenDoor, false, cost);
+    }
+
     public long key() {
         return key(x, y, z);
     }

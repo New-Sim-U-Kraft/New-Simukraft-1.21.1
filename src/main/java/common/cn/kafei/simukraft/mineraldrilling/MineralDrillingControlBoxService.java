@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 /** MineralDrillingControlBoxService: 提供矿物钻井控制箱的服务端权威业务操作。 */
+@SuppressWarnings("null")
 public final class MineralDrillingControlBoxService {
     public static final int SHALLOW_DRILL_MIN_Y = 10;
 

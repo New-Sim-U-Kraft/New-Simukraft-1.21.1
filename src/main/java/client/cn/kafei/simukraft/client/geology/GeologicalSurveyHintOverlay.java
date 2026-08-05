@@ -12,6 +12,7 @@ import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import java.util.List;
 
 /** GeologicalSurveyHintOverlay: 在准星右下方绘制地质锤短提示。 */
+@SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 public final class GeologicalSurveyHintOverlay {
     private static final long DISPLAY_MILLIS = 2_000L;

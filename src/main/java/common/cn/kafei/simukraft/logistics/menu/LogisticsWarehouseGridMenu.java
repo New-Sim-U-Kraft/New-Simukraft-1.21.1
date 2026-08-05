@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class LogisticsWarehouseGridMenu extends AbstractContainerMenu {
     public static final int GRID_ROWS = 6;
     public static final int GRID_COLS = 9;

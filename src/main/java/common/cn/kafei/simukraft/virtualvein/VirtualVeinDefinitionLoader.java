@@ -24,6 +24,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
 
 /** VirtualVeinDefinitionLoader: 加载虚拟矿脉数据包定义。 */
+@SuppressWarnings("null")
 public final class VirtualVeinDefinitionLoader implements PreparableReloadListener {
     public static final VirtualVeinDefinitionLoader INSTANCE = new VirtualVeinDefinitionLoader();
     private static final String DIRECTORY = "virtual_veins";

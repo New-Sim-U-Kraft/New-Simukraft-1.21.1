@@ -9,7 +9,7 @@ import common.cn.kafei.simukraft.city.CityPermissionLevel;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record HudSyncPacket(int currentDay, int worldPopulation, String cityName, double cityFunds, int cityPopulation, CityPermissionLevel permissionLevel, boolean creativeMode) implements CustomPacketPayload {
     public static final Type<HudSyncPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "hud_sync"));
     public static final StreamCodec<RegistryFriendlyByteBuf, HudSyncPacket> STREAM_CODEC = StreamCodec.of(HudSyncPacket::encode, HudSyncPacket::decode);

@@ -30,7 +30,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import java.util.Calendar;
 import java.util.List;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 public final class PreviewSpecialBlockRenderer {
     private static final boolean XMAS_CHEST_TEXTURES = isXmasChestTexturePeriod();

@@ -3,7 +3,6 @@ package common.cn.kafei.simukraft.citizen;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.job.CityJobType;
 import common.cn.kafei.simukraft.registry.ModEntities;
-import common.cn.kafei.simukraft.storage.SimuSqliteStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
@@ -13,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CitizenService {
     private CitizenService() {
     }

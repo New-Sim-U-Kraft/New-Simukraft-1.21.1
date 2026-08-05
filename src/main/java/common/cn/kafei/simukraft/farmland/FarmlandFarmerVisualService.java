@@ -8,7 +8,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class FarmlandFarmerVisualService {
     private FarmlandFarmerVisualService() {
     }

@@ -6,7 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class SimuKraftMaterialConfigPage {
     private static final int LIST_WIDTH = 420;
     private static final int CATEGORY_WIDTH = 600;

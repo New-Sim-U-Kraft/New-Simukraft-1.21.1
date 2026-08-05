@@ -20,7 +20,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
 
 /** MineralDrillingControlBoxBlock: 提供矿物钻井控制箱的水平朝向。 */
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class MineralDrillingControlBoxBlock extends Block {
     public MineralDrillingControlBoxBlock() {
         super(BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(0.8F).sound(SoundType.METAL));

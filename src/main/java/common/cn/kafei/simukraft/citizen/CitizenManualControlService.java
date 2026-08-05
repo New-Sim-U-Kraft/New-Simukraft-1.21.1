@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 
 /** 处理信息界面的跟随玩家与原地停留开关。 */
+@SuppressWarnings("null")
 public final class CitizenManualControlService {
     private static final double FOLLOW_START_DISTANCE_SQR = 16.0D;
     private static final double FOLLOW_STOP_DISTANCE_SQR = 6.25D;

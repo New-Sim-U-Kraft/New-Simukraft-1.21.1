@@ -27,7 +27,7 @@ import net.minecraft.world.entity.player.Player;
 import java.util.function.Supplier;
 
 /** MineralDrillingUiLayout: 组合钻井控制区、矿脉信息、操作按钮和玩家背包。 */
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class MineralDrillingUiLayout {
     private static final ResourceLocation ORE_STYLESHEET = StylesheetManager.ORE;
     private static final ResourceLocation SIMUKRAFT_ORE_STYLESHEET =
@@ -219,13 +219,18 @@ public final class MineralDrillingUiLayout {
         int top = 4;
         int buttonHeight = Math.max(16, (height - top * 2 - gap * 4) / 5);
         int buttonWidth = width - 8;
-        panel.addChild(clientButton(Component.translatable("gui.simukraft.mineral_drilling.hire"),
-                4, top, buttonWidth, buttonHeight, true,
-                () -> clientActions.requestHire(holder.boxPos())));
+        boolean hasWorker = holder.snapshot().hasWorker();
+        Button hireButton = clientButton(Component.translatable("gui.simukraft.mineral_drilling.hire"),
+                4, top, buttonWidth, buttonHeight, !hasWorker,
+                () -> clientActions.requestHire(holder.boxPos()));
+        bindActive(hireButton, () -> !holder.snapshot().hasWorker());
+        panel.addChild(hireButton);
         top += buttonHeight + gap;
-        panel.addChild(serverButton(Component.translatable("gui.simukraft.mineral_drilling.fire"),
-                4, top, buttonWidth, buttonHeight, true,
-                () -> holder.fireWorker(player), false));
+        Button fireButton = serverButton(Component.translatable("gui.simukraft.mineral_drilling.fire"),
+                4, top, buttonWidth, buttonHeight, hasWorker,
+                () -> holder.fireWorker(player), false);
+        bindActive(fireButton, () -> holder.snapshot().hasWorker());
+        panel.addChild(fireButton);
         top += buttonHeight + gap;
         panel.addChild(boundServerButton(holder::toggleText, 4, top, buttonWidth, buttonHeight,
                 true, () -> holder.toggleRunning(player), false));
@@ -311,6 +316,14 @@ public final class MineralDrillingUiLayout {
 
     private static IGuiTexture buttonTexture(int color) {
         return new GuiTextureGroup(new ColorRectTexture(color), new ColorBorderTexture(1, FRAME_OUTER));
+    }
+
+    /** bindActive: 将服务端权威的可用状态单向同步到客户端按钮。 */
+    private static void bindActive(Button button, Supplier<Boolean> activeSupplier) {
+        button.addSyncValue(DataBindingBuilder.boolS2C(activeSupplier)
+                .remoteSetter(button::setActive)
+                .build()
+                .getSyncValue());
     }
 
     private static Label boundLabel(Supplier<Component> supplier,

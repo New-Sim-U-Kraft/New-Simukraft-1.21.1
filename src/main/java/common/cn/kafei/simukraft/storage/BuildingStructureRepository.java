@@ -34,7 +34,7 @@ import java.util.UUID;
  * <p>线程约定：写入（{@link #upsert} / {@link #delete}）经建筑库的写线程执行，可在任意非写线程调用；
  * 读取（{@link #loadByDimension}）借池化连接，调用方通常在服务器主线程。
  */
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class BuildingStructureRepository {
     private final BuildingStructureSqliteDatabase database;
 

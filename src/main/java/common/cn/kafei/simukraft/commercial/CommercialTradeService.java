@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CommercialTradeService {
     private static final int MAX_TRADE_COUNT = 64;
 

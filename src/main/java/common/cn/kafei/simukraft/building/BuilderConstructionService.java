@@ -50,7 +50,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class BuilderConstructionService {
     // 建筑结构变换后的方块列表缓存，避免每个 tick 重复解析 NBT/旋转坐标。
     private static final ConcurrentMap<String, CompletableFuture<CachedStructure>> STRUCTURE_CACHE = new ConcurrentHashMap<>();

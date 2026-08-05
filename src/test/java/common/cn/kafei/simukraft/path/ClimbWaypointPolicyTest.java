@@ -34,8 +34,22 @@ class ClimbWaypointPolicyTest {
 
         assertFalse(ClimbWaypointPolicy.isReached(new Vec3(1.50D, 65.70D, 0.5D), waypoints, 1),
                 "向上爬梯不能在离目标高度过远时提前到达");
-        assertTrue(ClimbWaypointPolicy.isReached(new Vec3(1.50D, 65.82D, 0.5D), waypoints, 1),
+        assertTrue(ClimbWaypointPolicy.isReached(new Vec3(1.50D, 65.88D, 0.5D), waypoints, 1),
                 "越过接近目标高度的阈值后可以切到下一点");
+    }
+
+    @Test
+    void trapdoorHeightOffsetCannotSkipClimbWaypoint() {
+        List<PathWaypoint> waypoints = List.of(
+                new PathWaypoint(new BlockPos(0, 65, 0), new Vec3(0.5D, 65.1875D, 0.5D), MovementMode.WALK),
+                waypoint(1, 65, 0, MovementMode.CLIMB),
+                waypoint(1, 64, 0, MovementMode.CLIMB)
+        );
+
+        assertFalse(ClimbWaypointPolicy.isReached(new Vec3(1.5D, 65.1875D, 0.5D), waypoints, 1),
+                "活板门高度差不能被当成已经到达梯子节点");
+        assertTrue(ClimbWaypointPolicy.isReached(new Vec3(1.5D, 65.12D, 0.5D), waypoints, 1),
+                "下移到梯子高度附近后才能进入下一段");
     }
 
     @Test

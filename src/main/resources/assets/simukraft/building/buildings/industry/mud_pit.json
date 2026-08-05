@@ -1,0 +1,64 @@
+{
+  "id": "simukraft:mud_pit",
+  "name": "泥胚工棚",
+  "buildingId": "mud_pit",
+  "buildingName": "泥胚工棚",
+  "jobType": "mud_worker",
+  "jobName": "泥胚工",
+  "heldItem": "minecraft:packed_mud",
+  "points": {
+    "stand": { "type": "structure_pos", "positions": [[3, 1, 4], [4, 1, 4]], "select": "nearest" },
+    "machine": { "type": "structure_pos", "pos": [4, 0, 5] }
+  },
+  "containers": {
+    "input": { "type": "structure_pos", "positions": [[1, 0, 5], [2, 0, 5]] },
+    "output": { "type": "structure_pos", "positions": [[5, 0, 5], [6, 0, 5]] }
+  },
+  "workTime": { "start": 100, "end": 12000 },
+  "recipes": [
+    {
+      "id": "dirt_to_packed_mud",
+      "name": "泥土制泥胚",
+      "recipeId": "dirt_to_packed_mud",
+      "recipeName": "泥土制泥胚",
+      "heldItem": "minecraft:packed_mud",
+      "inputs": [
+        { "item": "minecraft:dirt", "count": 16 }
+      ],
+      "outputs": [
+        { "item": "minecraft:packed_mud", "baseAmount": 16, "probability": 1, "ignoreMultiplier": true }
+      ],
+      "steps": [
+        { "type": "move_to_container", "container": "input", "range": 1.2 },
+        { "type": "look_at_container", "container": "input" },
+        { "type": "inspect_container", "ticks": 20, "container": "input" },
+        { "type": "require_inputs", "container": "input" },
+        { "type": "require_output_space", "container": "output" },
+        { "type": "set_held_item", "item": "minecraft:dirt" },
+        { "type": "move_to", "point": "stand", "range": 1.2 },
+        { "type": "look_at", "point": "machine" },
+        { "type": "use_item", "ticks": 80, "swing": true },
+        { "type": "set_held_item", "item": "minecraft:packed_mud" },
+        { "type": "move_to_container", "container": "output", "range": 1.2 },
+        { "type": "look_at_container", "container": "output" },
+        { "type": "inspect_container", "ticks": 20, "container": "output" },
+        { "type": "craft_recipe", "input": "input", "output": "output" }
+      ],
+      "materials": [
+        { "item": "minecraft:dirt", "count": 16, "consume": true }
+      ],
+      "products": [
+        { "item": "minecraft:packed_mud", "baseAmount": 16, "probability": 1, "ignoreMultiplier": true }
+      ]
+    }
+  ],
+  "materials": [
+    { "item": "minecraft:dirt", "consume": true, "amount": 16 }
+  ],
+  "products": [
+    { "item": "minecraft:packed_mud", "baseAmount": 16, "probability": 1, "ignoreMultiplier": true }
+  ],
+  "spawnEntity": { "enabled": false, "type": "minecraft:sheep", "count": 0 },
+  "hasLunchBreak": true,
+  "messages": { "hired": "§a{npcName} {jobName} 已开始工作", "workComplete": "§6{npcName} {jobName}：生产完成", "chestFull": "§c{npcName} {jobName}：箱子已满！", "xpGained": "{npcName} 获得经验值" }
+}

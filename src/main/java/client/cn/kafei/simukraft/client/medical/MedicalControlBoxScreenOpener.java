@@ -29,6 +29,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /** 医疗控制箱 LDLib 单页界面。 */
+@SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 public final class MedicalControlBoxScreenOpener {
     private static final int PANEL_WIDTH = 340;

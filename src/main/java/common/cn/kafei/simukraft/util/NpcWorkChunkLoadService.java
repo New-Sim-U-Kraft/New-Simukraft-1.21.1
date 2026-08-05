@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 同一区块被多个任务引用时，只在最后一个任务结束后才真正移除 Ticket。
  */
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class NpcWorkChunkLoadService {
     private static final int TICKET_DISTANCE = 2;
     private static final ConcurrentMap<String, AtomicInteger> REF_COUNTS = new ConcurrentHashMap<>();

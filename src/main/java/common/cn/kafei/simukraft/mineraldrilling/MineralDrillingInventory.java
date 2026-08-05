@@ -8,6 +8,7 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
 
 /** MineralDrillingInventory: 保存钻杆与钻头两个真实槽位，并在容器层校验物品类型。 */
+@SuppressWarnings("null")
 public final class MineralDrillingInventory extends SimpleContainer {
     public static final int DRILL_ROD_SLOT = 0;
     public static final int DRILL_BIT_SLOT = 1;

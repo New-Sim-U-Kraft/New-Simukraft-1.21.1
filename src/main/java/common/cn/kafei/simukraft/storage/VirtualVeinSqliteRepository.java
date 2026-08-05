@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 /** VirtualVeinSqliteRepository: 持久化矿区档案和共享储量。 */
+@SuppressWarnings("null")
 public final class VirtualVeinSqliteRepository {
     private static final String TABLE = "virtual_vein_fields";
     private static final String FIND_SQL = "SELECT * FROM " + TABLE + " WHERE dimension_id = ? AND field_cell_x = ? AND field_cell_z = ? AND field_biome_id = ?";

@@ -29,7 +29,7 @@ import java.sql.SQLException;
  *       与队列中其他写入保持全序，调用线程不再直接执行 SQL。
  * </ul>
  */
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class SimuSqliteDatabase implements Closeable {
     private static final String STORAGE_DIR = SimuKraft.MOD_ID;
     private static final String DATABASE_FILE = SimuKraft.MOD_ID + ".sqlite";

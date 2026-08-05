@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentMap;
  * NPC 必须先移动到目标格旁边，再由服务端提交对应方块变化，避免瞬间批量改田。
  */
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class FarmlandFarmingService {
     private static final ConcurrentMap<String, LevelRuntime> RUNTIMES = new ConcurrentHashMap<>();
     private static final long IDLE_INTERVAL_TICKS = 40L;

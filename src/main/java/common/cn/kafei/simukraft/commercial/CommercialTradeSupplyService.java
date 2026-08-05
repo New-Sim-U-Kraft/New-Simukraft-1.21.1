@@ -10,7 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CommercialTradeSupplyService {
     private static final int MATERIAL_RADIUS_XZ = 5;
     private static final int MATERIAL_RADIUS_Y = 2;

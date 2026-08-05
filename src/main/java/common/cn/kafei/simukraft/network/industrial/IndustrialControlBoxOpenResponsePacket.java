@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record IndustrialControlBoxOpenResponsePacket(BlockPos boxPos,
                                                      boolean hasBuilding,
                                                      String buildingName,

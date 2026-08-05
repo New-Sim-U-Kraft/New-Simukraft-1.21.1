@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 /** 医生中午采购、携带并向住院患者分发餐食的运行时服务。 */
+@SuppressWarnings("null")
 public final class MedicalMealService {
     public static final String BUYING_MEALS_STATUS = "gui.npc.status.medical_buying_meals";
     public static final String DELIVERING_MEALS_STATUS = "gui.npc.status.medical_delivering_meals";

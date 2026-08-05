@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 /** NPC 的真实物品栏；普通背包为 7x2，装备与双手使用独立槽位。 */
+@SuppressWarnings("null")
 public final class CitizenInventory extends SimpleContainer {
     public static final int BACKPACK_COLUMNS = 7;
     public static final int BACKPACK_ROWS = 2;

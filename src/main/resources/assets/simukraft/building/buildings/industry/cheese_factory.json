@@ -1,0 +1,143 @@
+{
+  "id": "simukraft:cheese_factory",
+  "name": "奶酪工厂",
+  "buildingId": "cheese_factory",
+  "buildingName": "奶酪工厂",
+  "jobType": "cheese_maker",
+  "jobName": "奶酪厂工人",
+  "heldItem": "simukraft:cheese_block",
+  "points": {
+    "pour_stand": { "type": "structure_pos", "pos": [12, 1, 7] },
+    "stir_stand": { "type": "structure_pos", "pos": [4, 1, 7] },
+    "pour_target": { "type": "structure_pos", "pos": [8, 1, 4] },
+    "machine": { "type": "structure_pos", "pos": [4, 1, 5] },
+    "milk_pool": {
+      "type": "structure_pos",
+      "positions": [
+        [3, 1, 4], [3, 1, 5],
+        [4, 1, 4], [4, 1, 5],
+        [5, 1, 4], [5, 1, 5],
+        [6, 1, 4], [6, 1, 5],
+        [7, 1, 4], [7, 1, 5],
+        [8, 1, 4], [8, 1, 5],
+        [9, 1, 4], [9, 1, 5],
+        [10, 1, 4], [10, 1, 5],
+        [11, 1, 4], [11, 1, 5],
+        [12, 1, 4], [12, 1, 5],
+        [13, 1, 4], [13, 1, 5],
+        [14, 1, 4], [14, 1, 5]
+      ],
+      "select": "ordered"
+    }
+  },
+  "containers": {
+    "input": {
+      "type": "structure_pos",
+      "positions": [[15, 1, 12], [15, 1, 13]]
+    },
+    "output": {
+      "type": "structure_pos",
+      "positions": [[15, 1, 12], [15, 1, 13]]
+    }
+  },
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "recipes": [
+    {
+      "id": "cheeseFactory_default",
+      "name": "奶酪生产",
+      "recipeId": "cheeseFactory_default",
+      "recipeName": "奶酪生产",
+      "heldItem": "minecraft:milk_bucket",
+      "inputs": [
+        { "item": "minecraft:milk_bucket", "count": 24 }
+      ],
+      "outputs": [
+        { "item": "minecraft:bucket", "baseAmount": 24, "probability": 1, "ignoreMultiplier": true },
+        { "item": "simukraft:cheese_block", "baseAmount": 24, "probability": 1, "ignoreMultiplier": true }
+      ],
+      "steps": [
+        { "type": "move_to_container", "container": "input", "range": 1.2 },
+        { "type": "look_at_container", "container": "input" },
+        { "type": "inspect_container", "container": "input", "ticks": 20 },
+        { "type": "require_inputs", "container": "input" },
+        { "type": "require_output_space", "container": "output" },
+        { "type": "set_held_item", "item": "minecraft:milk_bucket" },
+        {
+          "type": "repeat",
+          "positions": [
+            [3, 1, 4], [3, 1, 5],
+            [4, 1, 4], [4, 1, 5],
+            [5, 1, 4], [5, 1, 5],
+            [6, 1, 4], [6, 1, 5],
+            [7, 1, 4], [7, 1, 5],
+            [8, 1, 4], [8, 1, 5],
+            [9, 1, 4], [9, 1, 5],
+            [10, 1, 4], [10, 1, 5],
+            [11, 1, 4], [11, 1, 5],
+            [12, 1, 4], [12, 1, 5],
+            [13, 1, 4], [13, 1, 5],
+            [14, 1, 4], [14, 1, 5]
+          ],
+          "steps": [
+            { "type": "move_to", "point": "pour_stand", "range": 1.2 },
+            { "type": "look_at", "point": "pour_target" },
+            { "type": "set_status", "statusKey": "gui.simukraft.industrial.status.running", "statusText": "正在逐桶倒牛奶" },
+            { "type": "use_item", "ticks": 12, "swing": false },
+            { "type": "place_fluid", "fluid": "simukraft:milk_fluid", "item": "minecraft:milk_bucket", "container": "input", "consume": true, "replace": false, "swing": true },
+            { "type": "set_held_item", "item": "minecraft:bucket" },
+            { "type": "move_to_container", "container": "output", "range": 1.2 },
+            { "type": "insert_item", "container": "output", "item": "minecraft:bucket", "count": 1 },
+            { "type": "set_held_item", "item": "minecraft:milk_bucket" }
+          ]
+        },
+        { "type": "set_status", "statusKey": "gui.simukraft.industrial.status.running", "statusText": "前往操作工位" },
+        { "type": "set_held_item", "item": "simukraft:cheese_block" },
+        { "type": "move_to", "point": "stir_stand", "range": 1.2 },
+        { "type": "look_at", "point": "machine" },
+        { "type": "set_status", "statusKey": "gui.simukraft.industrial.status.running", "statusText": "正在检查牛奶粘度" },
+        { "type": "use_item", "ticks": 40, "swing": true },
+        { "type": "set_status", "statusKey": "gui.simukraft.industrial.status.running", "statusText": "正在添加绝密成分" },
+        { "type": "use_item", "ticks": 100, "swing": true },
+        { "type": "set_status", "statusKey": "gui.simukraft.industrial.status.running", "statusText": "等待最后一格奶源凝固" },
+        { "type": "require_block", "pos": [14, 1, 5], "block": "simukraft:cheese_block", "statusText": "等待最后一格奶源凝固" },
+        { "type": "set_status", "statusKey": "gui.simukraft.industrial.status.running", "statusText": "正在收集凝固奶酪" },
+        { "type": "use_item", "ticks": 80, "swing": true },
+        { "type": "destroy_block", "point": "milk_pool", "dropItems": false, "swing": true },
+        { "type": "set_status", "statusKey": "gui.simukraft.industrial.status.running", "statusText": "前往箱子存放奶酪" },
+        { "type": "move_to_container", "container": "output", "range": 1.2 },
+        { "type": "look_at_container", "container": "output" },
+        { "type": "inspect_container", "container": "output", "ticks": 20 },
+        { "type": "insert_item", "container": "output", "item": "simukraft:cheese_block", "count": 24 }
+      ],
+      "materials": [
+        { "item": "minecraft:milk_bucket", "count": 24, "consume": true }
+      ],
+      "products": [
+        { "item": "minecraft:bucket", "baseAmount": 24, "probability": 1, "ignoreMultiplier": true },
+        { "item": "simukraft:cheese_block", "baseAmount": 24, "probability": 1, "ignoreMultiplier": true }
+      ]
+    }
+  ],
+  "materials": [
+    { "item": "minecraft:milk_bucket", "consume": true, "amount": 24 }
+  ],
+  "products": [
+    { "item": "minecraft:bucket", "baseAmount": 24, "probability": 1, "ignoreMultiplier": true },
+    { "item": "simukraft:cheese_block", "baseAmount": 24, "probability": 1, "ignoreMultiplier": true }
+  ],
+  "spawnEntity": {
+    "enabled": false,
+    "type": "minecraft:sheep",
+    "count": 5
+  },
+  "hasLunchBreak": true,
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：生产完成",
+    "chestFull": "§c{npcName} {jobName}：箱子已满！",
+    "xpGained": "{npcName} 获得经验值"
+  }
+}

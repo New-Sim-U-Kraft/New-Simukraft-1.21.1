@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentMap;
  * 记录 NPC 当前计划移动方向，用于主线程执行阶段做轻量避让。
  */
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class PathCrowdCoordinator {
     private static final double SEARCH_RADIUS = 2.75D;
     private static final double FRONT_DISTANCE = 2.2D;

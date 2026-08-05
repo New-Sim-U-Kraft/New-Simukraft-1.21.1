@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class BuildingIntegrityService {
     private BuildingIntegrityService() {
     }

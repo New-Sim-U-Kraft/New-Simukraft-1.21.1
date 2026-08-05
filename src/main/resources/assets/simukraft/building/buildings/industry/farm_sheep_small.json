@@ -1,0 +1,170 @@
+{
+  "id": "simukraft:farm_sheep_small",
+  "name": "养羊农场",
+  "buildingId": "farm_sheep_small",
+  "buildingName": "养羊农场",
+  "jobType": "wool_farmer",
+  "jobName": "牧羊人",
+  "heldItem": "minecraft:shears",
+  "points": {
+    "stand": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          4,
+          1,
+          4
+        ],
+        [
+          3,
+          1,
+          4
+        ],
+        [
+          5,
+          1,
+          4
+        ]
+      ],
+      "select": "nearest"
+    },
+    "machine": {
+      "type": "structure_pos",
+      "pos": [
+        4,
+        1,
+        4
+      ]
+    }
+  },
+  "containers": {
+    "input": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          4,
+          0,
+          3
+        ]
+      ]
+    },
+    "output": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          4,
+          0,
+          5
+        ]
+      ]
+    }
+  },
+  "workTime": {
+    "start": 100,
+    "end": 12000
+  },
+  "recipes": [
+    {
+      "id": "woolProduce",
+      "name": "羊毛生产",
+      "recipeId": "woolProduce",
+      "recipeName": "羊毛生产",
+      "heldItem": "minecraft:shears",
+      "inputs": [],
+      "outputs": [
+        {
+          "item": "minecraft:white_wool",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 1.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "require_output_space",
+          "container": "output"
+        },
+        {
+          "type": "set_held_item",
+          "item": "minecraft:shears"
+        },
+        {
+          "type": "move_to_entity",
+          "entityType": "minecraft:sheep",
+          "range": 1.5
+        },
+        {
+          "type": "shear_entities",
+          "entityType": "minecraft:sheep",
+          "output": "output",
+          "count": 1,
+          "ticks": 40,
+          "swing": true
+        },
+        {
+          "type": "require_drops",
+          "radius": 8,
+          "point": "machine",
+          "timeoutTicks": 200
+        },
+        {
+          "type": "set_held_item",
+          "item": "minecraft:white_wool"
+        },
+        {
+          "type": "collect_drops",
+          "output": "output",
+          "radius": 8,
+          "point": "machine",
+          "timeoutTicks": 200
+        },
+        {
+          "type": "move_to_container",
+          "container": "output",
+          "range": 1.2
+        },
+        {
+          "type": "look_at_container",
+          "container": "output"
+        },
+        {
+          "type": "deposit_carried_items",
+          "container": "output",
+          "ticks": 20,
+          "itemSpecs": [
+            "#minecraft:wool"
+          ]
+        }
+      ],
+      "materials": [],
+      "products": [
+        {
+          "item": "minecraft:white_wool",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 1.0
+        }
+      ]
+    }
+  ],
+  "products": [
+    {
+      "item": "minecraft:white_wool",
+      "baseAmount": 1,
+      "randomRange": 2,
+      "probability": 1.0
+    }
+  ],
+  "spawnEntity": {
+    "enabled": true,
+    "type": "minecraft:sheep",
+    "count": 5
+  },
+  "hasLunchBreak": true,
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：生产完成",
+    "chestFull": "§c{npcName} {jobName}：箱子已满！",
+    "xpGained": "{npcName} 获得经验值"
+  }
+}

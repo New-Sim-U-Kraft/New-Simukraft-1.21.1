@@ -78,7 +78,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class ModNetwork {
     private static final String NETWORK_VERSION = "25";
 

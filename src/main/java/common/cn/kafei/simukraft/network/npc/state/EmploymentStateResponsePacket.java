@@ -21,7 +21,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record EmploymentStateResponsePacket(BlockPos sourcePos, String sourceType, UUID builderCitizenId, UUID plannerCitizenId, String statusKey) implements CustomPacketPayload {
     public static final Type<EmploymentStateResponsePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "employment_state_response"));
     public static final StreamCodec<RegistryFriendlyByteBuf, EmploymentStateResponsePacket> STREAM_CODEC = StreamCodec.of(EmploymentStateResponsePacket::encode, EmploymentStateResponsePacket::decode);

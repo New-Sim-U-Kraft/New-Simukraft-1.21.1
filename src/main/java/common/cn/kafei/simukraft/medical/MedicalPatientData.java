@@ -5,6 +5,7 @@ import net.minecraft.nbt.CompoundTag;
 import java.util.UUID;
 
 /** 居民医疗状态，随 CitizenData 一起写入 SQLite。 */
+@SuppressWarnings("null")
 public final class MedicalPatientData {
     private DiseaseType disease = DiseaseType.NONE;
     private long diseaseSinceDay;

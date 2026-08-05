@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@SuppressWarnings("null")
 /** 物流写入回归：同位置顶替的预清理必须覆盖所有保存路径，端口必须按数值后缀序加载。 */
 class LogisticsSqliteRepositoryWriteTest {
     @TempDir

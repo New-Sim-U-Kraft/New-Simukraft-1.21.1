@@ -1,0 +1,16 @@
+name:现代小型公寓1
+size:16 x 29 x 11
+amount:180.00元
+author:XiaoFei小非
+description:小型单身公寓，帮助您引进更多年轻人。
+tags:price_high,material_medium,stage_medium
+unit:201, 11,5,1~8,7,8
+unit:202, 4,5,1~1,7,8
+unit:301, 11,9,1~8,11,8
+unit:302, 4,9,1~1,11,8
+unit:401, 11,13,1~8,15,8
+unit:402, 4,13,1~1,15,8
+unit:501, 11,17,1~8,19,8
+unit:502, 4,17,1~1,19,8
+unit:601, 11,21,1~8,23,8
+unit:602, 4,21,1~1,23,8

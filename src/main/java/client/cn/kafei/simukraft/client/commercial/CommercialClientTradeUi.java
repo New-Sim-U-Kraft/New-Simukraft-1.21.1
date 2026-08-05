@@ -13,7 +13,7 @@ import net.minecraft.world.item.Items;
 import java.util.List;
 import java.util.Locale;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class CommercialClientTradeUi {
     private CommercialClientTradeUi() {
     }

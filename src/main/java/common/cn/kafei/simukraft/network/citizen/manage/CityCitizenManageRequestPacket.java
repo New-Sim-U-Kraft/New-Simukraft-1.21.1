@@ -25,7 +25,7 @@ import java.util.Optional;
 /**
  * CityCitizenManageRequestPacket: 请求打开城市核心“市民管理”界面（客户端 -> 服务端）。
  */
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record CityCitizenManageRequestPacket(BlockPos pos) implements CustomPacketPayload {
     public static final Type<CityCitizenManageRequestPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_citizen_manage_request"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CityCitizenManageRequestPacket> STREAM_CODEC = StreamCodec.of(CityCitizenManageRequestPacket::encode, CityCitizenManageRequestPacket::decode);

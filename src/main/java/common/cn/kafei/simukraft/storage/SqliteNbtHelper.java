@@ -5,7 +5,7 @@ import net.minecraft.nbt.CompoundTag;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class SqliteNbtHelper {
     private SqliteNbtHelper() {
     }

@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.BlockHitResult;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class LogisticsServerBoxBlock extends Block {
     public LogisticsServerBoxBlock() {
         super(BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_BLUE).strength(1.0F).sound(SoundType.METAL));

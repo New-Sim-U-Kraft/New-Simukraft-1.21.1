@@ -10,6 +10,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 /** NPC 信息容器的客户端 LDLib 入口。 */
+@SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 public final class CitizenScreenOpener {
     private CitizenScreenOpener() {

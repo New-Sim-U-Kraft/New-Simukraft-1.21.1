@@ -169,9 +169,11 @@ final class HybridPathfinder {
      * <p>This generator also mounts a ladder/vine/scaffold one level above or below an adjacent
      * floor: a citizen standing on the rim of a shaft must be able to step sideways-and-down onto
      * the first rung to descend (the common "hole in the floor with a ladder below the rim" build),
-     * or sideways-and-up onto a rung whose lowest cell sits one block above the floor. These
-     * {@code CLIMB} entries are orthogonal-only for the same corner-safety reason, and once the
-     * citizen is on the ladder {@link #addClimbNeighbors} drives the vertical travel.
+     * or sideways-and-up onto a rung whose lowest cell sits one block above the floor. A raised
+     * ladder over a solid support block is entered as a {@code JUMP}, so the citizen clears
+     * the block before grabbing the ladder; a hanging ladder remains a {@code CLIMB} entry. Both
+     * variants are orthogonal-only for the same corner-safety reason, and once the citizen is on the
+     * ladder {@link #addClimbNeighbors} drives the vertical travel.
      */
     private static void addVerticalTransitions(PathSnapshot snapshot, PathCell current, MovementIntent intent, List<Neighbor> output) {
         if (current.climbable()) {
@@ -200,7 +202,10 @@ final class HybridPathfinder {
                         && up.standY() - current.standY() <= 1.25D
                         && canCrossHorizontalBoundary(snapshot, current, up)
                         && hasVerticalPassage(snapshot, current, up)) {
-                    output.add(new Neighbor(up, MovementMode.CLIMB, 8.0D + distance(current, up)));
+                    // 梯子格下方有支撑面时，先跳上方块顶部再进入梯子，不能在方块侧面横移入梯。
+                    MovementMode entryMode = up.floorSupported() ? MovementMode.JUMP : MovementMode.CLIMB;
+                    double entryCost = entryMode == MovementMode.JUMP ? 2.5D : 8.0D;
+                    output.add(new Neighbor(up, entryMode, entryCost + distance(current, up)));
                 }
                 PathCell ladderBelow = snapshot.cell(current.x() + dx, current.y() - 1, current.z() + dz);
                 if (ladderBelow != null

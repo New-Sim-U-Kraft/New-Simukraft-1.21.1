@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentMap;
  * 周期性整表 saveToSqlite 由服务端 tick/关服流程调用。
  */
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class FarmlandBoxManager extends SavedData {
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_farmland_boxes";
     private static final Factory<FarmlandBoxManager> FACTORY = new Factory<>(FarmlandBoxManager::new, FarmlandBoxManager::load, null);

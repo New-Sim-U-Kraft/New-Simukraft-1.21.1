@@ -18,7 +18,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CitizenTeleportService {
     private static final double MAX_LOW_STAND_OFFSET = 0.75D;
     private static final int NEARBY_SAFE_HORIZONTAL_RADIUS = 2;

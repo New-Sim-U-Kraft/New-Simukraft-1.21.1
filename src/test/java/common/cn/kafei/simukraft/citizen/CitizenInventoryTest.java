@@ -11,6 +11,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings("null")
 class CitizenInventoryTest {
     @Test
     void serializesAllSlotsWithNativeItemStackNbt() {

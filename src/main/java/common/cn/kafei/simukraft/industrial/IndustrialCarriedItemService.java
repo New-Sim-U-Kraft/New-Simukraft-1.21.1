@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 /** 工业携带物品服务；新数据直接使用受雇 NPC 的实体 NBT 背包。 */
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class IndustrialCarriedItemService {
     private static final String LEGACY_ITEMS_KEY = "items";
 

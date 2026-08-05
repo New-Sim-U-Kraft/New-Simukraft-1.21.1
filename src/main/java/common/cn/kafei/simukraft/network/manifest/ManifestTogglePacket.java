@@ -12,7 +12,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record ManifestTogglePacket(InteractionHand hand, int index, boolean checked) implements CustomPacketPayload {
     public static final Type<ManifestTogglePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "manifest_toggle"));
     public static final StreamCodec<RegistryFriendlyByteBuf, ManifestTogglePacket> STREAM_CODEC = StreamCodec.of(ManifestTogglePacket::encode, ManifestTogglePacket::decode);

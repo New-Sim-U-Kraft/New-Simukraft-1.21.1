@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@SuppressWarnings("null")
 class MineralDrillingInventoryTest {
     /** serializesValidatedToolSlotsWithNativeComponents: 验证两格工具库存的原版 NBT 往返。 */
     @Test

@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
  * pit, a waterside, a step lip and a wall corner — and every assertion is an independent oracle that
  * fails on the pre-fix behaviour and passes on the fixed behaviour.
  */
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 class HybridPathfinderRegressionTest {
     private static final ResourceLocation DIMENSION = ResourceLocation.fromNamespaceAndPath("minecraft", "overworld");
 
@@ -376,7 +376,21 @@ class HybridPathfinderRegressionTest {
         assertNoDiagonalClimbElevation(result);
         assertTrue(result.result().waypoints().stream()
                         .anyMatch(waypoint -> waypoint.mode() == MovementMode.CLIMB && waypoint.blockPos().getY() >= 65),
-                "citizen never mounted the raised ladder rung");
+                        "citizen never mounted the raised ladder rung");
+    }
+
+    /** A raised ladder cell with a solid floor below must be entered by jumping onto that floor. */
+    @Test
+    void supportedRaisedLadderTargetUsesJumpEntry() {
+        Scene scene = new Scene();
+        scene.floor(0, 64, 0).supportedClimb(1, 65, 0);
+
+        PathCase result = scene.path(0, 64, 0, 1, 65, 0);
+
+        assertSuccess(result);
+        assertEquals(MovementMode.JUMP, lastWaypoint(result).mode(),
+                "被梯子占用的高位目标格必须先跳上其下方方块");
+        assertEquals(new BlockPos(1, 65, 0), lastWaypoint(result).blockPos());
     }
 
     /**
@@ -549,12 +563,24 @@ class HybridPathfinderRegressionTest {
             return cell(x, y, z, y, false, true, false, 2.0D);
         }
 
+        /** supportedClimb: 创建下方带可落脚支撑面的梯子格，用于高位入梯回归测试。 */
+        private Scene supportedClimb(int x, int y, int z) {
+            return cell(x, y, z, y, false, true, false, true, 2.0D);
+        }
+
         private Scene woodenDoor(int x, int y, int z) {
             return cell(x, y, z, y, false, false, true, 3.2D);
         }
 
         private Scene cell(int x, int y, int z, double standY, boolean water, boolean climbable, boolean woodenDoor, double cost) {
-            cells.put(PathCell.key(x, y, z), new PathCell(new BlockPos(x, y, z), x, y, z, standY, water, climbable, woodenDoor, cost));
+            return cell(x, y, z, standY, water, climbable, woodenDoor, !water && !climbable, cost);
+        }
+
+        /** cell: 写入带明确支撑面标记的路径单元，并同步登记实体可通过空间。 */
+        private Scene cell(int x, int y, int z, double standY, boolean water, boolean climbable,
+                           boolean woodenDoor, boolean floorSupported, double cost) {
+            cells.put(PathCell.key(x, y, z), new PathCell(new BlockPos(x, y, z), x, y, z, standY,
+                    water, climbable, woodenDoor, floorSupported, cost));
             passage(x, y, z);
             return this;
         }

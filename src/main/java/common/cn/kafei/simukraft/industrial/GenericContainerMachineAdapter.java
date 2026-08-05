@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class GenericContainerMachineAdapter implements IndustrialMachineAdapter {
     @Override
     public String id() {

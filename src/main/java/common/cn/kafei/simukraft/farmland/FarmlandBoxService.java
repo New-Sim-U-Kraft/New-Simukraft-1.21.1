@@ -17,7 +17,7 @@ import java.util.UUID;
  * 所有改变世界/数据的操作都在这里集中校验，再由 Manager 持久化、由网络包同步客户端。
  */
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class FarmlandBoxService {
     public static final String HIRE_SOURCE_TYPE = "farmland_box";
     public static final String HIRE_ROLE = "farmer";

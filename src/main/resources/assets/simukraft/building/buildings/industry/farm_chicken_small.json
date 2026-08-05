@@ -1,0 +1,472 @@
+{
+  "id": "simukraft:farm_chicken_small",
+  "name": "鸡肉农场",
+  "buildingId": "farm_chicken_small",
+  "buildingName": "鸡肉农场",
+  "jobType": "chicken_butcher",
+  "jobName": "养鸡人",
+  "heldItem": "minecraft:golden_axe",
+  "points": {
+    "stand": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          4,
+          1,
+          4
+        ],
+        [
+          4,
+          1,
+          3
+        ],
+        [
+          4,
+          1,
+          5
+        ]
+      ],
+      "select": "nearest"
+    },
+    "machine": {
+      "type": "structure_pos",
+      "pos": [
+        4,
+        1,
+        4
+      ]
+    }
+  },
+  "containers": {
+    "input": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          3,
+          0,
+          4
+        ]
+      ]
+    },
+    "output": {
+      "type": "structure_pos",
+      "positions": [
+        [
+          5,
+          0,
+          4
+        ]
+      ]
+    }
+  },
+  "workTime": {
+    "start": 0,
+    "end": 12000
+  },
+  "recipes": [
+    {
+      "id": "chicken_meat",
+      "name": "鸡肉生产",
+      "recipeId": "chicken_meat",
+      "recipeName": "鸡肉生产",
+      "heldItem": "minecraft:golden_axe",
+      "inputs": [
+        {
+          "item": "minecraft:wheat_seeds",
+          "count": 2
+        }
+      ],
+      "outputs": [
+        {
+          "item": "minecraft:chicken",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 1
+        },
+        {
+          "item": "minecraft:feather",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 1
+        }
+      ],
+      "steps": [
+        {
+          "type": "move_to_container",
+          "container": "input",
+          "range": 1.2
+        },
+        {
+          "type": "look_at_container",
+          "container": "input"
+        },
+        {
+          "type": "inspect_container",
+          "ticks": 20,
+          "container": "input"
+        },
+        {
+          "type": "require_inputs",
+          "container": "input"
+        },
+        {
+          "type": "require_output_space",
+          "container": "output"
+        },
+        {
+          "type": "set_held_item",
+          "item": "minecraft:wheat_seeds"
+        },
+        {
+          "type": "move_to",
+          "point": "stand",
+          "range": 1.2
+        },
+        {
+          "type": "look_at",
+          "point": "machine"
+        },
+        {
+          "type": "use_item",
+          "ticks": 30,
+          "swing": true
+        },
+        {
+          "type": "breed_entities",
+          "entityType": "minecraft:chicken",
+          "count": 1,
+          "radius": 8,
+          "point": "machine",
+          "container": "input",
+          "requireFood": true
+        },
+        {
+          "type": "set_held_item",
+          "item": "minecraft:golden_axe"
+        },
+        {
+          "type": "move_to",
+          "point": "stand",
+          "range": 1.2
+        },
+        {
+          "type": "look_at",
+          "point": "machine"
+        },
+        {
+          "type": "use_item",
+          "ticks": 20,
+          "swing": true
+        },
+        {
+          "type": "slaughter_entities",
+          "entityType": "minecraft:chicken",
+          "count": 1,
+          "radius": 8,
+          "point": "machine"
+        },
+        {
+          "type": "require_drops",
+          "radius": 8,
+          "point": "machine",
+          "timeoutTicks": 200
+        },
+        {
+          "type": "set_held_item",
+          "item": "minecraft:chicken"
+        },
+        {
+          "type": "collect_drops",
+          "output": "output",
+          "radius": 8,
+          "point": "machine",
+          "timeoutTicks": 200
+        },
+        {
+          "type": "move_to_container",
+          "container": "output",
+          "range": 1.2
+        },
+        {
+          "type": "look_at_container",
+          "container": "output"
+        },
+        {
+          "type": "deposit_carried_items",
+          "container": "output",
+          "ticks": 20,
+          "itemSpecs": [
+            "minecraft:chicken",
+            "minecraft:feather"
+          ]
+        }
+      ],
+      "materials": [
+        {
+          "item": "minecraft:wheat_seeds",
+          "count": 2,
+          "consume": true
+        }
+      ],
+      "products": [
+        {
+          "item": "minecraft:chicken",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 1
+        },
+        {
+          "item": "minecraft:feather",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 1
+        }
+      ]
+    },
+    {
+      "id": "egg_production",
+      "name": "鸡蛋生产",
+      "recipeId": "egg_production",
+      "recipeName": "鸡蛋生产",
+      "heldItem": "minecraft:egg",
+      "inputs": [],
+      "outputs": [
+        {
+          "item": "minecraft:egg",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 1
+        }
+      ],
+      "steps": [
+        {
+          "type": "require_output_space",
+          "container": "output"
+        },
+        {
+          "type": "require_drops",
+          "item": "minecraft:egg",
+          "point": "machine",
+          "radius": 8
+        },
+        {
+          "type": "set_held_item",
+          "item": "minecraft:egg"
+        },
+        {
+          "type": "collect_drops",
+          "item": "minecraft:egg",
+          "output": "output",
+          "point": "machine",
+          "radius": 8,
+          "count": 16
+        },
+        {
+          "type": "move_to_container",
+          "container": "output",
+          "range": 1.2
+        },
+        {
+          "type": "look_at_container",
+          "container": "output"
+        },
+        {
+          "type": "deposit_carried_items",
+          "container": "output",
+          "ticks": 20,
+          "itemSpecs": [
+            "minecraft:egg"
+          ]
+        }
+      ],
+      "materials": [],
+      "products": [
+        {
+          "item": "minecraft:egg",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 1
+        }
+      ]
+    },
+    {
+      "id": "feather_collection",
+      "name": "羽毛收集",
+      "recipeId": "feather_collection",
+      "recipeName": "羽毛收集",
+      "heldItem": "minecraft:golden_axe",
+      "inputs": [
+        {
+          "item": "minecraft:wheat_seeds",
+          "count": 2
+        }
+      ],
+      "outputs": [
+        {
+          "item": "minecraft:chicken",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 1
+        },
+        {
+          "item": "minecraft:feather",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 1
+        }
+      ],
+      "steps": [
+        {
+          "type": "move_to_container",
+          "container": "input",
+          "range": 1.2
+        },
+        {
+          "type": "look_at_container",
+          "container": "input"
+        },
+        {
+          "type": "inspect_container",
+          "ticks": 20,
+          "container": "input"
+        },
+        {
+          "type": "require_inputs",
+          "container": "input"
+        },
+        {
+          "type": "require_output_space",
+          "container": "output"
+        },
+        {
+          "type": "set_held_item",
+          "item": "minecraft:wheat_seeds"
+        },
+        {
+          "type": "move_to",
+          "point": "stand",
+          "range": 1.2
+        },
+        {
+          "type": "look_at",
+          "point": "machine"
+        },
+        {
+          "type": "use_item",
+          "ticks": 30,
+          "swing": true
+        },
+        {
+          "type": "breed_entities",
+          "entityType": "minecraft:chicken",
+          "count": 1,
+          "radius": 8,
+          "point": "machine",
+          "container": "input",
+          "requireFood": true
+        },
+        {
+          "type": "set_held_item",
+          "item": "minecraft:golden_axe"
+        },
+        {
+          "type": "move_to",
+          "point": "stand",
+          "range": 1.2
+        },
+        {
+          "type": "look_at",
+          "point": "machine"
+        },
+        {
+          "type": "use_item",
+          "ticks": 20,
+          "swing": true
+        },
+        {
+          "type": "slaughter_entities",
+          "entityType": "minecraft:chicken",
+          "count": 1,
+          "radius": 8,
+          "point": "machine"
+        },
+        {
+          "type": "require_drops",
+          "radius": 8,
+          "point": "machine",
+          "timeoutTicks": 200
+        },
+        {
+          "type": "set_held_item",
+          "item": "minecraft:chicken"
+        },
+        {
+          "type": "collect_drops",
+          "output": "output",
+          "radius": 8,
+          "point": "machine",
+          "timeoutTicks": 200
+        },
+        {
+          "type": "move_to_container",
+          "container": "output",
+          "range": 1.2
+        },
+        {
+          "type": "look_at_container",
+          "container": "output"
+        },
+        {
+          "type": "deposit_carried_items",
+          "container": "output",
+          "ticks": 20,
+          "itemSpecs": [
+            "minecraft:chicken",
+            "minecraft:feather"
+          ]
+        }
+      ],
+      "materials": [
+        {
+          "item": "minecraft:wheat_seeds",
+          "count": 2,
+          "consume": true
+        }
+      ],
+      "products": [
+        {
+          "item": "minecraft:chicken",
+          "baseAmount": 1,
+          "randomRange": 1,
+          "probability": 1
+        },
+        {
+          "item": "minecraft:feather",
+          "baseAmount": 1,
+          "randomRange": 2,
+          "probability": 1
+        }
+      ]
+    }
+  ],
+  "materials": [],
+  "products": [
+    {
+      "item": "minecraft:chicken",
+      "baseAmount": 1,
+      "randomRange": 1,
+      "probability": 0.2
+    }
+  ],
+  "spawnEntity": {
+    "enabled": true,
+    "type": "minecraft:chicken",
+    "count": 5
+  },
+  "messages": {
+    "hired": "§a{npcName} {jobName} 已开始工作",
+    "workComplete": "§6{npcName} {jobName}：工作完成，产物已放入箱子",
+    "chestFull": "§c{npcName} {jobName}：工作完成，但箱子已满！",
+    "xpGained": "{npcName} 完成了一天的工作，获得5点经验值"
+  }
+}

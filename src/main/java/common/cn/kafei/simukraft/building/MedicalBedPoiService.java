@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /** 医疗白床 POI 的激活与失效维护。 */
+@SuppressWarnings("null")
 public final class MedicalBedPoiService {
     private static final ConcurrentMap<String, Set<BlockPos>> RECORDED_BED_HEADS = new ConcurrentHashMap<>();
 

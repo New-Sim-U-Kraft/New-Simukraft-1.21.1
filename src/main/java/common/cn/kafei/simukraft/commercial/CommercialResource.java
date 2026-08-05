@@ -7,7 +7,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record CommercialResource(Type type, String itemId, int count, double money) {
     public CommercialResource {
         itemId = itemId != null ? itemId.trim() : "";

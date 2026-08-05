@@ -16,6 +16,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.util.UUID;
 
 /** NPC 信息界面的跟随与原地停留操作。 */
+@SuppressWarnings("null")
 public record CitizenBehaviorActionPacket(UUID citizenId, Action action) implements CustomPacketPayload {
     public static final Type<CitizenBehaviorActionPacket> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "citizen_behavior_action"));

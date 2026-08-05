@@ -22,6 +22,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+@SuppressWarnings("null")
 public final class LogisticsAutoClientService {
     private static final long CACHE_TTL_TICKS = 100L;
     private static final ConcurrentMap<String, CacheEntry> CACHE = new ConcurrentHashMap<>();

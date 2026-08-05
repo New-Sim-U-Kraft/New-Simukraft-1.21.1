@@ -9,7 +9,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class SimuKraftServerConfigDraft {
     double cityChunkPrice;
     boolean blacklistProtection;

@@ -1,0 +1,11 @@
+name:伐木工小屋
+size:12 x 8 x 12
+amount:18.0元
+author:SimuKraft
+description:辐射型工业建筑，采伐自然树木并补种树苗
+tags:price_low,material_low,stage_early
+job_type:lumberjack
+job_name:伐木工
+held_item:minecraft:iron_axe
+industrial:lumberjacks_house.json
+structure:lumberjacks_house.nbt

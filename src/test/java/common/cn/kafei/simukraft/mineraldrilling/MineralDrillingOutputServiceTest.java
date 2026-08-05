@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@SuppressWarnings("null")
 class MineralDrillingOutputServiceTest {
     /** storesAcrossBarrels: 验证产物先补齐同类槽位，再写入下一个木桶。 */
     @Test

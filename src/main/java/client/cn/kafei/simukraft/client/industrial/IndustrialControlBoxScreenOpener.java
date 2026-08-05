@@ -42,7 +42,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.List;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 public final class IndustrialControlBoxScreenOpener {
     private static final int MAX_PANEL_WIDTH = 480;

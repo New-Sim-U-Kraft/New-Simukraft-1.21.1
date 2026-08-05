@@ -16,6 +16,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** 客户端请求打开医疗控制箱。 */
+@SuppressWarnings("null")
 public record MedicalControlBoxOpenRequestPacket(BlockPos pos) implements CustomPacketPayload {
     public static final Type<MedicalControlBoxOpenRequestPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "medical_control_box_open_request"));
     public static final StreamCodec<RegistryFriendlyByteBuf, MedicalControlBoxOpenRequestPacket> STREAM_CODEC = StreamCodec.of(MedicalControlBoxOpenRequestPacket::encode, MedicalControlBoxOpenRequestPacket::decode);

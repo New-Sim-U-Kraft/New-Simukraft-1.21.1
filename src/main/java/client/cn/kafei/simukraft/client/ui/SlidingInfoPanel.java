@@ -10,6 +10,7 @@ import net.neoforged.api.distmarker.OnlyIn;
  * 通用右侧滑动信息面板，供各自由视角操作界面复用。
  * 使用方式：声明实例字段，render() 中调用 beginRender()，keyPressed() 中调用 toggle()。
  */
+@SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 public final class SlidingInfoPanel {
 

@@ -9,7 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CityPoiSqliteRepository {
     private final SimuSqliteDatabase database;
 

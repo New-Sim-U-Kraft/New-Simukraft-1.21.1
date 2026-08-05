@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /** VirtualVeinService: 解析矿区、生成档案并提供未来钻机查询。 */
+@SuppressWarnings("null")
 public final class VirtualVeinService {
     private static final int RESERVE_MIN = 4_000;
     private static final int RESERVE_MAX = 200_000;

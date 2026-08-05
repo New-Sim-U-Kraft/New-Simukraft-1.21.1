@@ -7,6 +7,7 @@ import net.minecraft.nbt.CompoundTag;
 import java.util.Objects;
 
 /** MineralDrillingBoxData: 一个矿物钻井控制箱的权威运行状态与两格库存。 */
+@SuppressWarnings("null")
 public final class MineralDrillingBoxData {
     private static final int MAX_STATUS_KEY_LENGTH = 256;
     private static final int MAX_STATUS_TEXT_LENGTH = 4096;

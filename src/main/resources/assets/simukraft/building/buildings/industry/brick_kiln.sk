@@ -1,0 +1,11 @@
+name:砖窑
+size:9 x 9 x 7
+amount:15.0元
+author:咖啡
+description:前期工业建筑，可以把粘土球烧制成红砖。
+tags:price_low,material_low,stage_early
+job_type:brick_burner
+job_name:烧砖工
+held_item:minecraft:brick
+industrial:brick_kiln.json
+structure:brick_kiln.nbt

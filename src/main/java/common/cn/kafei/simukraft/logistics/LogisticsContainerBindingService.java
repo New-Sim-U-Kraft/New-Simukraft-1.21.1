@@ -11,7 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class LogisticsContainerBindingService {
     private static final long MAX_SELECTION_SCAN_BLOCKS = 65536L;
 

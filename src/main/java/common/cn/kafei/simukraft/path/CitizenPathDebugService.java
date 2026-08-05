@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /** Stateless helpers backing the in-world NPC path debug overlay and the /simukraft path status command. */
+@SuppressWarnings("null")
 final class CitizenPathDebugService {
     private CitizenPathDebugService() {
     }

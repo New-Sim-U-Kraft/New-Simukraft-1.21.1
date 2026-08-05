@@ -10,7 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class LogisticsItemFilterGrid {
     private static final int COLS = 9;
     private static final int ROWS = 4;

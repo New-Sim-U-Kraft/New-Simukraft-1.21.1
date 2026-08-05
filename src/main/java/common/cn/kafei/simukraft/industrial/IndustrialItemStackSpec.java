@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record IndustrialItemStackSpec(String itemId,
                                       String itemTag,
                                       String potionId,

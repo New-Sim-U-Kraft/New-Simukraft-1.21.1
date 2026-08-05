@@ -1,0 +1,7 @@
+name:建材商店
+size:12 x 9 x 6
+amount:15.20元
+author:SimuKraft
+description:店主随手一掏，圆石、木板、石英甚至混凝土都能给你变出来，但我们却永远不知道这些建材存在哪里——难不成仓库在异次元？
+tags:price_low,material_low,stage_early
+job_type:building_material_merchant

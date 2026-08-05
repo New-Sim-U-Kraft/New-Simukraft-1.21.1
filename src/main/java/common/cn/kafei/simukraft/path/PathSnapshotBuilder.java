@@ -42,7 +42,7 @@ import java.util.OptionalDouble;
  * <p>{@link #build} is a convenience wrapper that calls both phases on the current thread and is
  * retained for the debug-path code path.
  */
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class PathSnapshotBuilder {
     private static final int HORIZONTAL_PADDING = 12;
     private static final int VERTICAL_PADDING = 8;
@@ -254,21 +254,22 @@ final class PathSnapshotBuilder {
             if (!isFootPassable(cache, pos, foot) || !isHeadPassable(cache, pos.above(), head)) {
                 return null;
             }
-            return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), pos.getY(), true, climbable, false, 5.0D);
+            return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), pos.getY(), true, climbable, false, false, 5.0D);
         }
         if (climbable && isFootPassable(cache, pos, foot) && isHeadPassable(cache, pos.above(), head)) {
-            return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), pos.getY(), false, true, false, 8.0D);
+            boolean floorSupported = isGridFloorSupport(pos, supportTop(cache, pos.below(), below));
+            return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), pos.getY(), false, true, false, floorSupported, 8.0D);
         }
         if (isClosedWoodenLowerDoor(foot) && isMatchingWoodenDoorHead(head)) {
             OptionalDouble doorStandY = supportTop(cache, pos.below(), below);
             if (isGridFloorSupport(pos, doorStandY) && hasNpcClearance(cache, pos, doorStandY.getAsDouble(), pos, pos.above())) {
-                return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), doorStandY.getAsDouble(), false, false, true, 3.2D);
+                return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), doorStandY.getAsDouble(), false, false, true, true, 3.2D);
             }
         }
         if (!isFootPassable(cache, pos, foot) || !isHeadPassable(cache, pos.above(), head)) {
             OptionalDouble lowStandY = lowStandY(cache, pos, foot);
             if (lowStandY.isPresent() && isHeadPassable(cache, pos.above(), head, lowStandY.getAsDouble() - pos.getY()) && hasNpcClearance(cache, pos, lowStandY.getAsDouble(), null, null)) {
-                return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), lowStandY.getAsDouble(), false, false, false, 1.05D);
+                return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), lowStandY.getAsDouble(), false, false, false, true, 1.05D);
             }
             return null;
         }
@@ -280,7 +281,7 @@ final class PathSnapshotBuilder {
         if (!hasNpcClearance(cache, pos, standY.getAsDouble(), null, null)) {
             return null;
         }
-        return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), standY.getAsDouble(), false, false, false, 1.0D);
+        return new PathCell(pos.immutable(), pos.getX(), pos.getY(), pos.getZ(), standY.getAsDouble(), false, false, false, true, 1.0D);
     }
 
     private static boolean hasLoadedChunk(ServerLevel level, BlockPos pos) {
@@ -510,7 +511,8 @@ final class PathSnapshotBuilder {
     }
 
     private static boolean isClimbable(BlockState state) {
-        return state.is(BlockTags.CLIMBABLE) || state.is(Blocks.SCAFFOLDING);
+        // 原版梯子必须独立识别；标签仍保留给藤蔓和模组追加的可攀爬方块。
+        return state.is(Blocks.LADDER) || state.is(BlockTags.CLIMBABLE) || state.is(Blocks.SCAFFOLDING);
     }
 
     // lowStandY：识别半砖、地毯等低矮碰撞面，避免把半格台阶误判为上一层跳跃。

@@ -34,6 +34,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** 医疗收治、床位占用、治疗和疾病调度服务。 */
+@SuppressWarnings("null")
 public final class MedicalService {
     public static final String MEDICAL_CARE_MARKER = "medical_care";
     private static final long TICK_INTERVAL = 20L;

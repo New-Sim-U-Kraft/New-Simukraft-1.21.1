@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class SimuKraftMaterialCategoryGroupEditor {
     private static final int ROW_HEIGHT = 28;
     private static final int ICON_SIZE = 16;

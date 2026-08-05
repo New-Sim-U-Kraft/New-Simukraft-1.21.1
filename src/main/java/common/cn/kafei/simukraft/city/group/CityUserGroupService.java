@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CityUserGroupService {
     private CityUserGroupService() {
     }

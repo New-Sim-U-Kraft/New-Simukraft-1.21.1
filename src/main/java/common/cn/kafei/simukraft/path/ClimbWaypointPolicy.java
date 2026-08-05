@@ -9,7 +9,8 @@ import java.util.List;
  */
 final class ClimbWaypointPolicy {
     private static final double CLIMB_CENTER_DISTANCE = 0.34D;
-    private static final double CLIMB_VERTICAL_PASS_DISTANCE = 0.20D;
+    // 活板门厚度为 0.1875，容差必须更小，避免仍站在薄板高度时提前跳过梯子节点。
+    private static final double CLIMB_VERTICAL_PASS_DISTANCE = 0.125D;
     private static final double CLIMB_LANDING_HORIZONTAL_DISTANCE = 0.42D;
     private static final double CLIMB_LANDING_VERTICAL_DISTANCE = 0.12D;
     private static final double CLIMB_WATER_LANDING_VERTICAL_DISTANCE = 0.35D;

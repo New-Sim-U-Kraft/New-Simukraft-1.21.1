@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CommercialBoxManager extends SavedData {
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_commercial_boxes";
     private static final Factory<CommercialBoxManager> FACTORY = new Factory<>(CommercialBoxManager::new, CommercialBoxManager::load, null);

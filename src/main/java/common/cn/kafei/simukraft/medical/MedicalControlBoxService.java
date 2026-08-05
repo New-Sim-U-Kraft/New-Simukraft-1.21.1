@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerLevel;
 import java.util.UUID;
 
 /** 医疗控制箱的建筑绑定、医生岗位和只读视图服务。 */
+@SuppressWarnings("null")
 public final class MedicalControlBoxService {
     public static final String HIRE_SOURCE_TYPE = "medical_control_box";
     public static final String HIRE_ROLE = "doctor";

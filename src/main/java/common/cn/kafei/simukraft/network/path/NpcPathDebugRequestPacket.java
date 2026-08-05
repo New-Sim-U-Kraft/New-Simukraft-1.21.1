@@ -10,7 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record NpcPathDebugRequestPacket(boolean visible) implements CustomPacketPayload {
     public static final Type<NpcPathDebugRequestPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "npc_path_debug_request"));
     public static final StreamCodec<RegistryFriendlyByteBuf, NpcPathDebugRequestPacket> STREAM_CODEC = StreamCodec.of(NpcPathDebugRequestPacket::encode, NpcPathDebugRequestPacket::decode);

@@ -9,7 +9,7 @@ import net.minecraft.server.level.ServerPlayer;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class FinanceLedgerService {
     public static final int MAX_RECORDS_PER_CITY = 128;
 

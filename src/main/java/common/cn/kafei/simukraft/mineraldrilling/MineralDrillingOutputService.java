@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Set;
 
 /** MineralDrillingOutputService: 将钻井产物写入钻井平台结构内的木桶。 */
+@SuppressWarnings("null")
 public final class MineralDrillingOutputService {
     private MineralDrillingOutputService() {
     }

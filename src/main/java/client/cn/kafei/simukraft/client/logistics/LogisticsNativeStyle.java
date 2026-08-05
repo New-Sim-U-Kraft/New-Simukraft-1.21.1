@@ -6,7 +6,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 final class LogisticsNativeStyle {
     static final int TEXT = 0xFFFFFFFF;
     static final int TEXT_DIM = 0xFFAAAAAA;

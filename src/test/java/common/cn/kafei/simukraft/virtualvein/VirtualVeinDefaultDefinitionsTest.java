@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@SuppressWarnings("null")
 class VirtualVeinDefaultDefinitionsTest {
     private static final List<String> DEFINITION_FILES = List.of(
             "lignite.json", "bituminous_coal.json", "hematite.json", "limonite.json", "pyrite.json", "chalcopyrite.json",

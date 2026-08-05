@@ -56,7 +56,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 金钱在建任务时已一次性预扣。任务进 SQLite，可恢复。
  */
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class PlannerWorkService {
     private static final ConcurrentMap<String, LevelRuntime> LEVEL_RUNTIMES = new ConcurrentHashMap<>();
     private static final ExecutorService IO_EXECUTOR = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "simukraft-planner-io"); t.setDaemon(true); return t; });

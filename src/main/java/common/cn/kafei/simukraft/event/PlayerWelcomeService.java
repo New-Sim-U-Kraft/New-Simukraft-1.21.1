@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class PlayerWelcomeService {
     private static final ResourceLocation FIRST_DREAM_ADVANCEMENT_ID =
             ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "story/first_dream");

@@ -13,7 +13,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record LogisticsWarehouseGridResponsePacket(BlockPos pos,
                                                    List<ItemStack> items,
                                                    List<BlockPos> containerPositions,

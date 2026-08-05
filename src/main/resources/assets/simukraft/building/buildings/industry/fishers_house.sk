@@ -1,0 +1,9 @@
+name:渔人小屋
+size:10 x 9 x 10
+amount:17.8元
+author:枫烨
+description:捕鱼者的小屋，产出生鱼类。
+tags:price_low,material_low,stage_early
+job_type:fisher
+job_name:渔人
+held_item:minecraft:fishing_rod

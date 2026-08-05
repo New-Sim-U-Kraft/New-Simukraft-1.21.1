@@ -14,7 +14,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.Optional;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class CitizenWorkplaceMoveService {
     private static final double ARRIVED_DISTANCE_SQR = 4.0D;
     private static final int[] WORKPLACE_Y_OFFSETS = {0, 1, -1, -2, -3};

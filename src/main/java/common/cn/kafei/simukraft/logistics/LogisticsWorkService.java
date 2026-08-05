@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class LogisticsWorkService {
     private static final ConcurrentMap<String, AtomicInteger> CURSORS = new ConcurrentHashMap<>();
 

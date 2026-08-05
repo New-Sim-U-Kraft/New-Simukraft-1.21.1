@@ -12,7 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 public final class CitizenAvatarFactory {
     private static final int FRAME_BACKGROUND = 0xFF7A8085;

@@ -1,0 +1,64 @@
+{
+  "id": "simukraft:brick_kiln",
+  "name": "砖窑",
+  "buildingId": "brick_kiln",
+  "buildingName": "砖窑",
+  "jobType": "brick_burner",
+  "jobName": "烧砖工",
+  "heldItem": "minecraft:brick",
+  "points": {
+    "stand": { "type": "structure_pos", "positions": [[2, 1, 5], [3, 1, 5]], "select": "nearest" },
+    "machine": { "type": "structure_pos", "pos": [2, 1, 4] }
+  },
+  "containers": {
+    "input": { "type": "structure_pos", "positions": [[6, 0, 1]] },
+    "output": { "type": "structure_pos", "positions": [[7, 0, 1]] }
+  },
+  "workTime": { "start": 100, "end": 12000 },
+  "recipes": [
+    {
+      "id": "clay_ball_to_brick",
+      "name": "粘土制红砖",
+      "recipeId": "clay_ball_to_brick",
+      "recipeName": "粘土制红砖",
+      "heldItem": "minecraft:brick",
+      "inputs": [
+        { "item": "minecraft:clay_ball", "count": 32 }
+      ],
+      "outputs": [
+        { "item": "minecraft:brick", "baseAmount": 32, "probability": 1, "ignoreMultiplier": true }
+      ],
+      "steps": [
+        { "type": "move_to_container", "container": "input", "range": 1.2 },
+        { "type": "look_at_container", "container": "input" },
+        { "type": "inspect_container", "ticks": 20, "container": "input" },
+        { "type": "require_inputs", "container": "input" },
+        { "type": "require_output_space", "container": "output" },
+        { "type": "set_held_item", "item": "minecraft:clay_ball" },
+        { "type": "move_to", "point": "stand", "range": 1.2 },
+        { "type": "look_at", "point": "machine" },
+        { "type": "use_item", "ticks": 100, "swing": true },
+        { "type": "set_held_item", "item": "minecraft:brick" },
+        { "type": "move_to_container", "container": "output", "range": 1.2 },
+        { "type": "look_at_container", "container": "output" },
+        { "type": "inspect_container", "ticks": 20, "container": "output" },
+        { "type": "craft_recipe", "input": "input", "output": "output" }
+      ],
+      "materials": [
+        { "item": "minecraft:clay_ball", "count": 32, "consume": true }
+      ],
+      "products": [
+        { "item": "minecraft:brick", "baseAmount": 32, "probability": 1, "ignoreMultiplier": true }
+      ]
+    }
+  ],
+  "materials": [
+    { "item": "minecraft:clay_ball", "consume": true, "amount": 32 }
+  ],
+  "products": [
+    { "item": "minecraft:brick", "baseAmount": 32, "probability": 1, "ignoreMultiplier": true }
+  ],
+  "spawnEntity": { "enabled": false, "type": "minecraft:sheep", "count": 0 },
+  "hasLunchBreak": true,
+  "messages": { "hired": "§a{npcName} {jobName} 已开始工作", "workComplete": "§6{npcName} {jobName}：生产完成", "chestFull": "§c{npcName} {jobName}：箱子已满！", "xpGained": "{npcName} 获得经验值" }
+}

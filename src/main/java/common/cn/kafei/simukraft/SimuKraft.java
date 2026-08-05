@@ -90,7 +90,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 @Mod(SimuKraft.MOD_ID)
 public final class SimuKraft {
     public static final String MOD_ID = "simukraft";

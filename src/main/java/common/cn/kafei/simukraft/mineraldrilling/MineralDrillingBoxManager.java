@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * MineralDrillingBoxManager: 管理当前维度的钻井控制箱状态。
  * SQLite 是主存储，SavedData 作为数据库不可用时的灾备。
  */
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public final class MineralDrillingBoxManager extends SavedData {
     private static final int MAX_WRITE_ATTEMPTS = 3;
     private static final long RETRY_DELAY_MILLIS = 50L;

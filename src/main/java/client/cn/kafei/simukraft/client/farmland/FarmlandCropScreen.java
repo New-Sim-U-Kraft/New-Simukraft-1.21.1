@@ -27,7 +27,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
  * 作物选择弹出菜单：列出全部受支持作物，点选后发给服务端；服务端回包会自动重开农田盒主界面。
  */
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 public final class FarmlandCropScreen {
     private static final int ITEM_HEIGHT = 22;

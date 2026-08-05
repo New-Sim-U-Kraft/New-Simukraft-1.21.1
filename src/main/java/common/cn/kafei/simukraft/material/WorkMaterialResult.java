@@ -10,7 +10,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 
-@SuppressWarnings("Null")
+@SuppressWarnings("null")
 public record WorkMaterialResult(boolean available, ItemStack requested, List<Item> acceptedItems) {
     public WorkMaterialResult {
         requested = requested != null ? requested.copy() : ItemStack.EMPTY;

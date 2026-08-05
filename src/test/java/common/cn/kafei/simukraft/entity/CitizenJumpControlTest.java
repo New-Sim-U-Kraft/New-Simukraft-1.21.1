@@ -14,6 +14,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("null")
 class CitizenJumpControlTest {
     private static final BlockPos POS = new BlockPos(0, 64, 0);
     private static final AABB CITIZEN_BOX = new AABB(0.19D, 64.0D, 0.19D, 0.81D, 65.8D, 0.81D);
