@@ -42,6 +42,8 @@ public final class ModCreativeModeTabs {
                 // 矿物钻井用具
                 output.accept(ModItems.GEOLOGICAL_HAMMER.get());
                 output.accept(ModItems.DRILL_ROD_SEGMENT.get());
+                output.accept(ModItems.SHALLOW_DRILL_BIT.get());
+                output.accept(ModItems.DEEP_DRILL_BIT.get());
             })
             .build());
 

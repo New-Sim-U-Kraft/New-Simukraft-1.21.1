@@ -9,6 +9,7 @@ import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
 import common.cn.kafei.simukraft.path.MovementIntent;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
@@ -21,6 +22,7 @@ public final class CityJobMobilityService {
     private CityJobMobilityService() {
     }
 
+    /** resolveHireRole: 将雇佣界面岗位标识映射为统一职业枚举。 */
     public static CityJobType resolveHireRole(String role) {
         if (role == null || role.isBlank()) {
             return CityJobType.OTHER;
@@ -32,7 +34,7 @@ public final class CityJobMobilityService {
             case "guard" -> CityJobType.GUARD;
             case "gatherer" -> CityJobType.GATHERER;
             case "commercial_worker", "commercial" -> CityJobType.COMMERCIAL_WORKER;
-            case "industrial_worker", "industrial" -> CityJobType.INDUSTRIAL_WORKER;
+            case "industrial_worker", "industrial", MineralDrillingConstants.HIRE_ROLE -> CityJobType.INDUSTRIAL_WORKER;
             case "logistics_worker", "logistics" -> CityJobType.LOGISTICS_WORKER;
             case "storage_worker", "storage" -> CityJobType.STORAGE_WORKER;
             case "doctor" -> CityJobType.DOCTOR;

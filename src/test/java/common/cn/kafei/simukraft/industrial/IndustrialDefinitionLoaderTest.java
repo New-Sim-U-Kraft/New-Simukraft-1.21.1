@@ -1,5 +1,6 @@
 package common.cn.kafei.simukraft.industrial;
 
+import com.google.gson.JsonParser;
 import net.minecraft.core.BlockPos;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -97,9 +98,19 @@ class IndustrialDefinitionLoaderTest {
                     continue;
                 }
                 Path file = tempDir.resolve(Path.of(entry.getName()).getFileName().toString());
+                byte[] jsonBytes;
                 try (var input = zipFile.getInputStream(entry)) {
-                    Files.copy(input, file);
+                    jsonBytes = input.readAllBytes();
                 }
+                var json = JsonParser.parseString(new String(jsonBytes, StandardCharsets.UTF_8)).getAsJsonObject();
+                if ((json.has("buildingType")
+                        && "drilling_platform".equalsIgnoreCase(json.get("buildingType").getAsString()))
+                        || (json.has("type")
+                        && ("drilling".equalsIgnoreCase(json.get("type").getAsString())
+                        || "simukraft:drilling".equalsIgnoreCase(json.get("type").getAsString())))) {
+                    continue;
+                }
+                Files.write(file, jsonBytes);
                 IndustrialDefinitionLoader.LoadResult result = IndustrialDefinitionLoader.load(file);
 
                 assertTrue(result.valid(), () -> file.getFileName() + " errors: " + result.errors());

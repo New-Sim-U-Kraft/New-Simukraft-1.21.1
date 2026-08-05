@@ -25,8 +25,8 @@ public final class ModItems {
     // 矿物钻井用具
     public static final DeferredHolder<Item, Item> GEOLOGICAL_HAMMER = ITEMS.register("geological_hammer", GeologicalHammerItem::new);
     public static final DeferredHolder<Item, Item> DRILL_ROD_SEGMENT = ITEMS.register("drill_rod_segment", () -> new Item(new Item.Properties()));
-    public static final DeferredHolder<Item, Item> SHALLOW_DRILL_BIT = ITEMS.register("shallow_drill_bit", () -> new Item(new Item.Properties())); // 浅层钻头
-    public static final DeferredHolder<Item, Item> DEEP_DRILL_BIT = ITEMS.register("deep_drill_bit", () -> new Item(new Item.Properties())); // 深层钻头
+    public static final DeferredHolder<Item, Item> SHALLOW_DRILL_BIT = ITEMS.register("shallow_drill_bit", () -> new Item(new Item.Properties().durability(500))); // 浅层钻头，开采 500 个产物后损坏
+    public static final DeferredHolder<Item, Item> DEEP_DRILL_BIT = ITEMS.register("deep_drill_bit", () -> new Item(new Item.Properties().durability(900))); // 深层钻头，开采 900 个产物后损坏
 
     private ModItems() {
     }

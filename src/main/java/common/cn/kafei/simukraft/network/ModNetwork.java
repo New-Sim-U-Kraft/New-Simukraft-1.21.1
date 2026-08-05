@@ -58,6 +58,7 @@ import common.cn.kafei.simukraft.network.logistics.LogisticsWarehouseGridShiftCl
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxDemolishPacket;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenRequestPacket;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.mineraldrilling.MineralDrillingControlBoxOpenRequestPacket;
 import common.cn.kafei.simukraft.network.manifest.ManifestTogglePacket;
 import common.cn.kafei.simukraft.network.planner.CreatePlanningTaskPacket;
 import common.cn.kafei.simukraft.network.planner.PlannerMaterialScanRequestPacket;
@@ -79,7 +80,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 @SuppressWarnings("Null")
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "24";
+    private static final String NETWORK_VERSION = "25";
 
     private ModNetwork() {
     }
@@ -117,6 +118,7 @@ public final class ModNetwork {
         registrar.playToServer(IndustrialControlBoxDemolishPacket.TYPE, IndustrialControlBoxDemolishPacket.STREAM_CODEC, IndustrialControlBoxDemolishPacket::handle);
         registrar.playToServer(CommercialControlBoxOpenRequestPacket.TYPE, CommercialControlBoxOpenRequestPacket.STREAM_CODEC, CommercialControlBoxOpenRequestPacket::handle);
         registrar.playToServer(MedicalControlBoxOpenRequestPacket.TYPE, MedicalControlBoxOpenRequestPacket.STREAM_CODEC, MedicalControlBoxOpenRequestPacket::handle);
+        registrar.playToServer(MineralDrillingControlBoxOpenRequestPacket.TYPE, MineralDrillingControlBoxOpenRequestPacket.STREAM_CODEC, MineralDrillingControlBoxOpenRequestPacket::handle);
         registrar.playToServer(MedicalControlBoxDemolishPacket.TYPE, MedicalControlBoxDemolishPacket.STREAM_CODEC, MedicalControlBoxDemolishPacket::handle);
         registrar.playToServer(CommercialControlBoxActionPacket.TYPE, CommercialControlBoxActionPacket.STREAM_CODEC, CommercialControlBoxActionPacket::handle);
         registrar.playToServer(CommercialControlBoxDemolishPacket.TYPE, CommercialControlBoxDemolishPacket.STREAM_CODEC, CommercialControlBoxDemolishPacket::handle);

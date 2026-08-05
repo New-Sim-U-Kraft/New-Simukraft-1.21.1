@@ -38,6 +38,11 @@ public record VirtualVeinSlot(String veinId,
         return maxY >= minY;
     }
 
+    /** intersectsYRange: 判断矿脉是否与给定的世界 Y 范围相交。 */
+    public boolean intersectsYRange(int rangeMinY, int rangeMaxY) {
+        return rangeMinY <= rangeMaxY && minY <= rangeMaxY && maxY >= rangeMinY;
+    }
+
     private static String requireText(String value, String name) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(name + " must not be blank");

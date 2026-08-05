@@ -1,5 +1,8 @@
 package common.cn.kafei.simukraft.building;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import common.cn.kafei.simukraft.SimuKraft;
 import net.neoforged.fml.loading.FMLPaths;
 
@@ -230,6 +233,8 @@ public final class BuildingPackageCatalog {
             SimuKraft.LOGGER.warn("Simukraft: Ignored building {} in {} because structure {} is not present in the package", metaFile, packagePath, structureFile);
             return null;
         }
+        BuildingCatalog.BuildingType buildingType = readBuildingType(
+                packagePath, zipFile, category, baseName, metaText.get(), packageFiles);
         return new BuildingCatalog.BuildingDefinition(
                 category,
                 displayName,
@@ -239,8 +244,100 @@ public final class BuildingPackageCatalog {
                 description,
                 metaFile,
                 actualStructureFile,
+                buildingType,
                 new PackageSource(packagePath.toAbsolutePath().normalize(), packagePath.getFileName().toString(), Map.copyOf(Map.of(category, Map.copyOf(packageFiles))))
         );
+    }
+
+    /** readBuildingType: 从工业建筑的配套 JSON 读取控制箱类型声明。 */
+    private static BuildingCatalog.BuildingType readBuildingType(Path packagePath,
+                                                                 ZipFile zipFile,
+                                                                 String category,
+                                                                 String baseName,
+                                                                 String metaText,
+                                                                 Map<String, String> packageFiles) {
+        if (!"industry".equals(normalizeCategory(category))) {
+            return BuildingCatalog.BuildingType.STANDARD;
+        }
+        String drillingFile = findValue(metaText, "drilling", "");
+        if (!drillingFile.isBlank()) {
+            return readDedicatedDrillingType(packagePath, zipFile, category, drillingFile, packageFiles);
+        }
+        String configuredFile = findValue(metaText, "industrial", baseName + ".json");
+        String actualFile = isSafePackageFileName(configuredFile)
+                ? actualFileName(packageFiles, configuredFile)
+                : null;
+        if (actualFile == null) {
+            return BuildingCatalog.BuildingType.STANDARD;
+        }
+        Optional<String> jsonText = readText(zipFile, categoryPath(category, actualFile));
+        if (jsonText.isEmpty()) {
+            return BuildingCatalog.BuildingType.STANDARD;
+        }
+        try {
+            JsonObject root = JsonParser.parseString(jsonText.get()).getAsJsonObject();
+            if (isDrillingPlatformType(root)
+                    || booleanValue(root, "drillingPlatform")
+                    || booleanValue(root, "drilling_platform")) {
+                return BuildingCatalog.BuildingType.DRILLING_PLATFORM;
+            }
+        } catch (Exception exception) {
+            SimuKraft.LOGGER.warn("Simukraft: Failed to read building type from {} in {}", actualFile, packagePath, exception);
+        }
+        return BuildingCatalog.BuildingType.STANDARD;
+    }
+
+    /** readDedicatedDrillingType: 读取 drilling: 指向的专用钻井 JSON。 */
+    private static BuildingCatalog.BuildingType readDedicatedDrillingType(Path packagePath,
+                                                                            ZipFile zipFile,
+                                                                            String category,
+                                                                            String configuredFile,
+                                                                            Map<String, String> packageFiles) {
+        String actualFile = isSafePackageFileName(configuredFile)
+                ? actualFileName(packageFiles, configuredFile)
+                : null;
+        if (actualFile == null) {
+            SimuKraft.LOGGER.warn("Simukraft: Drilling definition {} is missing in {}", configuredFile, packagePath);
+            return BuildingCatalog.BuildingType.STANDARD;
+        }
+        Optional<String> jsonText = readText(zipFile, categoryPath(category, actualFile));
+        if (jsonText.isEmpty()) {
+            SimuKraft.LOGGER.warn("Simukraft: Failed to read drilling definition {} in {}", actualFile, packagePath);
+            return BuildingCatalog.BuildingType.STANDARD;
+        }
+        try {
+            JsonObject root = JsonParser.parseString(jsonText.get()).getAsJsonObject();
+            return isDedicatedDrillingType(root)
+                    ? BuildingCatalog.BuildingType.DRILLING_PLATFORM
+                    : BuildingCatalog.BuildingType.STANDARD;
+        } catch (Exception exception) {
+            SimuKraft.LOGGER.warn("Simukraft: Invalid drilling definition {} in {}", actualFile, packagePath, exception);
+            return BuildingCatalog.BuildingType.STANDARD;
+        }
+    }
+
+    /** isDedicatedDrillingType: 判断专用 JSON 是否声明为钻井类型。 */
+    private static boolean isDedicatedDrillingType(JsonObject root) {
+        JsonElement element = root.get("type");
+        if (element == null || !element.isJsonPrimitive()) {
+            return false;
+        }
+        String type = element.getAsString().trim();
+        return "drilling".equalsIgnoreCase(type) || "simukraft:drilling".equalsIgnoreCase(type);
+    }
+
+    /** isDrillingPlatformType: 兼容驼峰与下划线形式的钻井平台类型字段。 */
+    private static boolean isDrillingPlatformType(JsonObject root) {
+        JsonElement element = root.has("buildingType") ? root.get("buildingType") : root.get("building_type");
+        return element != null
+                && element.isJsonPrimitive()
+                && "drilling_platform".equalsIgnoreCase(element.getAsString().trim());
+    }
+
+    /** booleanValue: 安全读取可选 JSON 布尔声明，非法值按 false 处理。 */
+    private static boolean booleanValue(JsonObject root, String key) {
+        JsonElement element = root.get(key);
+        return element != null && element.isJsonPrimitive() && element.getAsBoolean();
     }
 
     static Optional<InputStream> openEntry(PackageSource source, String category, String fileName) throws IOException {

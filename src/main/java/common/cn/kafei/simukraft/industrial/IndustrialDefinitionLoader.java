@@ -108,12 +108,35 @@ public final class IndustrialDefinitionLoader {
     }
 
     private static String resolveIndustrialFileName(BuildingCatalog.BuildingDefinition definition) {
+        if (hasDedicatedDrillingDeclaration(definition)) {
+            return null;
+        }
         String explicit = explicitIndustrialFileName(definition);
         if (explicit != null) {
             return explicit;
         }
         String sibling = stripExtension(definition.metaFileName()) + ".json";
         return definition.hasFile(sibling) ? definition.actualFileName(sibling) : null;
+    }
+
+    /** hasDedicatedDrillingDeclaration: 检查建筑元数据是否声明专用钻井定义。 */
+    private static boolean hasDedicatedDrillingDeclaration(BuildingCatalog.BuildingDefinition definition) {
+        if (definition == null || !"industry".equalsIgnoreCase(definition.category())) {
+            return false;
+        }
+        try {
+            String text = definition.readFileText(definition.metaFileName()).orElse("");
+            for (String rawLine : text.split("\\R")) {
+                String line = rawLine == null ? "" : rawLine.trim();
+                if (!line.regionMatches(true, 0, "drilling:", 0, "drilling:".length())) {
+                    continue;
+                }
+                return !line.substring("drilling:".length()).trim().isBlank();
+            }
+        } catch (Exception exception) {
+            SimuKraft.LOGGER.warn("Simukraft: Failed to read drilling entry from {}", definition.metaFileName(), exception);
+        }
+        return false;
     }
 
     private static String explicitIndustrialFileName(BuildingCatalog.BuildingDefinition definition) {

@@ -13,6 +13,9 @@ import common.cn.kafei.simukraft.logistics.LogisticsControlBoxService;
 import common.cn.kafei.simukraft.network.logistics.LogisticsServerBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.medical.MedicalControlBoxService;
 import common.cn.kafei.simukraft.medical.MedicalService;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingConstants;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingControlBoxService;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingMenuProvider;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import net.minecraft.core.BlockPos;
@@ -69,6 +72,10 @@ public record NpcHireFirePacket(BlockPos sourcePos, String sourceType, String ro
             if (CommercialConstants.HIRE_SOURCE_TYPE.equals(access.sourceType())) {
                 CommercialControlBoxService.fireWorker(level, access.sourcePos());
                 PacketDistributor.sendToPlayer(player, CommercialControlBoxOpenResponsePacket.from(CommercialControlBoxService.buildView(level, access.sourcePos())));
+            }
+            if (MineralDrillingConstants.HIRE_SOURCE_TYPE.equals(access.sourceType())) {
+                MineralDrillingControlBoxService.fireWorker(level, access.sourcePos());
+                MineralDrillingMenuProvider.open(level, player, access.sourcePos());
             }
             if (LogisticsConstants.SERVER_SOURCE_TYPE.equals(access.sourceType())) {
                 PacketDistributor.sendToPlayer(player, LogisticsServerBoxOpenResponsePacket.from(LogisticsControlBoxService.buildServerView(level, access.sourcePos())));

@@ -32,6 +32,8 @@ import common.cn.kafei.simukraft.farmland.FarmlandBoxManager;
 import common.cn.kafei.simukraft.industrial.IndustrialBoxManager;
 import common.cn.kafei.simukraft.industrial.IndustrialDefinitionLoader;
 import common.cn.kafei.simukraft.logistics.LogisticsManager;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingBoxManager;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingDefinitionLoader;
 import common.cn.kafei.simukraft.medical.DiseaseType;
 import common.cn.kafei.simukraft.medical.MedicalDefinitionLoader;
 import common.cn.kafei.simukraft.economy.EconomyService;
@@ -425,6 +427,7 @@ public final class SimuKraftCommand {
         BuildingCatalog.reload();
         CommercialDefinitionLoader.clearCache();
         IndustrialDefinitionLoader.clearCache();
+        MineralDrillingDefinitionLoader.clearCache();
         MedicalDefinitionLoader.clearCache();
         int count = 0;
         for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
@@ -446,6 +449,7 @@ public final class SimuKraftCommand {
             CommercialBoxManager.get(level).saveToSqlite(level);
             CommercialStockManager.get(level).saveToSqlite(level);
             IndustrialBoxManager.get(level).saveToSqlite(level);
+            MineralDrillingBoxManager.get(level).saveToSqlite(level);
             FarmlandBoxManager.get(level).saveToSqlite(level);
             LogisticsManager.get(level).saveToSqlite(level);
         }
@@ -459,6 +463,7 @@ public final class SimuKraftCommand {
             CommercialBoxManager.get(level).reloadFromSqlite(level);
             CommercialStockManager.get(level).reloadFromSqlite(level);
             IndustrialBoxManager.get(level).reloadFromSqlite(level);
+            MineralDrillingBoxManager.get(level).reloadFromSqlite(level);
             FarmlandBoxManager.get(level).reloadFromSqlite(level);
             LogisticsManager.get(level).reloadFromSqlite(level);
         }
@@ -485,6 +490,7 @@ public final class SimuKraftCommand {
         BuildingCatalog.reload();
         CommercialDefinitionLoader.clearCache();
         IndustrialDefinitionLoader.clearCache();
+        MineralDrillingDefinitionLoader.clearCache();
         MedicalDefinitionLoader.clearCache();
         int count = 0;
         for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {

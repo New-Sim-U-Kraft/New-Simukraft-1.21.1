@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.logistics;
 
 import common.cn.kafei.simukraft.SimuKraft;
+import common.cn.kafei.simukraft.building.BuildingCatalog;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.commercial.CommercialDefinition;
@@ -94,6 +95,9 @@ public final class LogisticsAutoClientService {
     }
 
     private static void appendIndustrialClient(ServerLevel level, PlacedBuildingRecord building, String dimensionId, long gameTime, List<LogisticsClientData> output) {
+        if (isDrillingPlatform(building)) {
+            return;
+        }
         IndustrialDefinition definition = IndustrialDefinitionLoader.loadForBuilding(building).definition();
         if (definition == null || definition.containers().isEmpty()) {
             return;
@@ -103,6 +107,14 @@ public final class LogisticsAutoClientService {
             appendPorts(building, container.id(), container.type(), container.positions(), ports);
         }
         appendClient(building, dimensionId, gameTime, LogisticsConstants.AUTO_INDUSTRIAL_SOURCE_TYPE, ports, output);
+    }
+
+    /** isDrillingPlatform: 钻井平台木桶由玩家手动建立物流接口，不注册自动客户端。 */
+    private static boolean isDrillingPlatform(PlacedBuildingRecord building) {
+        return building != null
+                && BuildingCatalog.findBuilding(building.category(), building.buildingFileName())
+                .map(BuildingCatalog.BuildingDefinition::isDrillingPlatform)
+                .orElse(false);
     }
 
     private static void appendCommercialClient(ServerLevel level, PlacedBuildingRecord building, String dimensionId, long gameTime, List<LogisticsClientData> output) {

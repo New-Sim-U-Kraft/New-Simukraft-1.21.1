@@ -1,5 +1,6 @@
 package common.cn.kafei.simukraft.building;
 
+import com.google.gson.JsonParser;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
@@ -41,6 +42,70 @@ class BuildingPackageCatalogTest {
         assertEquals("Shop", snapshot.listBuildings("commercial").getFirst().displayName());
         assertEquals("Busy corner shop", snapshot.listBuildings("commercial").getFirst().description());
         assertEquals("Factory", snapshot.listBuildings("industry").getFirst().displayName());
+        assertFalse(snapshot.listBuildings("industry").getFirst().isDrillingPlatform());
+    }
+
+    @Test
+    void readsDrillingPlatformTypeAndPriceFromIndustryPackage() throws Exception {
+        writePackage("drilling.zip", List.of(
+                entry("buildings/industry/minetor.sk", "name:矿物钻井平台\nsize:11 x 56 x 11\namount:1200元\nstructure:minetor.nbt\n"),
+                entry("buildings/industry/minetor.nbt", structureNbtBytes(1)),
+                entry("buildings/industry/minetor.json", "{\"buildingType\":\"drilling_platform\"}")
+        ));
+
+        BuildingCatalog.BuildingDefinition definition = BuildingPackageCatalog.scanPackages(tempDir)
+                .listBuildings("industry")
+                .getFirst();
+
+        assertTrue(definition.isDrillingPlatform());
+        assertEquals(BuildingCatalog.BuildingType.DRILLING_PLATFORM, definition.buildingType());
+        assertEquals("1200元", definition.amount());
+        assertEquals("11 x 56 x 11", definition.size());
+    }
+
+    @Test
+    void readsDedicatedDrillingJsonReferencedBySk() throws Exception {
+        writePackage("dedicated_drilling.zip", List.of(
+                entry("buildings/industry/minetor.sk", "name:Mineral Drilling Platform\nsize:11 x 56 x 11\namount:1200\nstructure:minetor.nbt\ndrilling:minetor.drilling.json\n"),
+                entry("buildings/industry/minetor.nbt", structureNbtBytes(1)),
+                entry("buildings/industry/minetor.drilling.json", "{\"type\":\"drilling\",\"containers\":{\"output\":{\"type\":\"structure_pos\",\"positions\":[[7,8,1]]}}}")
+        ));
+
+        BuildingCatalog.BuildingDefinition definition = BuildingPackageCatalog.scanPackages(tempDir)
+                .listBuildings("industry")
+                .getFirst();
+
+        assertTrue(definition.isDrillingPlatform());
+        assertEquals(BuildingCatalog.BuildingType.DRILLING_PLATFORM, definition.buildingType());
+        assertEquals("1200", definition.amount());
+    }
+
+    @Test
+    void bundledOfficialPackageContainsMineralDrillingPlatform() throws Exception {
+        try (var input = BuildingPackageCatalogTest.class.getResourceAsStream(
+                "/assets/simukraft/building/official_building.zip")) {
+            assertTrue(input != null);
+            java.nio.file.Files.copy(input, tempDir.resolve("official_building.zip"));
+        }
+
+        BuildingCatalog.BuildingDefinition definition = BuildingPackageCatalog.scanPackages(tempDir)
+                .listBuildings("industry")
+                .stream()
+                .filter(candidate -> "minetor.sk".equalsIgnoreCase(candidate.metaFileName()))
+                .findFirst()
+                .orElseThrow();
+
+        assertTrue(definition.isDrillingPlatform());
+        assertEquals("1200元", definition.amount());
+        assertEquals("11 x 56 x 11", definition.size());
+        var drilling = JsonParser.parseString(definition.readFileText("minetor.drilling.json").orElseThrow()).getAsJsonObject();
+        assertFalse(drilling.has("price"));
+        assertFalse(drilling.has("name"));
+        assertEquals(5, drilling.getAsJsonObject("containers").getAsJsonObject("output")
+                .getAsJsonArray("positions").size());
+        try (var structure = definition.openStructure().orElseThrow()) {
+            assertEquals(16191, structure.readAllBytes().length);
+        }
     }
 
     @Test

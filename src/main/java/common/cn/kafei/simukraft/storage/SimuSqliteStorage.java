@@ -45,6 +45,7 @@ public final class SimuSqliteStorage {
     private final FarmlandBoxSqliteRepository farmlandBoxes;
     private final PlanningTaskSqliteRepository planningTasks;
     private final IndustrialBoxSqliteRepository industrialBoxes;
+    private final MineralDrillingBoxSqliteRepository mineralDrillingBoxes;
     private final CommercialSqliteRepository commercial;
     private final LogisticsSqliteRepository logistics;
     private final FamilySqliteRepository families;
@@ -61,6 +62,7 @@ public final class SimuSqliteStorage {
         this.farmlandBoxes = new FarmlandBoxSqliteRepository(database);
         this.planningTasks = new PlanningTaskSqliteRepository(database);
         this.industrialBoxes = new IndustrialBoxSqliteRepository(database);
+        this.mineralDrillingBoxes = new MineralDrillingBoxSqliteRepository(database);
         this.commercial = new CommercialSqliteRepository(database);
         this.logistics = new LogisticsSqliteRepository(database);
         this.families = new FamilySqliteRepository(database);
@@ -374,6 +376,33 @@ public final class SimuSqliteStorage {
     }
 
     // ── 商业 ──────────────────────────────────────────────────────────────────
+
+    /** loadMineralDrillingBoxes: 读取当前维度的全部钻井控制箱。 */
+    public static CompoundTag loadMineralDrillingBoxes(ServerLevel level) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null ? storage.mineralDrillingBoxes.loadAll(dimensionId(level)) : null;
+    }
+
+    /** saveMineralDrillingBoxes: 原子替换当前维度的钻井控制箱快照。 */
+    public static boolean saveMineralDrillingBoxes(ServerLevel level, CompoundTag tag) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null && tag != null
+                && storage.mineralDrillingBoxes.saveAll(dimensionId(level), tag);
+    }
+
+    /** saveMineralDrillingBox: 增量写入一个钻井控制箱。 */
+    public static boolean saveMineralDrillingBox(ServerLevel level, CompoundTag boxTag) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null && boxTag != null
+                && storage.mineralDrillingBoxes.upsert(dimensionId(level), boxTag);
+    }
+
+    /** deleteMineralDrillingBox: 删除当前维度指定位置的钻井控制箱。 */
+    public static boolean deleteMineralDrillingBox(ServerLevel level, long boxPosLong) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null
+                && storage.mineralDrillingBoxes.delete(dimensionId(level), boxPosLong);
+    }
 
     public static CompoundTag loadCommercialBoxes(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);

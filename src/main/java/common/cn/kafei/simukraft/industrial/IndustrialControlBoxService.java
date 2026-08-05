@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.industrial;
 
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
+import common.cn.kafei.simukraft.building.BuildingCatalog;
 import common.cn.kafei.simukraft.building.BuildingIntegrityService;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.citizen.CitizenData;
@@ -194,7 +195,39 @@ public final class IndustrialControlBoxService {
     }
 
     public static PlacedBuildingRecord resolveBuilding(ServerLevel level, BlockPos boxPos) {
-        return PlacedBuildingService.findByContainedPosAndCategory(level, boxPos, "industry", "industrial");
+        if (level == null || boxPos == null) {
+            return null;
+        }
+        for (PlacedBuildingRecord record : PlacedBuildingService.getBuildings(level)) {
+            if (!isIndustrialCategory(record.category()) || !inside(record, boxPos)) {
+                continue;
+            }
+            boolean drillingPlatform = BuildingCatalog.findBuilding(record.category(), record.buildingFileName())
+                    .map(BuildingCatalog.BuildingDefinition::isDrillingPlatform)
+                    .orElse(false);
+            if (!drillingPlatform) {
+                return record;
+            }
+        }
+        return null;
+    }
+
+    /** isIndustrialCategory: 兼容当前与旧存档中的工业分类名称。 */
+    private static boolean isIndustrialCategory(String category) {
+        String normalized = category == null ? "" : category.toLowerCase(Locale.ROOT);
+        return "industry".equals(normalized) || "industrial".equals(normalized);
+    }
+
+    /** inside: 判断工业控制箱是否位于建筑记录包围盒内。 */
+    private static boolean inside(PlacedBuildingRecord record, BlockPos pos) {
+        BlockPos min = record.minPos();
+        BlockPos max = record.maxPos();
+        return pos.getX() >= Math.min(min.getX(), max.getX())
+                && pos.getX() <= Math.max(min.getX(), max.getX())
+                && pos.getY() >= Math.min(min.getY(), max.getY())
+                && pos.getY() <= Math.max(min.getY(), max.getY())
+                && pos.getZ() >= Math.min(min.getZ(), max.getZ())
+                && pos.getZ() <= Math.max(min.getZ(), max.getZ());
     }
 
     public static CitizenData findAssignedWorker(ServerLevel level, BlockPos boxPos) {

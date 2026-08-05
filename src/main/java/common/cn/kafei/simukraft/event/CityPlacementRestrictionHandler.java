@@ -14,6 +14,7 @@ import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.farmland.FarmlandBoxService;
 import common.cn.kafei.simukraft.industrial.IndustrialControlBoxService;
 import common.cn.kafei.simukraft.medical.MedicalControlBoxService;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingControlBoxService;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -139,6 +140,7 @@ public final class CityPlacementRestrictionHandler {
         return block == ModBlocks.RESIDENTIAL_CONTROL_BOX.get()
                 || block == ModBlocks.COMMERCIAL_CONTROL_BOX.get()
                 || block == ModBlocks.INDUSTRIAL_CONTROL_BOX.get()
+                || block == ModBlocks.MINERAL_DRILLING_CONTROL_BOX.get()
                 || block == ModBlocks.MEDICAL_CONTROL_BOX.get()
                 || block == ModBlocks.NSUK_FARMLAND_BOX.get();
     }
@@ -168,6 +170,8 @@ public final class CityPlacementRestrictionHandler {
             building = CommercialControlBoxService.resolveBuilding(level, pos);
         } else if (block == ModBlocks.INDUSTRIAL_CONTROL_BOX.get()) {
             building = IndustrialControlBoxService.resolveBuilding(level, pos);
+        } else if (block == ModBlocks.MINERAL_DRILLING_CONTROL_BOX.get()) {
+            building = MineralDrillingControlBoxService.resolveBuilding(level, pos);
         } else if (block == ModBlocks.MEDICAL_CONTROL_BOX.get()) {
             building = MedicalControlBoxService.resolveBuilding(level, pos);
         }
@@ -227,6 +231,9 @@ public final class CityPlacementRestrictionHandler {
         if (block == ModBlocks.INDUSTRIAL_CONTROL_BOX.get()) {
             return Optional.of(CityPoiType.INDUSTRIAL);
         }
+        if (block == ModBlocks.MINERAL_DRILLING_CONTROL_BOX.get()) {
+            return Optional.of(CityPoiType.INDUSTRIAL);
+        }
         if (block == ModBlocks.MEDICAL_CONTROL_BOX.get()) {
             return Optional.of(CityPoiType.MEDICAL);
         }
@@ -261,6 +268,7 @@ public final class CityPlacementRestrictionHandler {
                 || block == ModBlocks.RESIDENTIAL_CONTROL_BOX.get()
                 || block == ModBlocks.COMMERCIAL_CONTROL_BOX.get()
                 || block == ModBlocks.INDUSTRIAL_CONTROL_BOX.get()
+                || block == ModBlocks.MINERAL_DRILLING_CONTROL_BOX.get()
                 || block == ModBlocks.MEDICAL_CONTROL_BOX.get()
                 || block == ModBlocks.OTHER_CONTROL_BOX.get();
     }

@@ -1,5 +1,6 @@
 package client.cn.kafei.simukraft.client.hire;
 
+import client.cn.kafei.simukraft.client.mineraldrilling.MineralDrillingControlBoxScreenOpener;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import client.cn.kafei.simukraft.client.buildbox.BuildBoxScreenOpener;
@@ -21,6 +22,7 @@ import common.cn.kafei.simukraft.citizen.CitizenSkillSnapshot;
 import common.cn.kafei.simukraft.commercial.CommercialConstants;
 import common.cn.kafei.simukraft.job.CityJobType;
 import common.cn.kafei.simukraft.industrial.IndustrialConstants;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingConstants;
 import common.cn.kafei.simukraft.logistics.LogisticsConstants;
 import common.cn.kafei.simukraft.network.npc.hire.NpcHireAssignPacket;
 import common.cn.kafei.simukraft.network.npc.hire.NpcHireListRequestPacket;
@@ -504,6 +506,10 @@ public final class NpcHireScreen {
             LogisticsServerBoxScreenOpener.request(sourcePos);
             return;
         }
+        if (MineralDrillingConstants.HIRE_SOURCE_TYPE.equalsIgnoreCase(sourceType)) {
+            MineralDrillingControlBoxScreenOpener.request(sourcePos);
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft != null) {
             minecraft.setScreen(null);
@@ -516,6 +522,9 @@ public final class NpcHireScreen {
         }
         if (IndustrialConstants.HIRE_ROLE.equalsIgnoreCase(role)) {
             return "gui.simukraft.industrial.hire_title";
+        }
+        if (MineralDrillingConstants.HIRE_ROLE.equalsIgnoreCase(role)) {
+            return "gui.simukraft.mineral_drilling.hire_title";
         }
         if (CommercialConstants.HIRE_ROLE.equalsIgnoreCase(role)) {
             return "gui.simukraft.commercial.hire_title";

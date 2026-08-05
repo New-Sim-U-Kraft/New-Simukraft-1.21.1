@@ -41,6 +41,9 @@ import common.cn.kafei.simukraft.industrial.IndustrialWorkService;
 import common.cn.kafei.simukraft.logistics.LogisticsAutoClientService;
 import common.cn.kafei.simukraft.logistics.LogisticsManager;
 import common.cn.kafei.simukraft.logistics.LogisticsWorkService;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingBoxManager;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingDefinitionLoader;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingWorkService;
 import common.cn.kafei.simukraft.planner.PlannerWorkService;
 import common.cn.kafei.simukraft.event.CityPlacementRestrictionHandler;
 import common.cn.kafei.simukraft.network.ModNetwork;
@@ -254,6 +257,7 @@ public final class SimuKraft {
             BuilderConstructionService.tick(level);
             PlannerWorkService.tick(level);
             IndustrialWorkService.tick(level);
+            MineralDrillingWorkService.tick(level);
             CommercialWorkService.tick(level);
             LogisticsWorkService.tick(level);
             PopulationGrowthService.tick(level);
@@ -282,6 +286,7 @@ public final class SimuKraft {
         BuilderConstructionService.clearServerCaches(event.getServer());
         PlannerWorkService.clearServerCaches(event.getServer());
         IndustrialWorkService.clearServerCaches(event.getServer());
+        MineralDrillingWorkService.clearServerCaches(event.getServer());
         CommercialWorkService.clearServerCaches(event.getServer());
         LogisticsWorkService.clearServerCaches(event.getServer());
         LogisticsAutoClientService.clearServerCaches(event.getServer());
@@ -302,6 +307,7 @@ public final class SimuKraft {
         HudSyncService.clearServerCaches(event.getServer());
         CommercialDefinitionLoader.clearCache();
         IndustrialDefinitionLoader.clearCache();
+        MineralDrillingDefinitionLoader.clearCache();
         BuildingCatalog.clearCache();
         WorkMaterialPolicy.clearCache();
         NpcBlockProtectionPolicy.clearCache();
@@ -325,6 +331,7 @@ public final class SimuKraft {
         CityPoiManager.get(level).saveToSqlite(level);
         FarmlandBoxManager.get(level).saveToSqlite(level);
         IndustrialBoxManager.get(level).saveToSqlite(level);
+        MineralDrillingBoxManager.get(level).saveToSqlite(level);
         CommercialBoxManager.get(level).saveToSqlite(level);
         CommercialStockManager.get(level).saveToSqlite(level);
         LogisticsManager.get(level).saveToSqlite(level);

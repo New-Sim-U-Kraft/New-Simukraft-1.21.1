@@ -5,6 +5,7 @@ import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.commercial.CommercialTradeMenuProvider;
 import common.cn.kafei.simukraft.citizen.CitizenInfoMenuProvider;
 import common.cn.kafei.simukraft.logistics.menu.LogisticsWarehouseGridMenu;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingMenuProvider;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.bus.api.IEventBus;
@@ -23,6 +24,10 @@ public final class ModMenuTypes {
     public static final DeferredHolder<MenuType<?>, MenuType<ModularUIContainerMenu>> CITIZEN_INFO = MENUS.register(
             "citizen_info",
             () -> IMenuTypeExtension.create(CitizenInfoMenuProvider::createClientMenu));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<ModularUIContainerMenu>> MINERAL_DRILLING_CONTROL_BOX = MENUS.register(
+            "mineral_drilling_control_box",
+            () -> IMenuTypeExtension.create(MineralDrillingMenuProvider::createClientMenu));
 
     public static final DeferredHolder<MenuType<?>, MenuType<LogisticsWarehouseGridMenu>> LOGISTICS_WAREHOUSE_GRID = MENUS.register(
             "logistics_warehouse_grid",

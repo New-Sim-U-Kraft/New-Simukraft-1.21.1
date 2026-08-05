@@ -71,7 +71,13 @@ public final class BuildingCatalog {
                                      String description,
                                      String metaFileName,
                                      String structureFileName,
+                                     BuildingType buildingType,
                                      BuildingPackageCatalog.PackageSource source) {
+        /** isDrillingPlatform: 判断建筑包是否将当前工业建筑声明为矿物钻井平台。 */
+        public boolean isDrillingPlatform() {
+            return buildingType == BuildingType.DRILLING_PLATFORM;
+        }
+
         public Optional<InputStream> openMeta() throws IOException {
             return openFile(metaFileName);
         }
@@ -108,5 +114,11 @@ public final class BuildingCatalog {
             Path path = packagePath();
             return path == null ? "" : path.toString().toLowerCase(Locale.ROOT);
         }
+    }
+
+    /** BuildingType: 区分普通建筑与需要矿物钻井控制箱驱动的钻井平台。 */
+    public enum BuildingType {
+        STANDARD,
+        DRILLING_PLATFORM
     }
 }

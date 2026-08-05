@@ -17,6 +17,8 @@ import common.cn.kafei.simukraft.industrial.IndustrialWorkService;
 import common.cn.kafei.simukraft.logistics.LogisticsConstants;
 import common.cn.kafei.simukraft.medical.MedicalControlBoxService;
 import common.cn.kafei.simukraft.medical.MedicalService;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingConstants;
+import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingControlBoxService;
 import common.cn.kafei.simukraft.planner.PlannerWorkService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -190,6 +192,9 @@ public final class CitizenEmploymentService {
         if (workplaceId(IndustrialConstants.HIRE_SOURCE_TYPE, IndustrialConstants.HIRE_ROLE, workplacePos).equals(workplaceId)) {
             return CityJobType.INDUSTRIAL_WORKER;
         }
+        if (workplaceId(MineralDrillingConstants.HIRE_SOURCE_TYPE, MineralDrillingConstants.HIRE_ROLE, workplacePos).equals(workplaceId)) {
+            return CityJobType.INDUSTRIAL_WORKER;
+        }
         if (workplaceId(CommercialConstants.HIRE_SOURCE_TYPE, CommercialConstants.HIRE_ROLE, workplacePos).equals(workplaceId)) {
             return CityJobType.COMMERCIAL_WORKER;
         }
@@ -207,6 +212,7 @@ public final class CitizenEmploymentService {
         String normalizedSource = normalizeKey(sourceType);
         String normalizedRole = normalizeKey(role);
         CityJobType jobType = citizen.jobType();
+        boolean mineralDrillingEmployment = isMineralDrillingEmployment(citizen, normalizedSource, normalizedRole, sourcePos);
         if (jobType == CityJobType.BUILDER || "builder".equals(normalizedRole)) {
             BuilderConstructionService.interruptTask(level, citizen.uuid(), safeReason);
         }
@@ -219,9 +225,15 @@ public final class CitizenEmploymentService {
                 FarmlandBoxService.toggleRunningOff(level, boxPos);
             }
         }
-        if (jobType == CityJobType.INDUSTRIAL_WORKER || "industrial".equals(normalizedRole) || IndustrialConstants.HIRE_SOURCE_TYPE.equals(normalizedSource)) {
+        if (!mineralDrillingEmployment
+                && (jobType == CityJobType.INDUSTRIAL_WORKER
+                || "industrial".equals(normalizedRole)
+                || IndustrialConstants.HIRE_SOURCE_TYPE.equals(normalizedSource))) {
             IndustrialWorkService.clearServerCaches(level.getServer());
             common.cn.kafei.simukraft.industrial.IndustrialControlBoxService.interrupt(level, citizen.uuid(), safeReason);
+        }
+        if (mineralDrillingEmployment) {
+            MineralDrillingControlBoxService.interrupt(level, citizen.uuid(), safeReason);
         }
         if (jobType == CityJobType.COMMERCIAL_WORKER || "commercial".equals(normalizedRole) || CommercialConstants.HIRE_SOURCE_TYPE.equals(normalizedSource)) {
             CommercialWorkService.clearServerCaches(level.getServer());
@@ -236,6 +248,19 @@ public final class CitizenEmploymentService {
                 MedicalService.releasePatientsForControlBox(level, boxPos);
             }
         }
+    }
+
+    /** isMineralDrillingEmployment: 优先识别复用工业职业枚举的钻井岗位，避免清理工业控制箱任务。 */
+    private static boolean isMineralDrillingEmployment(CitizenData citizen, String normalizedSource, String normalizedRole,
+                                                        @Nullable BlockPos sourcePos) {
+        if (MineralDrillingConstants.HIRE_SOURCE_TYPE.equals(normalizedSource)
+                && MineralDrillingConstants.HIRE_ROLE.equals(normalizedRole)) {
+            return true;
+        }
+        BlockPos workplacePos = sourcePos != null ? sourcePos : citizen.workplacePos();
+        return workplacePos != null
+                && workplaceId(MineralDrillingConstants.HIRE_SOURCE_TYPE, MineralDrillingConstants.HIRE_ROLE, workplacePos)
+                .equals(citizen.workplaceId());
     }
 
     private static boolean repairIndustrialJobKey(ServerLevel level, CitizenData citizen) {
