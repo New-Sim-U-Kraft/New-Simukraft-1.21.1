@@ -60,15 +60,21 @@ public final class BuildingStructureSqliteDatabase implements Closeable {
         this.writeQueue = new StorageWriteQueue("simukraft-buildings-db-write", transactions, metrics);
     }
 
-    /** open: 取该存档的建筑库实例；服务器已关服或为 null 时返回 null，调用方按"存储不可用"处理。 */
+    /** open: 取该存档的建筑库实例；服务器已关服、为 null 或建库失败时返回 null，调用方按"存储不可用"处理。 */
     public static BuildingStructureSqliteDatabase open(MinecraftServer server) {
         if (server == null || SHUTDOWN.contains(server)) {
             return null;
         }
-        return INSTANCES.computeIfAbsent(server, key -> {
-            Path worldPath = key.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
-            return new BuildingStructureSqliteDatabase(worldPath.resolve(STORAGE_DIR).resolve(DATABASE_FILE));
-        });
+        try {
+            return INSTANCES.computeIfAbsent(server, key -> {
+                Path worldPath = key.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
+                return new BuildingStructureSqliteDatabase(worldPath.resolve(STORAGE_DIR).resolve(DATABASE_FILE));
+            });
+        } catch (RuntimeException exception) {
+            // 与主库 openSafely 同一防线：建库失败退回"仅内存"，不让每 tick 的服务调用跟着炸。
+            SimuKraft.LOGGER.error("Building structure SQLite storage is unavailable. Placed buildings will run on in-memory state only.", exception);
+            return null;
+        }
     }
 
     /** closeFor: 关服时释放该存档的实例，避免跨存档复用；之后 {@link #open} 不再重建。 */

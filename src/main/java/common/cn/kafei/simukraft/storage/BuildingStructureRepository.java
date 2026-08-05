@@ -82,6 +82,9 @@ public final class BuildingStructureRepository {
      * loadByDimension: 读取一个维度的全部已建成建筑。
      * <p>方块与 POI 都用一次带 JOIN 的查询批量取回后在内存分组。旧实现对每座建筑另发 3 条子查询
      * （其中 POI 定义和 POI 实例是完全相同的 SQL，被查了两遍），200 座建筑就是 601 次查询。
+     *
+     * @return 成功时返回建筑列表（可能为空）；加载失败返回 null 并把建筑库标记为降级，
+     *         调用方不得缓存失败结果，留待下次访问重试
      */
     public List<PlacedBuildingRecord> loadByDimension(String dimensionId) {
         List<PlacedBuildingRecord> result = new ArrayList<>();
@@ -126,7 +129,10 @@ public final class BuildingStructureRepository {
                 }
             }
         } catch (SQLException | IllegalArgumentException exception) {
+
+            database.markDegraded("loadByDimension(placedBuildings)", exception);
             SimuKraft.LOGGER.error("Failed to load placed building structures", exception);
+            return null;
         }
         return List.copyOf(result);
     }

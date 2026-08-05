@@ -121,7 +121,6 @@ public final class LogisticsSqliteRepository {
 
     public void upsertWarehouse(Connection connection, CompoundTag warehouseTag) throws SQLException {
         String warehouseId = warehouseTag.getUUID("WarehouseId").toString();
-        deleteWarehousesAt(connection, warehouseTag.getLong("BoxPos"), warehouseId, warehouseTag.getString("DimensionId"));
         try (PreparedStatement deleteContainers = connection.prepareStatement("DELETE FROM logistics_ports WHERE owner_id = ? AND owner_type = 'warehouse'")) {
             deleteContainers.setString(1, warehouseId);
             deleteContainers.executeUpdate();
@@ -131,7 +130,6 @@ public final class LogisticsSqliteRepository {
 
     public void upsertClient(Connection connection, CompoundTag clientTag) throws SQLException {
         String clientId = clientTag.getUUID("ClientId").toString();
-        deleteClientsAt(connection, clientTag.getLong("BoxPos"), clientId, clientTag.getString("DimensionId"));
         try (PreparedStatement deletePorts = connection.prepareStatement("DELETE FROM logistics_ports WHERE owner_id = ? AND owner_type = 'client'")) {
             deletePorts.setString(1, clientId);
             deletePorts.executeUpdate();
@@ -248,10 +246,14 @@ public final class LogisticsSqliteRepository {
     }
 
     private void saveWarehouse(Connection connection, CompoundTag tag) throws SQLException {
+        String warehouseId = tag.getUUID("WarehouseId").toString();
+        // 同一位置被新仓库顶替时，旧行（连同其端口与通道）必须先清掉：
+        // 表上有 UNIQUE(dimension_id, box_pos_long)，批量保存路径不做预清理会让 INSERT 撞约束、整条写入被丢弃。
+        deleteWarehousesAt(connection, tag.getLong("BoxPos"), warehouseId, tag.getString("DimensionId"));
         try (PreparedStatement statement = connection.prepareStatement(
                 "INSERT INTO logistics_warehouses(warehouse_id, box_pos_long, city_id, dimension_id, updated_at) VALUES(?, ?, ?, ?, ?) "
                         + "ON CONFLICT(warehouse_id) DO UPDATE SET box_pos_long = excluded.box_pos_long, city_id = excluded.city_id, dimension_id = excluded.dimension_id, updated_at = excluded.updated_at")) {
-            statement.setString(1, tag.getUUID("WarehouseId").toString());
+            statement.setString(1, warehouseId);
             statement.setLong(2, tag.getLong("BoxPos"));
             SqliteNbtHelper.setNullableString(statement, 3, tag.hasUUID("CityId") ? tag.getUUID("CityId").toString() : null);
             statement.setString(4, tag.getString("DimensionId"));
@@ -261,15 +263,18 @@ public final class LogisticsSqliteRepository {
         ListTag containers = tag.getList("Containers", CompoundTag.TAG_COMPOUND);
         for (int i = 0; i < containers.size(); i++) {
             CompoundTag container = containers.getCompound(i);
-            savePort(connection, tag.getUUID("WarehouseId").toString(), "warehouse", "container_" + i, "container", "warehouse", BlockPos.of(container.getLong("Pos")));
+            savePort(connection, warehouseId, "warehouse", "container_" + i, "container", "warehouse", BlockPos.of(container.getLong("Pos")));
         }
     }
 
     private void saveClient(Connection connection, CompoundTag tag) throws SQLException {
+        String clientId = tag.getUUID("ClientId").toString();
+        // 同 saveWarehouse：同位置的旧客户端行不清理会连端口、通道一起残留成幽灵数据。
+        deleteClientsAt(connection, tag.getLong("BoxPos"), clientId, tag.getString("DimensionId"));
         try (PreparedStatement statement = connection.prepareStatement(
                 "INSERT INTO logistics_clients(client_id, box_pos_long, city_id, dimension_id, name, automatic, source_type, source_id, updated_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) "
                         + "ON CONFLICT(client_id) DO UPDATE SET box_pos_long = excluded.box_pos_long, city_id = excluded.city_id, dimension_id = excluded.dimension_id, name = excluded.name, automatic = excluded.automatic, source_type = excluded.source_type, source_id = excluded.source_id, updated_at = excluded.updated_at")) {
-            statement.setString(1, tag.getUUID("ClientId").toString());
+            statement.setString(1, clientId);
             statement.setLong(2, tag.getLong("BoxPos"));
             SqliteNbtHelper.setNullableString(statement, 3, tag.hasUUID("CityId") ? tag.getUUID("CityId").toString() : null);
             statement.setString(4, tag.getString("DimensionId"));
@@ -283,7 +288,7 @@ public final class LogisticsSqliteRepository {
         ListTag ports = tag.getList("Ports", CompoundTag.TAG_COMPOUND);
         for (int i = 0; i < ports.size(); i++) {
             CompoundTag port = ports.getCompound(i);
-            savePort(connection, tag.getUUID("ClientId").toString(), "client", port.getString("Id"), port.getString("Name"), port.getString("Kind"), BlockPos.of(port.getLong("Pos")));
+            savePort(connection, clientId, "client", port.getString("Id"), port.getString("Name"), port.getString("Kind"), BlockPos.of(port.getLong("Pos")));
         }
     }
 
@@ -381,7 +386,9 @@ public final class LogisticsSqliteRepository {
 
     private ListTag loadPorts(Connection connection, String ownerId, String ownerType) throws SQLException {
         ListTag ports = new ListTag();
-        try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM logistics_ports WHERE owner_id = ? AND owner_type = ? ORDER BY port_id")) {
+        // port_id 是 "container_10" / "input_2" 这类带数值后缀的 id：纯字典序会把 10 排到 2 前面，
+        // 先按长度再按字典序即等价于按数值后缀排序，加载回来的端口顺序才与保存时一致。
+        try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM logistics_ports WHERE owner_id = ? AND owner_type = ? ORDER BY LENGTH(port_id), port_id")) {
             statement.setString(1, ownerId);
             statement.setString(2, ownerType);
             try (ResultSet resultSet = statement.executeQuery()) {

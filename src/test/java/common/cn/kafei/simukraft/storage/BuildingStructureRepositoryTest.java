@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** P1 回归：建筑结构库的写入经写队列落库、读取借池化连接，upsert/delete 如实报告成败。 */
@@ -57,6 +58,25 @@ class BuildingStructureRepositoryTest {
 
         assertEquals(BuildingStructureRepository.WriteOutcome.STORAGE_UNAVAILABLE, repository.upsert(record(UUID.randomUUID())));
         assertEquals(BuildingStructureRepository.WriteOutcome.STORAGE_UNAVAILABLE, repository.delete(UUID.randomUUID()));
+    }
+
+    /**
+     * 加载失败必须返回 null 并把建筑库标记为降级，而不是静默返回部分结果：
+     * 调用方（PlacedBuildingService）不缓存 null、下次访问重试；若把残缺结果当成权威缓存，
+     * 一次读取故障就让全维度建筑"消失"到重启。
+     */
+    @Test
+    void loadFailureMarksDegradedAndReturnsNull() throws Exception {
+        try (BuildingStructureSqliteDatabase database = openDatabase(tempDir.resolve("buildings-broken.sqlite"))) {
+            BuildingStructureRepository repository = new BuildingStructureRepository(database);
+            try (java.sql.Connection connection = database.borrowConnection();
+                 java.sql.Statement statement = connection.createStatement()) {
+                statement.executeUpdate("DROP TABLE placed_building_blocks");
+            }
+
+            assertNull(repository.loadByDimension("minecraft:overworld"), "加载失败必须返回 null 而不是部分结果");
+            assertTrue(database.isDegraded(), "加载失败必须把建筑库标记为降级");
+        }
     }
 
     private static PlacedBuildingRecord record(UUID buildingId) {

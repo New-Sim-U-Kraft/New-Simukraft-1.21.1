@@ -33,7 +33,10 @@ public final class PlacedBuildingService {
         }
         String dimensionId = level.dimension().location().toString();
         String cacheKey = SaveScopedCacheKey.levelKey(level);
-        return BY_DIMENSION.computeIfAbsent(cacheKey, ignored -> load(level, dimensionId));
+        List<PlacedBuildingRecord> records = BY_DIMENSION.computeIfAbsent(cacheKey, ignored -> load(level, dimensionId));
+        // 加载失败返回 null 时不落缓存（computeIfAbsent 不存 null），本次按空列表兜底，下次访问重试；
+        // 不能把失败的空结果缓存整个会话，否则一次读取故障就让全维度建筑"消失"到重启。
+        return records != null ? records : List.of();
     }
 
     public static void register(ServerLevel level, PlacedBuildingRecord record) {
