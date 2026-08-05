@@ -21,33 +21,28 @@ public final class MineralDrillingBoxSqliteRepository {
         this.database = database;
     }
 
-    /** saveAll: 在单事务内替换指定维度的控制箱快照。 */
+    /** saveAll: 经 callSync 在写线程的单事务内替换指定维度的控制箱快照，事务边界由写队列掌握。 */
     public synchronized boolean saveAll(String dimensionId, CompoundTag tag) {
         if (dimensionId == null || dimensionId.isBlank() || tag == null) {
             return false;
         }
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            try {
-                try (PreparedStatement delete = connection.prepareStatement(
-                        "DELETE FROM " + TABLE + " WHERE dimension_id = ?")) {
-                    delete.setString(1, dimensionId);
-                    delete.executeUpdate();
-                }
-                ListTag boxes = tag.getList("Boxes", CompoundTag.TAG_COMPOUND);
-                for (int index = 0; index < boxes.size(); index++) {
-                    saveBox(connection, dimensionId, boxes.getCompound(index));
-                }
-                connection.commit();
-                return true;
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
+        Boolean saved = database.callSync(connection -> {
+            try (PreparedStatement delete = connection.prepareStatement(
+                    "DELETE FROM " + TABLE + " WHERE dimension_id = ?")) {
+                delete.setString(1, dimensionId);
+                delete.executeUpdate();
             }
-        } catch (SQLException | RuntimeException exception) {
-            SimuKraft.LOGGER.error("Failed to save mineral drilling boxes for dimension {}", dimensionId, exception);
+            ListTag boxes = tag.getList("Boxes", CompoundTag.TAG_COMPOUND);
+            for (int index = 0; index < boxes.size(); index++) {
+                saveBox(connection, dimensionId, boxes.getCompound(index));
+            }
+            return true;
+        });
+        if (saved == null || !saved) {
+            SimuKraft.LOGGER.error("Failed to save mineral drilling boxes for dimension {}", dimensionId);
             return false;
         }
+        return true;
     }
 
     /** upsert: 增量写入单个控制箱，避免滑杆修改触发整表重写。 */
@@ -55,13 +50,15 @@ public final class MineralDrillingBoxSqliteRepository {
         if (dimensionId == null || dimensionId.isBlank() || boxTag == null) {
             return false;
         }
-        try (Connection connection = database.openConnection()) {
+        Boolean saved = database.callSync(connection -> {
             saveBox(connection, dimensionId, boxTag);
             return true;
-        } catch (SQLException | RuntimeException exception) {
-            SimuKraft.LOGGER.error("Failed to save mineral drilling box at {} in {}", boxTag.getLong("BoxPos"), dimensionId, exception);
+        });
+        if (saved == null || !saved) {
+            SimuKraft.LOGGER.error("Failed to save mineral drilling box at {} in {}", boxTag.getLong("BoxPos"), dimensionId);
             return false;
         }
+        return true;
     }
 
     /** delete: 删除指定维度和位置的控制箱记录。 */
@@ -69,17 +66,20 @@ public final class MineralDrillingBoxSqliteRepository {
         if (dimensionId == null || dimensionId.isBlank()) {
             return false;
         }
-        try (Connection connection = database.openConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "DELETE FROM " + TABLE + " WHERE dimension_id = ? AND box_pos_long = ?")) {
-            statement.setString(1, dimensionId);
-            statement.setLong(2, boxPosLong);
-            statement.executeUpdate();
+        Boolean deleted = database.callSync(connection -> {
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM " + TABLE + " WHERE dimension_id = ? AND box_pos_long = ?")) {
+                statement.setString(1, dimensionId);
+                statement.setLong(2, boxPosLong);
+                statement.executeUpdate();
+            }
             return true;
-        } catch (SQLException | RuntimeException exception) {
-            SimuKraft.LOGGER.error("Failed to delete mineral drilling box at {} in {}", boxPosLong, dimensionId, exception);
+        });
+        if (deleted == null || !deleted) {
+            SimuKraft.LOGGER.error("Failed to delete mineral drilling box at {} in {}", boxPosLong, dimensionId);
             return false;
         }
+        return true;
     }
 
     /** loadAll: 读取指定维度的全部控制箱快照。 */
@@ -89,7 +89,7 @@ public final class MineralDrillingBoxSqliteRepository {
         }
         CompoundTag result = new CompoundTag();
         ListTag boxes = new ListTag();
-        try (Connection connection = database.openConnection();
+        try (Connection connection = database.borrowConnection();
              PreparedStatement statement = connection.prepareStatement(
                      "SELECT box_pos_long, drill_depth, lowest_reached_depth, running, status_key, status_text, selected_vein_id, inventory_nbt, updated_at, revision "
                              + "FROM " + TABLE + " WHERE dimension_id = ? ORDER BY box_pos_long")) {
@@ -112,7 +112,11 @@ public final class MineralDrillingBoxSqliteRepository {
             }
             result.put("Boxes", boxes);
             return boxes.isEmpty() ? null : result;
-        } catch (SQLException | RuntimeException exception) {
+        } catch (SQLException exception) {
+            database.markDegraded("loadAll(mineralDrillingBoxes)", exception);
+            SimuKraft.LOGGER.error("Failed to load mineral drilling boxes for dimension {}", dimensionId, exception);
+            return null;
+        } catch (RuntimeException exception) {
             SimuKraft.LOGGER.error("Failed to load mineral drilling boxes for dimension {}", dimensionId, exception);
             return null;
         }
