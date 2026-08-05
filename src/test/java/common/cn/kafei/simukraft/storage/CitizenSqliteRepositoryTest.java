@@ -9,6 +9,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.lang.reflect.Constructor;
 import java.nio.file.Path;
+import java.sql.Connection;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,7 +42,9 @@ class CitizenSqliteRepositoryTest {
 
         try (SimuSqliteDatabase database = openDatabase(tempDir.resolve("citizens.sqlite"))) {
             CitizenSqliteRepository repository = new CitizenSqliteRepository(database);
-            repository.saveAll(root);
+            try (Connection connection = database.borrowConnection()) {
+                repository.saveAll(connection, root);
+            }
             CompoundTag loadedRoot = repository.loadAll();
 
             assertNotNull(loadedRoot);

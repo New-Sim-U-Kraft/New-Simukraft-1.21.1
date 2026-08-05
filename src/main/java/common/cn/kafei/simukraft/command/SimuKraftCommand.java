@@ -81,6 +81,9 @@ public final class SimuKraftCommand {
         root.then(Commands.literal("reload")
                 .then(Commands.literal("buildings")
                         .executes(context -> reloadOfficialBuildings(context.getSource()))));
+        root.then(Commands.literal("storage")
+                .requires(source -> source.hasPermission(2))
+                .executes(context -> storageStats(context.getSource())));
         root.then(Commands.literal("city")
                 .then(Commands.literal("permission")
                         .then(Commands.literal("accept")
@@ -446,6 +449,8 @@ public final class SimuKraftCommand {
             FarmlandBoxManager.get(level).saveToSqlite(level);
             LogisticsManager.get(level).saveToSqlite(level);
         }
+        // saveToSqlite 只是把写入排进队列，必须先排空再读回，否则会读到保存前的旧数据。
+        common.cn.kafei.simukraft.storage.SimuSqliteStorage.flush(source.getServer());
         CitizenManager.get(overworld).reloadFromSqlite(overworld);
         for (ServerLevel level : source.getServer().getAllLevels()) {
             CityManager.get(level).reloadFromSqlite(level);
@@ -458,6 +463,15 @@ public final class SimuKraftCommand {
             LogisticsManager.get(level).reloadFromSqlite(level);
         }
         source.sendSuccess(() -> Component.translatable("message.simukraft.reload.database.success"), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** storageStats: 输出主库与建筑结构库的写队列指标快照，用于现场排查存储故障。 */
+    private static int storageStats(CommandSourceStack source) {
+        String main = common.cn.kafei.simukraft.storage.SimuSqliteStorage.summarizeStorage(source.getServer());
+        String buildings = common.cn.kafei.simukraft.storage.BuildingStructureSqliteDatabase.summarizeFor(source.getServer());
+        source.sendSuccess(() -> Component.literal("[storage] " + main), false);
+        source.sendSuccess(() -> Component.literal("[storage:buildings] " + buildings), false);
         return Command.SINGLE_SUCCESS;
     }
 

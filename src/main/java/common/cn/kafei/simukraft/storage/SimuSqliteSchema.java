@@ -1,11 +1,16 @@
 package common.cn.kafei.simukraft.storage;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+/**
+ * 基线 schema（{@code user_version = 1}）。
+ *
+ * <p>必须保持幂等：全新库和所有历史存档都会执行它一次。基线之上的结构变更（改主键、补维度列等）
+ * 走 {@link common.cn.kafei.simukraft.storage.core.SchemaMigrator} 的版本化迁移，不要再往这里加
+ * {@code addColumnIfMissing}。
+ */
 public final class SimuSqliteSchema {
     private static final String VIRTUAL_VEIN_FIELD_TABLE = "virtual_vein_fields";
     private static final String LEGACY_VIRTUAL_VEIN_FIELD_TABLE = "virtual_vein_fields_legacy_v3";
@@ -13,13 +18,8 @@ public final class SimuSqliteSchema {
     private SimuSqliteSchema() {
     }
 
-    public static void initialize(SimuSqliteDatabase database) {
-        try {
-            Files.createDirectories(database.databasePath().getParent());
-        } catch (IOException exception) {
-            throw new IllegalStateException("Failed to create Sim-U-Kraft SQLite directory", exception);
-        }
-        try (Connection connection = database.openConnection(); Statement statement = connection.createStatement()) {
+    public static void createBaseline(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS cities(city_id TEXT PRIMARY KEY, city_name TEXT NOT NULL, dimension_id TEXT NOT NULL DEFAULT 'minecraft:overworld', core_x INTEGER NOT NULL, core_y INTEGER NOT NULL, core_z INTEGER NOT NULL, funds REAL NOT NULL, city_level INTEGER NOT NULL)");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS city_members(city_id TEXT NOT NULL, player_id TEXT NOT NULL, player_name TEXT NOT NULL, permission_level TEXT NOT NULL, PRIMARY KEY(city_id, player_id), FOREIGN KEY(city_id) REFERENCES cities(city_id) ON DELETE CASCADE)");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS finance_transactions(id INTEGER PRIMARY KEY AUTOINCREMENT, city_id TEXT NOT NULL, sort_index INTEGER NOT NULL, time INTEGER NOT NULL, actor_id TEXT, actor_name TEXT NOT NULL, amount REAL NOT NULL, balance_after REAL NOT NULL, type TEXT NOT NULL, reason TEXT NOT NULL, FOREIGN KEY(city_id) REFERENCES cities(city_id) ON DELETE CASCADE)");
@@ -114,8 +114,6 @@ public final class SimuSqliteSchema {
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_logistics_channels_client ON logistics_channels(client_id)");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_families_city ON families(city_id)");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_family_members_citizen ON family_members(citizen_id)");
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to initialize Sim-U-Kraft SQLite database", exception);
         }
     }
 

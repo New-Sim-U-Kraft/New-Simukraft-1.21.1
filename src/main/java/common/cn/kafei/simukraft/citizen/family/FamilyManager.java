@@ -45,9 +45,10 @@ public final class FamilyManager extends SavedData {
 
     private synchronized void loadFromSqlite(ServerLevel level) {
         if (sqliteLoaded || level == null) return;
-        sqliteLoaded = true;
         List<FamilyData> loaded = SimuSqliteStorage.loadFamilies(level);
+        // 加载失败不置位，下一次访问重试（与 CityManager 同策略），避免内存静默持有残缺家庭图谱。
         if (loaded == null) return;
+        sqliteLoaded = true;
         for (FamilyData family : loaded) {
             families.put(family.familyId(), family);
             indexMembers(family);

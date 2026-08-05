@@ -40,7 +40,9 @@ class IndustrialBoxSqliteRepositoryTest {
             boxes.add(box);
             root.put("Boxes", boxes);
 
-            repository.saveAll(root);
+            try (java.sql.Connection connection = database.borrowConnection()) {
+                repository.saveAll(connection, root);
+            }
             CompoundTag loaded = repository.loadAll();
 
             assertNotNull(loaded);

@@ -10,20 +10,15 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @SuppressWarnings("Null")
 public final class IndustrialBoxManager extends SavedData {
-    private static final ExecutorService IO_EXECUTOR = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "simukraft-industrial-io"); t.setDaemon(true); return t; });
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_industrial_boxes";
     private static final Factory<IndustrialBoxManager> FACTORY = new Factory<>(IndustrialBoxManager::new, IndustrialBoxManager::load, null);
 
     private final ConcurrentMap<BlockPos, IndustrialBoxData> boxes = new ConcurrentHashMap<>();
-    private final Set<BlockPos> pendingSaves = ConcurrentHashMap.newKeySet();
     private volatile boolean sqliteLoaded;
     private volatile ServerLevel level;
 
@@ -91,16 +86,15 @@ public final class IndustrialBoxManager extends SavedData {
         return boxes.computeIfAbsent(boxPos.immutable(), IndustrialBoxData::new);
     }
 
+    // 写入的合并与排序由存储层写队列负责，upsert 与 remove 走同一条队列。
     public void persist(IndustrialBoxData data) {
         if (data == null) return;
         data.touch();
         boxes.put(data.boxPos(), data);
         setDirty();
         ServerLevel lv = level;
-        BlockPos key = data.boxPos();
-        if (lv == null || !pendingSaves.add(key)) return;
-        CompoundTag snap = data.toTag();
-        IO_EXECUTOR.execute(() -> { try { SimuSqliteStorage.saveIndustrialBox(lv, snap); } finally { pendingSaves.remove(key); } });
+        if (lv == null) return;
+        SimuSqliteStorage.saveIndustrialBox(lv, data.toTag());
     }
 
     public void remove(BlockPos boxPos) {

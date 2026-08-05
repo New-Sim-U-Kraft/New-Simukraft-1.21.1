@@ -10,11 +10,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * 农田盒配置存储。主持久化是 SQLite（farmland_boxes 表），SavedData 作为兼容兜底。
@@ -24,12 +21,10 @@ import java.util.concurrent.Executors;
 
 @SuppressWarnings("Null")
 public final class FarmlandBoxManager extends SavedData {
-    private static final ExecutorService IO_EXECUTOR = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "simukraft-farmland-io"); t.setDaemon(true); return t; });
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_farmland_boxes";
     private static final Factory<FarmlandBoxManager> FACTORY = new Factory<>(FarmlandBoxManager::new, FarmlandBoxManager::load, null);
 
     private final ConcurrentMap<BlockPos, FarmlandBoxData> boxes = new ConcurrentHashMap<>();
-    private final Set<BlockPos> pendingSaves = ConcurrentHashMap.newKeySet();
     private volatile boolean sqliteLoaded;
     private volatile ServerLevel level;
 
@@ -93,15 +88,14 @@ public final class FarmlandBoxManager extends SavedData {
     }
 
     // 配置改动后调用：内存更新 + SavedData 脏标记 + SQLite 增量写。
+    // 写入的合并与排序由存储层写队列负责，upsert 与 remove 走同一条队列。
     public void persist(FarmlandBoxData data) {
         if (data == null) return;
         boxes.put(data.boxPos(), data);
         setDirty();
         ServerLevel lv = level;
-        BlockPos key = data.boxPos();
-        if (lv == null || !pendingSaves.add(key)) return;
-        CompoundTag snap = data.toTag();
-        IO_EXECUTOR.execute(() -> { try { SimuSqliteStorage.saveFarmlandBox(lv, snap); } finally { pendingSaves.remove(key); } });
+        if (lv == null) return;
+        SimuSqliteStorage.saveFarmlandBox(lv, data.toTag());
     }
 
     public void remove(BlockPos boxPos) {

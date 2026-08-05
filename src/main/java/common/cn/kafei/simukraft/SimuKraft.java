@@ -74,7 +74,9 @@ import net.neoforged.neoforge.event.level.ExplosionEvent;
 import net.neoforged.neoforge.event.level.PistonEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.fml.ModContainer;
@@ -119,9 +121,11 @@ public final class SimuKraft {
         NeoForge.EVENT_BUS.addListener(this::onPistonPost);
         NeoForge.EVENT_BUS.addListener(this::onExplosionDetonate);
         NeoForge.EVENT_BUS.addListener(this::onFarmlandTrample);
+        NeoForge.EVENT_BUS.addListener(this::onServerAboutToStart);
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);
         NeoForge.EVENT_BUS.addListener(this::onServerTick);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
+        NeoForge.EVENT_BUS.addListener(this::onServerStopped);
         NeoForge.EVENT_BUS.addListener(this::onPlayerInteractBed);
         LOGGER.info("\nWelcome to\n========================================================================\n███████╗██╗███╗   ███╗██╗   ██╗██╗  ██╗██████╗  █████╗ ███████╗████████╗\n██╔════╝██║████╗ ████║██║   ██║██║ ██╔╝██╔══██╗██╔══██╗██╔════╝╚══██╔══╝\n███████╗██║██╔████╔██║██║   ██║█████╔╝ ██████╔╝███████║█████╗     ██║   \n╚════██║██║██║╚██╔╝██║██║   ██║██╔═██╗ ██╔══██╗██╔══██║██╔══╝     ██║   \n███████║██║██║ ╚═╝ ██║╚██████╔╝██║  ██╗██║  ██║██║  ██║██║        ██║   \n╚══════╝╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝        ╚═╝  \n========================================================================\n");
     }
@@ -201,6 +205,11 @@ public final class SimuKraft {
         }
     }
 
+    /** onServerAboutToStart: 在任何 tick 之前打开存储并建表，把建库失败暴露在启动阶段。 */
+    private void onServerAboutToStart(ServerAboutToStartEvent event) {
+        SimuSqliteStorage.bootstrap(event.getServer());
+    }
+
     /** onServerStarted: 服务端启动后立即准备官方建筑包目录。 */
     private void onServerStarted(ServerStartedEvent event) {
         BuildingPackageCatalog.ensurePrepared();
@@ -265,6 +274,11 @@ public final class SimuKraft {
             saveDimensionSqlite(level);
         });
         saveGlobalSqlite(event.getServer());
+        /*
+         * 关键顺序：全量保存和各服务的 flush 只是把写入排进队列，必须在清理缓存之前把队列排空。
+         * 旧实现依赖 daemon 线程，关服时队列里未执行的写入会被直接丢弃（重进存档数据回退的主因）。
+         */
+        SimuSqliteStorage.flush(event.getServer());
         BuilderConstructionService.clearServerCaches(event.getServer());
         PlannerWorkService.clearServerCaches(event.getServer());
         IndustrialWorkService.clearServerCaches(event.getServer());
@@ -292,10 +306,17 @@ public final class SimuKraft {
         WorkMaterialPolicy.clearCache();
         NpcBlockProtectionPolicy.clearCache();
         PlayerWelcomeService.clearServerCaches(event.getServer());
-        SimuSqliteStorage.clearServerCache(event.getServer());
+        // shutdown 会再排空一次队列、checkpoint WAL 并关闭连接，之后该服务器实例不会被残留任务重新注册。
+        SimuSqliteStorage.shutdown(event.getServer());
         VirtualVeinService.clearServerCache(event.getServer());
         CityPoiManager.clearGlobalCache();
         common.cn.kafei.simukraft.util.SaveScopedCacheKey.clearServerCache(event.getServer());
+    }
+
+    /** onServerStopped: 服务器实例彻底退出后释放存储层对它的引用。 */
+    private void onServerStopped(ServerStoppedEvent event) {
+        SimuSqliteStorage.forgetServer(event.getServer());
+        common.cn.kafei.simukraft.storage.BuildingStructureSqliteDatabase.forgetServer(event.getServer());
     }
 
     private void saveDimensionSqlite(ServerLevel level) {

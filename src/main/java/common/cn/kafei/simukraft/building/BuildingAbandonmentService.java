@@ -70,6 +70,13 @@ public final class BuildingAbandonmentService {
         }
     }
 
+    /** forget: 建筑被拆除后清掉它的废弃度（内存与数据库）。 */
+    public static void forget(ServerLevel level, UUID buildingId) {
+        if (level == null || buildingId == null) return;
+        CACHE.remove(key(level, buildingId));
+        SimuSqliteStorage.deleteBuildingAbandonment(level, buildingId);
+    }
+
     public static void clearCache(net.minecraft.server.MinecraftServer server) {
         if (server == null) return;
         String serverKey = common.cn.kafei.simukraft.util.SaveScopedCacheKey.serverKey(server);

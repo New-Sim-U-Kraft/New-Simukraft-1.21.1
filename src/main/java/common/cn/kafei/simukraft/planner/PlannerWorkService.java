@@ -104,7 +104,9 @@ public final class PlannerWorkService {
         }
         TaskRuntime removed = runtime(level).tasks.remove(citizenId);
         if (removed != null) NpcWorkChunkLoadService.release(level, removed.task.buildBoxPos());
-        IO_EXECUTOR.execute(() -> SimuSqliteStorage.deletePlanningTask(level, citizenId));
+        // 不再绕 IO_EXECUTOR：删除必须和 persistTask 的写入在同一线程上定序，
+        // 否则一条迟到的写入会把已取消的任务复活。入队本身不做 JDBC 调用。
+        SimuSqliteStorage.deletePlanningTask(level, citizenId);
     }
 
     public static boolean hasActiveTask(ServerLevel level, UUID citizenId) {
@@ -152,7 +154,7 @@ public final class PlannerWorkService {
             return;
         }
         TaskRuntime removed = runtime(level).tasks.remove(citizenId);
-        IO_EXECUTOR.execute(() -> SimuSqliteStorage.deletePlanningTask(level, citizenId));
+        SimuSqliteStorage.deletePlanningTask(level, citizenId);
         if (removed != null) {
             NpcWorkChunkLoadService.release(level, removed.task.buildBoxPos());
             CitizenService.findCitizen(level, citizenId)
@@ -176,7 +178,6 @@ public final class PlannerWorkService {
                     .ifPresent(citizen -> flushXp(level, citizen, taskRuntime));
             NpcWorkChunkLoadService.release(level, taskRuntime.task.buildBoxPos());
             PlanningTaskData paused = taskRuntime.task.withStatus(PlanningTaskStatus.PAUSED_OFFLINE.id(), System.currentTimeMillis());
-            waitForPendingSave(taskRuntime);
             SimuSqliteStorage.savePlanningTask(level, paused);
         });
     }
@@ -261,7 +262,7 @@ public final class PlannerWorkService {
             }
             PlanningTaskData updated = task.withProgress(index, completed, PlanningTaskStatus.WAITING_MATERIALS.id(), now);
             taskRuntime.task = updated;
-            persistAsync(level, taskRuntime, updated);
+            persistTask(level, updated);
             setStatus(level, citizen, taskRuntime,
                     Component.Serializer.toJson(Component.translatable("status.simukraft.planner.waiting_materials", progressSuffix(updated)), level.registryAccess()),
                     CitizenWorkStatus.WORKING, PlanningTaskStatus.WAITING_MATERIALS);
@@ -278,7 +279,7 @@ public final class PlannerWorkService {
                 CitizenWorkStatus.WORKING, PlanningTaskStatus.PLANNING);
         if (index - taskRuntime.lastSavedIndex >= SAVE_BLOCK_INTERVAL) {
             taskRuntime.lastSavedIndex = index;
-            persistAsync(level, taskRuntime, updated);
+            persistTask(level, updated);
         }
     }
 
@@ -371,7 +372,7 @@ public final class PlannerWorkService {
         flushXp(level, citizen, taskRuntime);
         NpcWorkChunkLoadService.release(level, taskRuntime.task.buildBoxPos());
         runtime.tasks.remove(citizen.uuid(), taskRuntime);
-        IO_EXECUTOR.execute(() -> SimuSqliteStorage.deletePlanningTask(level, citizen.uuid()));
+        SimuSqliteStorage.deletePlanningTask(level, citizen.uuid());
         CityGroupMessageService.successToCity(level, taskRuntime.task.cityId(),
                 Component.translatable("message.simukraft.planner.task_completed", citizen.name(), Component.translatable(taskRuntime.task.operation().translationKey())));
         CityUserGroupService.forEach(level, CityUserGroup.mayors(taskRuntime.task.cityId()),
@@ -416,7 +417,7 @@ public final class PlannerWorkService {
     private static void setStatus(ServerLevel level, CitizenData citizen, TaskRuntime taskRuntime, String label, CitizenWorkStatus workStatus, PlanningTaskStatus taskStatus) {
         if (PlanningTaskStatus.from(taskRuntime.task.status()) != taskStatus) {
             taskRuntime.task = taskRuntime.task.withStatus(taskStatus.id(), System.currentTimeMillis());
-            persistAsync(level, taskRuntime, taskRuntime.task);
+            persistTask(level, taskRuntime.task);
         }
         if (label.equals(citizen.statusLabel()) && citizen.workStatusType() == workStatus) {
             return;
@@ -435,7 +436,7 @@ public final class PlannerWorkService {
         }
         PlanningTaskData paused = task.withStatus(PlanningTaskStatus.PAUSED_RESTING.id(), System.currentTimeMillis());
         taskRuntime.task = paused;
-        persistAsync(level, taskRuntime, paused);
+        persistTask(level, paused);
     }
 
     private static int consumeBudget(TaskRuntime taskRuntime, CitizenData citizen) {
@@ -537,20 +538,13 @@ public final class PlannerWorkService {
         return " " + Math.min(task.completedBlocks(), targetTotal) + "/" + targetTotal;
     }
 
-    private static void persistAsync(ServerLevel level, TaskRuntime rt, PlanningTaskData snap) {
-        if (rt.saveInFlight) return;
-        rt.saveInFlight = true;
-        rt.saveFuture = CompletableFuture.runAsync(() -> SimuSqliteStorage.savePlanningTask(level, snap), IO_EXECUTOR)
-                .whenComplete((v, ex) -> {
-                    rt.saveInFlight = false;
-                    if (ex != null) SimuKraft.LOGGER.error("Simukraft: Failed to save planning task {}", snap.taskId(), ex);
-                    else if (!snap.equals(rt.task)) persistAsync(level, rt, rt.task);
-                });
-    }
-
-    private static void waitForPendingSave(TaskRuntime rt) {
-        if (rt == null || rt.saveFuture == null || rt.saveFuture.isDone()) return;
-        try { rt.saveFuture.join(); } catch (Exception e) { Thread.currentThread().interrupt(); }
+    /*
+     * 入队动作留在调用线程，保证和 cancelTask/completeTask 的删除按逻辑顺序进入写队列。
+     * 原来的 "保存完成后发现快照已过期就再存一次" 也不需要了：写队列按行合并，
+     * 同一任务的后续快照会直接覆盖尚未落库的旧快照。
+     */
+    private static void persistTask(ServerLevel level, PlanningTaskData snap) {
+        SimuSqliteStorage.savePlanningTask(level, snap);
     }
 
     private static LevelRuntime runtime(ServerLevel level) {
@@ -579,8 +573,6 @@ public final class PlannerWorkService {
         private int lastSavedIndex;
         private long nextRetryTick;
         private final AtomicInteger pendingXp = new AtomicInteger();
-        volatile boolean saveInFlight;
-        volatile CompletableFuture<Void> saveFuture;
 
         private TaskRuntime(PlanningTaskData task) {
             this.task = task;

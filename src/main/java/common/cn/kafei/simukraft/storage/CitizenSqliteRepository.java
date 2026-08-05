@@ -11,76 +11,57 @@ import java.sql.SQLException;
 
 @SuppressWarnings("Null")
 public final class CitizenSqliteRepository {
+    // 36 列的占位符与整条 SQL 都是常量，只在类加载时拼一次（旧实现每次 save 都重建这条 700+ 字符的 SQL）。
+    private static final String UPSERT_SQL =
+            "INSERT INTO citizens(uuid, name, gender, age, lifespan, job_type, job_id, status, work_status, work_need_detail, status_label, is_working, npc_id, skin_path, city_id, home_id, workplace_id, workplace_pos_long, health, happiness, sick, child, child_growth_due_day, born_day, dimension_id, family_id, origin_family_id, pregnant, pregnant_since, last_age_growth_day, disease_id, disease_since_day, disease_treatment_ticks, medical_bed_poi_id, postpartum_until_day, last_hospital_meal_day) VALUES("
+                    + String.join(", ", java.util.Collections.nCopies(36, "?"))
+                    + ") ON CONFLICT(uuid) DO UPDATE SET name = excluded.name, gender = excluded.gender, age = excluded.age, lifespan = excluded.lifespan, job_type = excluded.job_type, job_id = excluded.job_id, status = excluded.status, work_status = excluded.work_status, work_need_detail = excluded.work_need_detail, status_label = excluded.status_label, is_working = excluded.is_working, npc_id = excluded.npc_id, skin_path = excluded.skin_path, city_id = excluded.city_id, home_id = excluded.home_id, workplace_id = excluded.workplace_id, workplace_pos_long = excluded.workplace_pos_long, health = excluded.health, happiness = excluded.happiness, sick = excluded.sick, child = excluded.child, child_growth_due_day = excluded.child_growth_due_day, born_day = excluded.born_day, dimension_id = excluded.dimension_id, family_id = excluded.family_id, origin_family_id = excluded.origin_family_id, pregnant = excluded.pregnant, pregnant_since = excluded.pregnant_since, last_age_growth_day = excluded.last_age_growth_day, disease_id = excluded.disease_id, disease_since_day = excluded.disease_since_day, disease_treatment_ticks = excluded.disease_treatment_ticks, medical_bed_poi_id = excluded.medical_bed_poi_id, postpartum_until_day = excluded.postpartum_until_day, last_hospital_meal_day = excluded.last_hospital_meal_day";
+
     private final SimuSqliteDatabase database;
 
     public CitizenSqliteRepository(SimuSqliteDatabase database) {
         this.database = database;
     }
 
-    public synchronized void saveAll(CompoundTag tag) {
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            SqliteNbtHelper.clearTables(connection, "citizen_skills", "citizens");
-            try {
-                ListTag citizens = tag.getList("Citizens", CompoundTag.TAG_COMPOUND);
-                for (int i = 0; i < citizens.size(); i++) {
-                    saveCitizen(connection, citizens.getCompound(i));
-                }
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
-            }
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save citizens to SQLite", exception);
+    /**
+     * saveAll: 把内存中的居民全部 upsert 进库。
+     * <p>不再清空 citizens / citizen_skills 再重写。旧实现只有 "内存非空" 这一道保护，
+     * 内存里若只剩部分居民（加载失败或只从 SavedData 兜底恢复了一部分），差集就会被当成"已删除"抹掉。
+     * 居民的删除只走 {@link #delete(java.util.UUID)}。
+     */
+    public void saveAll(Connection connection, CompoundTag tag) throws SQLException {
+        ListTag citizens = tag.getList("Citizens", CompoundTag.TAG_COMPOUND);
+        for (int i = 0; i < citizens.size(); i++) {
+            saveCitizen(connection, citizens.getCompound(i));
         }
     }
 
-    public synchronized void upsert(CompoundTag citizenTag) {
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            try {
-                saveCitizen(connection, citizenTag);
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
-            }
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save citizen to SQLite", exception);
-        }
+    public void upsert(Connection connection, CompoundTag citizenTag) throws SQLException {
+        saveCitizen(connection, citizenTag);
     }
 
-    public synchronized void delete(java.util.UUID citizenId) {
+    public void delete(Connection connection, java.util.UUID citizenId) throws SQLException {
         if (citizenId == null) {
             return;
         }
-        try (Connection connection = database.openConnection();
+        // building_tasks / planning_tasks 没有对 citizens 的外键，必须手工清理：
+        // 否则被移除居民的未完成任务行永久残留，重启后复活成"幽灵任务"。
+        try (PreparedStatement deleteBuildingTasks = connection.prepareStatement("DELETE FROM building_tasks WHERE citizen_id = ?");
+             PreparedStatement deletePlanningTasks = connection.prepareStatement("DELETE FROM planning_tasks WHERE citizen_id = ?");
              PreparedStatement statement = connection.prepareStatement("DELETE FROM citizens WHERE uuid = ?")) {
+            deleteBuildingTasks.setString(1, citizenId.toString());
+            deleteBuildingTasks.executeUpdate();
+            deletePlanningTasks.setString(1, citizenId.toString());
+            deletePlanningTasks.executeUpdate();
             statement.setString(1, citizenId.toString());
             statement.executeUpdate();
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to delete citizen from SQLite", exception);
-        }
-    }
-
-    public synchronized void clearEmployment(java.util.UUID citizenId) {
-        if (citizenId == null) {
-            return;
-        }
-        try (Connection connection = database.openConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE citizens SET job_type = 'UNEMPLOYED', job_id = 'UNEMPLOYED', status = 'idle', work_status = 'work_status.idle', work_need_detail = '', status_label = '', is_working = 0, workplace_id = NULL, workplace_pos_long = NULL WHERE uuid = ?")) {
-            statement.setString(1, citizenId.toString());
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to clear citizen employment in SQLite", exception);
         }
     }
 
     public synchronized CompoundTag loadAll() {
         CompoundTag tag = new CompoundTag();
         ListTag citizens = new ListTag();
-        try (Connection connection = database.openConnection()) {
+        try (Connection connection = database.borrowConnection()) {
             // Bulk-load all skills in one query, group by citizen_id
             java.util.Map<String, CompoundTag> skillsByUuid = new java.util.HashMap<>();
             try (PreparedStatement skillStmt = connection.prepareStatement("SELECT citizen_id, skill_key, skill_value FROM citizen_skills");
@@ -142,6 +123,7 @@ public final class CitizenSqliteRepository {
             tag.put("Citizens", citizens);
             return tag;
         } catch (SQLException | IllegalArgumentException exception) {
+            database.markDegraded("loadAll(citizens)", exception);
             SimuKraft.LOGGER.error("Failed to load citizens from SQLite", exception);
             return null;
         }
@@ -149,8 +131,7 @@ public final class CitizenSqliteRepository {
 
     private void saveCitizen(Connection connection, CompoundTag citizen) throws SQLException {
         String uuid = citizen.getUUID("Uuid").toString();
-        String valuePlaceholders = String.join(", ", java.util.Collections.nCopies(36, "?"));
-        try (PreparedStatement citizenStatement = connection.prepareStatement("INSERT INTO citizens(uuid, name, gender, age, lifespan, job_type, job_id, status, work_status, work_need_detail, status_label, is_working, npc_id, skin_path, city_id, home_id, workplace_id, workplace_pos_long, health, happiness, sick, child, child_growth_due_day, born_day, dimension_id, family_id, origin_family_id, pregnant, pregnant_since, last_age_growth_day, disease_id, disease_since_day, disease_treatment_ticks, medical_bed_poi_id, postpartum_until_day, last_hospital_meal_day) VALUES(" + valuePlaceholders + ") ON CONFLICT(uuid) DO UPDATE SET name = excluded.name, gender = excluded.gender, age = excluded.age, lifespan = excluded.lifespan, job_type = excluded.job_type, job_id = excluded.job_id, status = excluded.status, work_status = excluded.work_status, work_need_detail = excluded.work_need_detail, status_label = excluded.status_label, is_working = excluded.is_working, npc_id = excluded.npc_id, skin_path = excluded.skin_path, city_id = excluded.city_id, home_id = excluded.home_id, workplace_id = excluded.workplace_id, workplace_pos_long = excluded.workplace_pos_long, health = excluded.health, happiness = excluded.happiness, sick = excluded.sick, child = excluded.child, child_growth_due_day = excluded.child_growth_due_day, born_day = excluded.born_day, dimension_id = excluded.dimension_id, family_id = excluded.family_id, origin_family_id = excluded.origin_family_id, pregnant = excluded.pregnant, pregnant_since = excluded.pregnant_since, last_age_growth_day = excluded.last_age_growth_day, disease_id = excluded.disease_id, disease_since_day = excluded.disease_since_day, disease_treatment_ticks = excluded.disease_treatment_ticks, medical_bed_poi_id = excluded.medical_bed_poi_id, postpartum_until_day = excluded.postpartum_until_day, last_hospital_meal_day = excluded.last_hospital_meal_day");
+        try (PreparedStatement citizenStatement = connection.prepareStatement(UPSERT_SQL);
              PreparedStatement deleteSkills = connection.prepareStatement("DELETE FROM citizen_skills WHERE citizen_id = ?");
              PreparedStatement skillStatement = connection.prepareStatement("INSERT INTO citizen_skills(citizen_id, skill_key, skill_value) VALUES(?, ?, ?)")) {
             citizenStatement.setString(1, uuid);

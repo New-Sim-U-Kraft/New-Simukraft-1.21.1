@@ -14,7 +14,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -80,38 +79,40 @@ public final class CityPoiManager extends SavedData {
         loadFromSqlite(level);
     }
 
-    private void loadFromSqlite(ServerLevel level) {
+    /*
+     * 必须同步加载：旧实现用 CompletableFuture.runAsync 且先把 sqliteLoaded 置 true，
+     * 加载还没完成时若发生一次整表保存，内存里的空 POI 集合就会被当成权威写回数据库。
+     * POI 数量在几千级，一次性查询远快于一个 tick，没有异步的必要。
+     */
+    private synchronized void loadFromSqlite(ServerLevel level) {
         if (sqliteLoaded) {
             return;
         }
-        synchronized (this) {
-            if (sqliteLoaded) {
-                return;
-            }
-            sqliteLoaded = true;
+        CompoundTag sqliteTag = SimuSqliteStorage.loadCityPois(level);
+        // 加载失败（null）同样置位，否则每次 get(level) 都会重试一次失败查询；写入由存储层的降级开关拦住。
+        sqliteLoaded = true;
+        if (sqliteTag == null || sqliteTag.isEmpty()) {
+            return;
         }
-        // SQLite 是主要持久化来源；SavedData 作为兼容兜底，加载后重建索引。在后台线程执行 I/O，不阻塞服务器线程。
-        ServerLevel captured = level;
-        CompletableFuture.runAsync(() -> {
-            CompoundTag sqliteTag = SimuSqliteStorage.loadCityPois(captured);
-            if (sqliteTag == null || sqliteTag.isEmpty()) {
-                return;
-            }
-            CityPoiManager loaded = load(sqliteTag, captured.registryAccess());
-            synchronized (CityPoiManager.this) {
-                loaded.pois.forEach(pois::putIfAbsent);
-                loaded.cityPoiIndex.forEach((cityId, ids) ->
-                        cityPoiIndex.computeIfAbsent(cityId, id -> ConcurrentHashMap.newKeySet()).addAll(ids));
-                loaded.posIndex.forEach(posIndex::putIfAbsent);
-            }
-            loaded.pois.forEach(GLOBAL_POI_CACHE::putIfAbsent);
-        });
+        CityPoiManager loaded = load(sqliteTag, level.registryAccess());
+        loaded.pois.forEach(pois::putIfAbsent);
+        loaded.cityPoiIndex.forEach((cityId, ids) ->
+                cityPoiIndex.computeIfAbsent(cityId, id -> ConcurrentHashMap.newKeySet()).addAll(ids));
+        loaded.posIndex.forEach(posIndex::putIfAbsent);
+        loaded.pois.forEach(GLOBAL_POI_CACHE::putIfAbsent);
     }
 
     private void savePoiIncremental(CityPoiData poi) {
         ServerLevel targetLevel = level;
         if (targetLevel != null && poi != null) {
             SimuSqliteStorage.saveCityPoi(targetLevel, poi.toTag());
+        }
+    }
+
+    private void deletePoiIncremental(UUID poiId) {
+        ServerLevel targetLevel = level;
+        if (targetLevel != null && poiId != null) {
+            SimuSqliteStorage.deleteCityPoi(targetLevel, poiId);
         }
     }
 
@@ -259,7 +260,14 @@ public final class CityPoiManager extends SavedData {
         }
         posIndex.remove(oldPoi.pos(), oldPoi.poiId());
         if (!oldPoi.poiId().equals(newPoi.poiId())) {
+            /*
+             * 换了 poiId 就必须把旧 id 从全局缓存和数据库里一起清掉。saveCityPois 只做 upsert
+             * （不再按维度清表重写），残留的旧行会在下次进档被读回：它和新 POI 同坐标、同城市，
+             * posIndex 只留一个，但 cityPoiIndex 会同时含两者，getActiveCapacity 因此双计。
+             */
             pois.remove(oldPoi.poiId());
+            GLOBAL_POI_CACHE.remove(oldPoi.poiId());
+            deletePoiIncremental(oldPoi.poiId());
         }
         pois.put(newPoi.poiId(), newPoi);
         cityPoiIndex.computeIfAbsent(newPoi.cityId(), id -> ConcurrentHashMap.newKeySet()).add(newPoi.poiId());

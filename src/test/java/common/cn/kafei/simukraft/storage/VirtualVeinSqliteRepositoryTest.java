@@ -72,7 +72,7 @@ class VirtualVeinSqliteRepositoryTest {
                     "minecraft:overworld", legacyKey, "minecraft:forest", 10, List.of()
             );
             repository.createIfAbsent(emptyLegacyProfile).orElseThrow();
-            try (Connection connection = database.openConnection();
+            try (Connection connection = database.borrowConnection();
                  PreparedStatement update = connection.prepareStatement("UPDATE virtual_vein_fields SET generation_version = 1 WHERE dimension_id = ? AND field_cell_x = ? AND field_cell_z = ? AND field_biome_id = ?")) {
                 update.setString(1, "minecraft:overworld");
                 update.setInt(2, legacyKey.cellX());

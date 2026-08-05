@@ -19,107 +19,86 @@ public final class CityChunkSqliteRepository {
         this.database = database;
     }
 
-    public synchronized void saveAll(CompoundTag tag, String dimensionId) {
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            try (PreparedStatement del = connection.prepareStatement("DELETE FROM city_chunks WHERE dimension_id = ?")) {
-                del.setString(1, dimensionId);
-                del.executeUpdate();
-            }
-            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO city_chunks(city_id, chunk_long, dimension_id) VALUES(?, ?, ?)")) {
-                ListTag cityTags = tag.getList("CityChunks", CompoundTag.TAG_COMPOUND);
-                for (int i = 0; i < cityTags.size(); i++) {
-                    CompoundTag cityTag = cityTags.getCompound(i);
-                    String cityId = cityTag.getUUID("CityId").toString();
-                    ListTag chunks = cityTag.getList("Chunks", LongTag.TAG_LONG);
-                    for (int j = 0; j < chunks.size(); j++) {
-                        statement.setString(1, cityId);
-                        statement.setLong(2, ((LongTag) chunks.get(j)).getAsLong());
-                        statement.setString(3, dimensionId);
-                        statement.addBatch();
-                    }
+    /**
+     * saveAll: 把内存中的领地区块全部 upsert 进库。
+     * <p>不再 "DELETE WHERE dimension_id" 再重写：取消领地只走 {@link #deleteChunk} / {@link #deleteCity}，
+     * 否则加载失败时会把整个维度的领地清空。用 INSERT OR IGNORE 以兼容主键尚未包含 dimension_id 的旧库。
+     */
+    public void saveAll(Connection connection, CompoundTag tag, String dimensionId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("INSERT OR IGNORE INTO city_chunks(city_id, chunk_long, dimension_id) VALUES(?, ?, ?)")) {
+            ListTag cityTags = tag.getList("CityChunks", CompoundTag.TAG_COMPOUND);
+            for (int i = 0; i < cityTags.size(); i++) {
+                CompoundTag cityTag = cityTags.getCompound(i);
+                String cityId = cityTag.getUUID("CityId").toString();
+                ListTag chunks = cityTag.getList("Chunks", LongTag.TAG_LONG);
+                for (int j = 0; j < chunks.size(); j++) {
+                    statement.setString(1, cityId);
+                    statement.setLong(2, ((LongTag) chunks.get(j)).getAsLong());
+                    statement.setString(3, dimensionId);
+                    statement.addBatch();
                 }
-                statement.executeBatch();
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
             }
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save city chunks to SQLite", exception);
+            statement.executeBatch();
         }
     }
 
-    public synchronized void upsert(UUID cityId, long chunkLong, String dimensionId) {
+    public void upsert(Connection connection, UUID cityId, long chunkLong, String dimensionId) throws SQLException {
         if (cityId == null) {
             return;
         }
-        try (Connection connection = database.openConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT OR IGNORE INTO city_chunks(city_id, chunk_long, dimension_id) VALUES(?, ?, ?)")) {
+        try (PreparedStatement statement = connection.prepareStatement("INSERT OR IGNORE INTO city_chunks(city_id, chunk_long, dimension_id) VALUES(?, ?, ?)")) {
             statement.setString(1, cityId.toString());
             statement.setLong(2, chunkLong);
             statement.setString(3, dimensionId);
             statement.executeUpdate();
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save city chunk to SQLite", exception);
         }
     }
 
-    public synchronized void deleteChunk(UUID cityId, long chunkLong, String dimensionId) {
+    public void deleteChunk(Connection connection, UUID cityId, long chunkLong, String dimensionId) throws SQLException {
         if (cityId == null) return;
-        try (Connection connection = database.openConnection();
-             PreparedStatement statement = connection.prepareStatement("DELETE FROM city_chunks WHERE city_id = ? AND chunk_long = ? AND dimension_id = ?")) {
+        try (PreparedStatement statement = connection.prepareStatement("DELETE FROM city_chunks WHERE city_id = ? AND chunk_long = ? AND dimension_id = ?")) {
             statement.setString(1, cityId.toString());
             statement.setLong(2, chunkLong);
             statement.setString(3, dimensionId);
             statement.executeUpdate();
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to delete city chunk from SQLite", exception);
         }
     }
 
-    public synchronized void deleteCity(UUID cityId, String dimensionId) {
+    public void deleteCity(Connection connection, UUID cityId, String dimensionId) throws SQLException {
         if (cityId == null) {
             return;
         }
-        try (Connection connection = database.openConnection();
-             PreparedStatement statement = connection.prepareStatement("DELETE FROM city_chunks WHERE city_id = ? AND dimension_id = ?")) {
+        try (PreparedStatement statement = connection.prepareStatement("DELETE FROM city_chunks WHERE city_id = ? AND dimension_id = ?")) {
             statement.setString(1, cityId.toString());
             statement.setString(2, dimensionId);
             statement.executeUpdate();
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to delete city chunks from SQLite", exception);
         }
     }
 
+    // loadAll：单次查询后在内存里按城市分组，避免"每个城市一次子查询"的 N+1。
     public synchronized CompoundTag loadAll(String dimensionId) {
         CompoundTag tag = new CompoundTag();
         ListTag cityTags = new ListTag();
-        try (Connection connection = database.openConnection();
-             PreparedStatement cityStatement = connection.prepareStatement("SELECT DISTINCT city_id FROM city_chunks WHERE dimension_id = ? ORDER BY city_id")) {
-            cityStatement.setString(1, dimensionId);
-            try (ResultSet cityResult = cityStatement.executeQuery()) {
-                while (cityResult.next()) {
-                    String cityId = cityResult.getString("city_id");
-                    CompoundTag cityTag = new CompoundTag();
-                    cityTag.putUUID("CityId", UUID.fromString(cityId));
-                    ListTag chunks = new ListTag();
-                    try (PreparedStatement chunkStatement = connection.prepareStatement("SELECT chunk_long FROM city_chunks WHERE city_id = ? AND dimension_id = ? ORDER BY chunk_long")) {
-                        chunkStatement.setString(1, cityId);
-                        chunkStatement.setString(2, dimensionId);
-                        try (ResultSet chunkResult = chunkStatement.executeQuery()) {
-                            while (chunkResult.next()) {
-                                chunks.add(LongTag.valueOf(chunkResult.getLong("chunk_long")));
-                            }
-                        }
-                    }
-                    cityTag.put("Chunks", chunks);
-                    cityTags.add(cityTag);
+        try (Connection connection = database.borrowConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT city_id, chunk_long FROM city_chunks WHERE dimension_id = ? ORDER BY city_id, chunk_long")) {
+            statement.setString(1, dimensionId);
+            java.util.Map<String, ListTag> chunksByCity = new java.util.LinkedHashMap<>();
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    chunksByCity.computeIfAbsent(resultSet.getString("city_id"), key -> new ListTag())
+                            .add(LongTag.valueOf(resultSet.getLong("chunk_long")));
                 }
             }
+            chunksByCity.forEach((cityId, chunks) -> {
+                CompoundTag cityTag = new CompoundTag();
+                cityTag.putUUID("CityId", UUID.fromString(cityId));
+                cityTag.put("Chunks", chunks);
+                cityTags.add(cityTag);
+            });
             tag.put("CityChunks", cityTags);
             return cityTags.isEmpty() ? null : tag;
         } catch (SQLException | IllegalArgumentException exception) {
+            database.markDegraded("loadAll(cityChunks)", exception);
             SimuKraft.LOGGER.error("Failed to load city chunks from SQLite", exception);
             return null;
         }

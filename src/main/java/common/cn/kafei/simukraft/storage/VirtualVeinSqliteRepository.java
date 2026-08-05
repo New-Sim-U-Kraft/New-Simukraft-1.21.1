@@ -34,7 +34,7 @@ public final class VirtualVeinSqliteRepository {
     }
 
     public synchronized Optional<VirtualVeinFieldProfile> find(String dimensionId, VirtualVeinFieldKey key) {
-        try (Connection connection = database.openConnection()) {
+        try (Connection connection = database.borrowConnection()) {
             return find(connection, dimensionId, key);
         } catch (SQLException | RuntimeException exception) {
             SimuKraft.LOGGER.error("Failed to load virtual vein field {},{}", key.cellX(), key.cellZ(), exception);
@@ -42,89 +42,69 @@ public final class VirtualVeinSqliteRepository {
         }
     }
 
-    public synchronized Optional<VirtualVeinFieldProfile> createIfAbsent(VirtualVeinFieldProfile profile) {
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            try {
-                try (PreparedStatement statement = connection.prepareStatement(INSERT_SQL)) {
-                    bindProfile(statement, profile);
-                    statement.executeUpdate();
-                }
-                Optional<VirtualVeinFieldProfile> stored = find(connection, profile.dimensionId(), profile.key());
-                connection.commit();
-                return stored;
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
-            }
-        } catch (SQLException | RuntimeException exception) {
-            SimuKraft.LOGGER.error("Failed to create virtual vein field {},{}", profile.key().cellX(), profile.key().cellZ(), exception);
-            return Optional.empty();
-        }
+    /** createIfAbsent: 原子建立矿区档案。在写线程执行并同步等待结果。 */
+    public Optional<VirtualVeinFieldProfile> createIfAbsent(VirtualVeinFieldProfile profile) {
+        Optional<VirtualVeinFieldProfile> stored = database.callSync(connection -> createIfAbsent(connection, profile));
+        return stored != null ? stored : Optional.empty();
     }
 
-    /** replaceLegacyEmptyProfile: 仅替换旧匹配策略错误生成的空矿区档案。 */
-    public synchronized Optional<VirtualVeinFieldProfile> replaceLegacyEmptyProfile(VirtualVeinFieldProfile profile) {
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            try {
-                try (PreparedStatement delete = connection.prepareStatement(DELETE_LEGACY_EMPTY_SQL)) {
-                    bindKey(delete, profile.dimensionId(), profile.key());
-                    if (delete.executeUpdate() == 1) {
-                        try (PreparedStatement insert = connection.prepareStatement(INSERT_SQL)) {
-                            bindProfile(insert, profile);
-                            insert.executeUpdate();
-                        }
-                    }
-                }
-                Optional<VirtualVeinFieldProfile> stored = find(connection, profile.dimensionId(), profile.key());
-                connection.commit();
-                return stored;
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
-            }
-        } catch (SQLException | RuntimeException exception) {
-            SimuKraft.LOGGER.error("Failed to repair virtual vein field {},{}", profile.key().cellX(), profile.key().cellZ(), exception);
-            return Optional.empty();
+    private Optional<VirtualVeinFieldProfile> createIfAbsent(Connection connection, VirtualVeinFieldProfile profile) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(INSERT_SQL)) {
+            bindProfile(statement, profile);
+            statement.executeUpdate();
         }
+        return find(connection, profile.dimensionId(), profile.key());
     }
 
-    public synchronized Optional<VirtualVeinConsumption> consume(String dimensionId, VirtualVeinFieldKey key, int slotIndex, int requestedAmount) {
+    /** replaceLegacyEmptyProfile: 仅替换旧匹配策略错误生成的空矿区档案。在写线程执行并同步等待结果。 */
+    public Optional<VirtualVeinFieldProfile> replaceLegacyEmptyProfile(VirtualVeinFieldProfile profile) {
+        Optional<VirtualVeinFieldProfile> stored = database.callSync(connection -> replaceLegacyEmptyProfile(connection, profile));
+        return stored != null ? stored : Optional.empty();
+    }
+
+    private Optional<VirtualVeinFieldProfile> replaceLegacyEmptyProfile(Connection connection, VirtualVeinFieldProfile profile) throws SQLException {
+        try (PreparedStatement delete = connection.prepareStatement(DELETE_LEGACY_EMPTY_SQL)) {
+            bindKey(delete, profile.dimensionId(), profile.key());
+            if (delete.executeUpdate() == 1) {
+                try (PreparedStatement insert = connection.prepareStatement(INSERT_SQL)) {
+                    bindProfile(insert, profile);
+                    insert.executeUpdate();
+                }
+            }
+        }
+        return find(connection, profile.dimensionId(), profile.key());
+    }
+
+    /** consume: 原子扣减指定槽位的储量。在写线程执行并同步等待结果。 */
+    public Optional<VirtualVeinConsumption> consume(String dimensionId, VirtualVeinFieldKey key, int slotIndex, int requestedAmount) {
         if (slotIndex < 0 || slotIndex > 1 || requestedAmount <= 0) {
             return Optional.empty();
         }
+        Optional<VirtualVeinConsumption> consumption = database.callSync(connection -> consume(connection, dimensionId, key, slotIndex, requestedAmount));
+        return consumption != null ? consumption : Optional.empty();
+    }
+
+    private Optional<VirtualVeinConsumption> consume(Connection connection, String dimensionId, VirtualVeinFieldKey key, int slotIndex, int requestedAmount) throws SQLException {
         String remainingColumn = "slot" + slotIndex + "_remaining_reserve";
         String stateColumn = "slot" + slotIndex + "_state";
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            try (PreparedStatement select = connection.prepareStatement("SELECT " + remainingColumn + ", " + stateColumn + " FROM " + TABLE + " WHERE dimension_id = ? AND field_cell_x = ? AND field_cell_z = ? AND field_biome_id = ?")) {
-                bindKey(select, dimensionId, key);
-                try (ResultSet resultSet = select.executeQuery()) {
-                    if (!resultSet.next() || VirtualVeinSlotState.valueOf(resultSet.getString(stateColumn)) != VirtualVeinSlotState.ACTIVE) {
-                        connection.commit();
-                        return Optional.of(new VirtualVeinConsumption(0, 0, true));
-                    }
-                    int remaining = resultSet.getInt(remainingColumn);
-                    int consumed = Math.min(remaining, requestedAmount);
-                    int updatedRemaining = remaining - consumed;
-                    VirtualVeinSlotState updatedState = updatedRemaining == 0 ? VirtualVeinSlotState.DEPLETED : VirtualVeinSlotState.ACTIVE;
-                    try (PreparedStatement update = connection.prepareStatement("UPDATE " + TABLE + " SET " + remainingColumn + " = ?, " + stateColumn + " = ? WHERE dimension_id = ? AND field_cell_x = ? AND field_cell_z = ? AND field_biome_id = ?")) {
-                        update.setInt(1, updatedRemaining);
-                        update.setString(2, updatedState.name());
-                        bindKey(update, 3, dimensionId, key);
-                        update.executeUpdate();
-                    }
-                    connection.commit();
-                    return Optional.of(new VirtualVeinConsumption(consumed, updatedRemaining, updatedState == VirtualVeinSlotState.DEPLETED));
+        try (PreparedStatement select = connection.prepareStatement("SELECT " + remainingColumn + ", " + stateColumn + " FROM " + TABLE + " WHERE dimension_id = ? AND field_cell_x = ? AND field_cell_z = ? AND field_biome_id = ?")) {
+            bindKey(select, dimensionId, key);
+            try (ResultSet resultSet = select.executeQuery()) {
+                if (!resultSet.next() || VirtualVeinSlotState.valueOf(resultSet.getString(stateColumn)) != VirtualVeinSlotState.ACTIVE) {
+                    return Optional.of(new VirtualVeinConsumption(0, 0, true));
                 }
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
+                int remaining = resultSet.getInt(remainingColumn);
+                int consumed = Math.min(remaining, requestedAmount);
+                int updatedRemaining = remaining - consumed;
+                VirtualVeinSlotState updatedState = updatedRemaining == 0 ? VirtualVeinSlotState.DEPLETED : VirtualVeinSlotState.ACTIVE;
+                try (PreparedStatement update = connection.prepareStatement("UPDATE " + TABLE + " SET " + remainingColumn + " = ?, " + stateColumn + " = ? WHERE dimension_id = ? AND field_cell_x = ? AND field_cell_z = ? AND field_biome_id = ?")) {
+                    update.setInt(1, updatedRemaining);
+                    update.setString(2, updatedState.name());
+                    bindKey(update, 3, dimensionId, key);
+                    update.executeUpdate();
+                }
+                return Optional.of(new VirtualVeinConsumption(consumed, updatedRemaining, updatedState == VirtualVeinSlotState.DEPLETED));
             }
-        } catch (SQLException | IllegalArgumentException exception) {
-            SimuKraft.LOGGER.error("Failed to consume virtual vein field {},{}", key.cellX(), key.cellZ(), exception);
-            return Optional.empty();
         }
     }
 

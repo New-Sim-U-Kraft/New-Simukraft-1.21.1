@@ -19,44 +19,27 @@ public final class FamilySqliteRepository {
         this.database = database;
     }
 
-    public synchronized void upsert(FamilyData family) {
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            try {
-                saveFamily(connection, family);
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
-            }
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save family to SQLite", exception);
-        }
+    public void upsert(Connection connection, FamilyData family) throws SQLException {
+        saveFamily(connection, family);
     }
 
-    public synchronized void delete(UUID familyId) {
+    public void delete(Connection connection, UUID familyId) throws SQLException {
         if (familyId == null) return;
-        try (Connection connection = database.openConnection();
-             PreparedStatement stmt = connection.prepareStatement(
-                     "DELETE FROM family_members WHERE family_id = ?")) {
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "DELETE FROM family_members WHERE family_id = ?")) {
             stmt.setString(1, familyId.toString());
             stmt.executeUpdate();
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to delete family members from SQLite", exception);
         }
-        try (Connection connection = database.openConnection();
-             PreparedStatement stmt = connection.prepareStatement(
-                     "DELETE FROM families WHERE family_id = ?")) {
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "DELETE FROM families WHERE family_id = ?")) {
             stmt.setString(1, familyId.toString());
             stmt.executeUpdate();
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to delete family from SQLite", exception);
         }
     }
 
     public synchronized List<FamilyData> loadAll() {
         List<FamilyData> result = new ArrayList<>();
-        try (Connection connection = database.openConnection()) {
+        try (Connection connection = database.borrowConnection()) {
             // Load child members grouped by family_id
             java.util.Map<String, List<String>> childIdsByFamily = new java.util.HashMap<>();
             try (PreparedStatement stmt = connection.prepareStatement(
@@ -87,7 +70,10 @@ public final class FamilySqliteRepository {
                 }
             }
         } catch (SQLException | IllegalArgumentException exception) {
+            database.markDegraded("loadAll(families)", exception);
             SimuKraft.LOGGER.error("Failed to load families from SQLite", exception);
+            // 失败必须返回 null 而不是部分结果：调用方据此区分"没有家庭"与"库故障"，避免按残缺图谱重复建家庭。
+            return null;
         }
         return result;
     }

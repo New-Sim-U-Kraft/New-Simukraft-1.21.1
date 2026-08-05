@@ -20,46 +20,31 @@ public final class CommercialSqliteRepository {
         this.database = database;
     }
 
-    /** saveBoxes: 保存全部商业箱状态。 */
-    public synchronized void saveBoxes(CompoundTag tag) {
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            SqliteNbtHelper.clearTables(connection, "commercial_boxes");
-            try {
-                ListTag boxes = tag.getList("Boxes", CompoundTag.TAG_COMPOUND);
-                for (int i = 0; i < boxes.size(); i++) {
-                    saveBox(connection, boxes.getCompound(i));
-                }
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
-            }
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save commercial boxes to SQLite", exception);
+    /**
+     * saveBoxes: 把内存中的商业箱全部 upsert 进库。
+     * <p>不再清空整表再重写：该表没有 dimension_id，而管理器是按维度的，
+     * 关服时逐维度保存会让每个维度都清空全表。删除只走 {@link #deleteBox(long)}。
+     */
+    public void saveBoxes(Connection connection, CompoundTag tag) throws SQLException {
+        ListTag boxes = tag.getList("Boxes", CompoundTag.TAG_COMPOUND);
+        for (int i = 0; i < boxes.size(); i++) {
+            saveBox(connection, boxes.getCompound(i));
         }
     }
 
     /** upsertBox: 保存单个商业箱状态。 */
-    public synchronized void upsertBox(CompoundTag boxTag) {
-        try (Connection connection = database.openConnection()) {
-            saveBox(connection, boxTag);
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save commercial box to SQLite", exception);
-        }
+    public void upsertBox(Connection connection, CompoundTag boxTag) throws SQLException {
+        saveBox(connection, boxTag);
     }
 
     /** deleteBox: 删除商业箱和其库存。 */
-    public synchronized void deleteBox(long boxPosLong) {
-        try (Connection connection = database.openConnection();
-             PreparedStatement stockStatement = connection.prepareStatement("DELETE FROM commercial_stock WHERE box_pos_long = ?");
+    public void deleteBox(Connection connection, long boxPosLong) throws SQLException {
+        try (PreparedStatement stockStatement = connection.prepareStatement("DELETE FROM commercial_stock WHERE box_pos_long = ?");
              PreparedStatement boxStatement = connection.prepareStatement("DELETE FROM commercial_boxes WHERE box_pos_long = ?")) {
             stockStatement.setLong(1, boxPosLong);
             stockStatement.executeUpdate();
             boxStatement.setLong(1, boxPosLong);
             boxStatement.executeUpdate();
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to delete commercial box from SQLite", exception);
         }
     }
 
@@ -67,7 +52,7 @@ public final class CommercialSqliteRepository {
     public synchronized CompoundTag loadBoxes() {
         CompoundTag tag = new CompoundTag();
         ListTag boxes = new ListTag();
-        try (Connection connection = database.openConnection();
+        try (Connection connection = database.borrowConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT * FROM commercial_boxes ORDER BY box_pos_long");
              ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
@@ -84,48 +69,34 @@ public final class CommercialSqliteRepository {
             tag.put("Boxes", boxes);
             return boxes.isEmpty() ? null : tag;
         } catch (SQLException exception) {
+            database.markDegraded("loadBoxes(commercial)", exception);
             SimuKraft.LOGGER.error("Failed to load commercial boxes from SQLite", exception);
             return null;
         }
     }
 
-    /** saveStock: 保存全部商业库存。 */
-    public synchronized void saveStock(CompoundTag tag) {
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            SqliteNbtHelper.clearTables(connection, "commercial_stock");
-            try {
-                ListTag stock = tag.getList("Stock", CompoundTag.TAG_COMPOUND);
-                for (int i = 0; i < stock.size(); i++) {
-                    saveStockEntry(connection, stock.getCompound(i));
-                }
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
-            }
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save commercial stock to SQLite", exception);
+    /**
+     * saveStock: 把内存中的商业库存全部 upsert 进库。
+     * <p>不再清空整表再重写，理由同 {@link #saveBoxes(CompoundTag)}。
+     * 库存的删除只走 {@link #deleteStockAtBox(long)}。
+     */
+    public void saveStock(Connection connection, CompoundTag tag) throws SQLException {
+        ListTag stock = tag.getList("Stock", CompoundTag.TAG_COMPOUND);
+        for (int i = 0; i < stock.size(); i++) {
+            saveStockEntry(connection, stock.getCompound(i));
         }
     }
 
     /** upsertStockEntry: 保存单个商业库存条目。 */
-    public synchronized void upsertStockEntry(CompoundTag stockTag) {
-        try (Connection connection = database.openConnection()) {
-            saveStockEntry(connection, stockTag);
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save commercial stock entry to SQLite", exception);
-        }
+    public void upsertStockEntry(Connection connection, CompoundTag stockTag) throws SQLException {
+        saveStockEntry(connection, stockTag);
     }
 
     /** deleteStockAtBox: 删除指定商业箱库存。 */
-    public synchronized void deleteStockAtBox(long boxPosLong) {
-        try (Connection connection = database.openConnection();
-             PreparedStatement statement = connection.prepareStatement("DELETE FROM commercial_stock WHERE box_pos_long = ?")) {
+    public void deleteStockAtBox(Connection connection, long boxPosLong) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("DELETE FROM commercial_stock WHERE box_pos_long = ?")) {
             statement.setLong(1, boxPosLong);
             statement.executeUpdate();
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to delete commercial stock from SQLite", exception);
         }
     }
 
@@ -133,7 +104,7 @@ public final class CommercialSqliteRepository {
     public synchronized CompoundTag loadStock() {
         CompoundTag tag = new CompoundTag();
         ListTag stock = new ListTag();
-        try (Connection connection = database.openConnection();
+        try (Connection connection = database.borrowConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT * FROM commercial_stock ORDER BY box_pos_long, item_id");
              ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
@@ -149,28 +120,30 @@ public final class CommercialSqliteRepository {
             tag.put("Stock", stock);
             return stock.isEmpty() ? null : tag;
         } catch (SQLException exception) {
+            database.markDegraded("loadStock(commercial)", exception);
             SimuKraft.LOGGER.error("Failed to load commercial stock from SQLite", exception);
             return null;
         }
     }
 
-    /** addDailyIncome: 累加指定城市在某个 MC 日的商业营业收入。 */
-    public synchronized boolean addDailyIncome(UUID cityId, long incomeDay, double amount) {
+    /** addDailyIncome: 累加指定城市在某个 MC 日的商业营业收入。在写线程执行并同步等待结果。 */
+    public boolean addDailyIncome(UUID cityId, long incomeDay, double amount) {
         if (cityId == null || incomeDay <= 0L || amount <= 0.0D) {
             return false;
         }
-        try (Connection connection = database.openConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "INSERT INTO commercial_daily_income(city_id, income_day, income, tax_collected) "
-                             + "VALUES(?, ?, ?, 0) "
-                             + "ON CONFLICT(city_id, income_day) DO UPDATE SET income = income + excluded.income")) {
+        Boolean saved = database.callSync(connection -> addDailyIncome(connection, cityId, incomeDay, amount));
+        return saved != null && saved;
+    }
+
+    private boolean addDailyIncome(Connection connection, UUID cityId, long incomeDay, double amount) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "INSERT INTO commercial_daily_income(city_id, income_day, income, tax_collected) "
+                        + "VALUES(?, ?, ?, 0) "
+                        + "ON CONFLICT(city_id, income_day) DO UPDATE SET income = income + excluded.income")) {
             statement.setString(1, cityId.toString());
             statement.setLong(2, incomeDay);
             statement.setDouble(3, amount);
             return statement.executeUpdate() > 0;
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to add commercial daily income to SQLite", exception);
-            return false;
         }
     }
 
@@ -180,7 +153,7 @@ public final class CommercialSqliteRepository {
             return Map.of();
         }
         Map<UUID, Double> result = new LinkedHashMap<>();
-        try (Connection connection = database.openConnection();
+        try (Connection connection = database.borrowConnection();
              PreparedStatement statement = connection.prepareStatement(
                      "SELECT city_id, SUM(income) AS income FROM commercial_daily_income "
                              + "WHERE income_day < ? AND tax_collected = 0 GROUP BY city_id")) {
@@ -197,21 +170,22 @@ public final class CommercialSqliteRepository {
         return Map.copyOf(result);
     }
 
-    /** markIncomeTaxCollectedBefore: 标记指定城市在日期之前的商业收入已完成企业税结算。 */
-    public synchronized boolean markIncomeTaxCollectedBefore(UUID cityId, long dayExclusive) {
+    /** markIncomeTaxCollectedBefore: 标记指定城市在日期之前的商业收入已完成企业税结算。在写线程执行并同步等待结果。 */
+    public boolean markIncomeTaxCollectedBefore(UUID cityId, long dayExclusive) {
         if (cityId == null || dayExclusive <= 1L) {
             return false;
         }
-        try (Connection connection = database.openConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "UPDATE commercial_daily_income SET tax_collected = 1 "
-                             + "WHERE city_id = ? AND income_day < ? AND tax_collected = 0")) {
+        Boolean marked = database.callSync(connection -> markIncomeTaxCollectedBefore(connection, cityId, dayExclusive));
+        return marked != null && marked;
+    }
+
+    private boolean markIncomeTaxCollectedBefore(Connection connection, UUID cityId, long dayExclusive) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "UPDATE commercial_daily_income SET tax_collected = 1 "
+                        + "WHERE city_id = ? AND income_day < ? AND tax_collected = 0")) {
             statement.setString(1, cityId.toString());
             statement.setLong(2, dayExclusive);
             return statement.executeUpdate() > 0;
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to mark commercial income tax as collected in SQLite", exception);
-            return false;
         }
     }
 

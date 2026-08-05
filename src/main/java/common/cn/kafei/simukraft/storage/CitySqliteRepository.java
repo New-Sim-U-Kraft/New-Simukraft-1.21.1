@@ -17,49 +17,28 @@ public final class CitySqliteRepository {
         this.database = database;
     }
 
-    public synchronized void saveAll(CompoundTag tag, String dimensionId) {
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            try (PreparedStatement delete = connection.prepareStatement("DELETE FROM cities WHERE dimension_id = ?")) {
-                delete.setString(1, normalizeDimensionId(dimensionId));
-                delete.executeUpdate();
-            }
-            try {
-                ListTag cityTags = tag.getList("Cities", CompoundTag.TAG_COMPOUND);
-                for (int i = 0; i < cityTags.size(); i++) {
-                    saveCity(connection, cityTags.getCompound(i));
-                }
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
-            }
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save cities to SQLite", exception);
+    /**
+     * saveAll: 把内存中的城市全部 upsert 进库。
+     * <p>刻意不做 "DELETE WHERE dimension_id" 再重写：内存快照可能因加载失败或加载未完成而不完整，
+     * 一旦按它清库就会连带级联删掉 city_members / finance_transactions / commercial_daily_income。
+     * 城市的真正删除只走 {@link #delete(java.util.UUID)}。
+     */
+    public void saveAll(Connection connection, CompoundTag tag, String dimensionId) throws SQLException {
+        ListTag cityTags = tag.getList("Cities", CompoundTag.TAG_COMPOUND);
+        for (int i = 0; i < cityTags.size(); i++) {
+            saveCity(connection, cityTags.getCompound(i));
         }
     }
 
-    public synchronized void upsert(CompoundTag cityTag) {
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            try {
-                saveCity(connection, cityTag);
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
-            }
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save city to SQLite", exception);
-        }
+    public void upsert(Connection connection, CompoundTag cityTag) throws SQLException {
+        saveCity(connection, cityTag);
     }
 
-    public synchronized void delete(java.util.UUID cityId) {
+    public void delete(Connection connection, java.util.UUID cityId) throws SQLException {
         if (cityId == null) {
             return;
         }
-        try (Connection connection = database.openConnection();
-             PreparedStatement deleteBuildingTasks = connection.prepareStatement("DELETE FROM building_tasks WHERE city_id = ?");
+        try (PreparedStatement deleteBuildingTasks = connection.prepareStatement("DELETE FROM building_tasks WHERE city_id = ?");
              PreparedStatement deletePlanningTasks = connection.prepareStatement("DELETE FROM planning_tasks WHERE city_id = ?");
              PreparedStatement statement = connection.prepareStatement("DELETE FROM cities WHERE city_id = ?")) {
             deleteBuildingTasks.setString(1, cityId.toString());
@@ -68,15 +47,13 @@ public final class CitySqliteRepository {
             deletePlanningTasks.executeUpdate();
             statement.setString(1, cityId.toString());
             statement.executeUpdate();
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to delete city from SQLite", exception);
         }
     }
 
     public synchronized CompoundTag loadAll(String dimensionId) {
         CompoundTag tag = new CompoundTag();
         ListTag cities = new ListTag();
-        try (Connection connection = database.openConnection()) {
+        try (Connection connection = database.borrowConnection()) {
             // Bulk-load all members, group by city_id
             java.util.Map<String, ListTag> membersByCity = new java.util.HashMap<>();
             try (PreparedStatement s = connection.prepareStatement("SELECT * FROM city_members ORDER BY city_id, player_id");
@@ -128,6 +105,8 @@ public final class CitySqliteRepository {
             tag.put("Cities", cities);
             return cities.isEmpty() ? null : tag;
         } catch (SQLException | IllegalArgumentException exception) {
+            // 加载失败必须置降级：否则内存留空，随后的保存会把库里真实存在的数据当成"已删除"。
+            database.markDegraded("loadAll(cities)", exception);
             SimuKraft.LOGGER.error("Failed to load cities from SQLite", exception);
             return null;
         }

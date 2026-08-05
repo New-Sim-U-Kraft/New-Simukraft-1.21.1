@@ -82,11 +82,10 @@ public final class CityManager extends SavedData {
             return;
         }
         CompoundTag sqliteTag = SimuSqliteStorage.loadCities(level);
-        if (sqliteTag == null) {
-            return;
-        }
+        // 加载失败（null）也要置位：旧实现会在每次 get(level)（即每 tick）重跑一次失败查询。
+        // 失败后的写入保护由存储层的降级开关负责，这里保留内存/SavedData 状态即可。
         sqliteLoaded = true;
-        if (sqliteTag.isEmpty()) {
+        if (sqliteTag == null || sqliteTag.isEmpty()) {
             return;
         }
         CityManager loaded = load(sqliteTag, level.registryAccess());

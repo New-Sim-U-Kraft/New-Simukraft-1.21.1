@@ -21,26 +21,15 @@ public final class BuildingTaskSqliteRepository {
         this.database = database;
     }
 
-    public synchronized void upsert(BuildingTaskData task) {
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            try {
-                saveTask(connection, task);
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
-            }
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save building task", exception);
-        }
+    public void upsert(Connection connection, BuildingTaskData task) throws SQLException {
+        saveTask(connection, task);
     }
 
     public synchronized BuildingTaskData findByCitizen(UUID citizenId) {
         if (citizenId == null) {
             return null;
         }
-        try (Connection connection = database.openConnection();
+        try (Connection connection = database.borrowConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT * FROM building_tasks WHERE citizen_id = ?")) {
             statement.setString(1, citizenId.toString());
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -81,7 +70,7 @@ public final class BuildingTaskSqliteRepository {
             return List.of();
         }
         List<BuildingTaskData> tasks = new ArrayList<>();
-        try (Connection connection = database.openConnection();
+        try (Connection connection = database.borrowConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT * FROM building_tasks WHERE dimension_id = ? ORDER BY updated_at")) {
             statement.setString(1, dimensionId);
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -91,29 +80,35 @@ public final class BuildingTaskSqliteRepository {
                 }
             }
         } catch (SQLException | IllegalArgumentException exception) {
+            database.markDegraded("findByDimension(buildingTasks)", exception);
             SimuKraft.LOGGER.error("Failed to load building tasks by dimension", exception);
             return List.of();
         }
         return List.copyOf(tasks);
     }
 
-    public synchronized void deleteByCitizen(UUID citizenId) {
+    public void deleteByCitizen(Connection connection, UUID citizenId) throws SQLException {
         if (citizenId == null) {
             return;
         }
-        try (Connection connection = database.openConnection();
-             PreparedStatement statement = connection.prepareStatement("DELETE FROM building_tasks WHERE citizen_id = ?")) {
+        try (PreparedStatement statement = connection.prepareStatement("DELETE FROM building_tasks WHERE citizen_id = ?")) {
             statement.setString(1, citizenId.toString());
             statement.executeUpdate();
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to delete building task", exception);
         }
     }
 
     private void saveTask(Connection connection, BuildingTaskData task) throws SQLException {
-        try (PreparedStatement taskStatement = connection.prepareStatement("INSERT INTO building_tasks(task_id, citizen_id, city_id, dimension_id, build_box_x, build_box_y, build_box_z, category, building_file_name, display_name, amount, structure_file_name, origin_x, origin_y, origin_z, rotation_degrees, current_block_index, total_blocks, status, created_at, updated_at, replace_with_air) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(task_id) DO UPDATE SET citizen_id = excluded.citizen_id, city_id = excluded.city_id, dimension_id = excluded.dimension_id, build_box_x = excluded.build_box_x, build_box_y = excluded.build_box_y, build_box_z = excluded.build_box_z, category = excluded.category, building_file_name = excluded.building_file_name, display_name = excluded.display_name, amount = excluded.amount, structure_file_name = excluded.structure_file_name, origin_x = excluded.origin_x, origin_y = excluded.origin_y, origin_z = excluded.origin_z, rotation_degrees = excluded.rotation_degrees, current_block_index = excluded.current_block_index, total_blocks = excluded.total_blocks, status = excluded.status, created_at = excluded.created_at, updated_at = excluded.updated_at, replace_with_air = excluded.replace_with_air");
+        // 冲突目标是业务唯一键 citizen_id 而不是 task_id：cancel→start 会以新 taskId 重新 upsert，
+        // 写队列合并可能吞掉中间的 delete，按 citizen_id 收敛无论旧行是否还在都落库正确。
+        try (PreparedStatement deleteLegacyPois = connection.prepareStatement("DELETE FROM building_task_pois WHERE task_id IN (SELECT task_id FROM building_tasks WHERE citizen_id = ?)");
+             PreparedStatement taskStatement = connection.prepareStatement("INSERT INTO building_tasks(task_id, citizen_id, city_id, dimension_id, build_box_x, build_box_y, build_box_z, category, building_file_name, display_name, amount, structure_file_name, origin_x, origin_y, origin_z, rotation_degrees, current_block_index, total_blocks, status, created_at, updated_at, replace_with_air) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(citizen_id) DO UPDATE SET task_id = excluded.task_id, city_id = excluded.city_id, dimension_id = excluded.dimension_id, build_box_x = excluded.build_box_x, build_box_y = excluded.build_box_y, build_box_z = excluded.build_box_z, category = excluded.category, building_file_name = excluded.building_file_name, display_name = excluded.display_name, amount = excluded.amount, structure_file_name = excluded.structure_file_name, origin_x = excluded.origin_x, origin_y = excluded.origin_y, origin_z = excluded.origin_z, rotation_degrees = excluded.rotation_degrees, current_block_index = excluded.current_block_index, total_blocks = excluded.total_blocks, status = excluded.status, created_at = excluded.created_at, updated_at = excluded.updated_at, replace_with_air = excluded.replace_with_air");
              PreparedStatement deletePois = connection.prepareStatement("DELETE FROM building_task_pois WHERE task_id = ?");
              PreparedStatement poiStatement = connection.prepareStatement("INSERT INTO building_task_pois(task_id, poi_key, poi_type, capacity) VALUES(?, ?, ?, ?)") ) {
+            // upsert 触发 citizen_id 冲突时 task_id 会被改写成新值，而 building_task_pois 的外键
+            // 没有 ON UPDATE CASCADE：必须先按旧 task_id 清掉子表行，否则外键约束让整条 upsert 失败。
+            deleteLegacyPois.setString(1, task.citizenId().toString());
+            deleteLegacyPois.executeUpdate();
+
             taskStatement.setString(1, task.taskId().toString());
             taskStatement.setString(2, task.citizenId().toString());
             SqliteNbtHelper.setNullableString(taskStatement, 3, task.cityId() != null ? task.cityId().toString() : null);

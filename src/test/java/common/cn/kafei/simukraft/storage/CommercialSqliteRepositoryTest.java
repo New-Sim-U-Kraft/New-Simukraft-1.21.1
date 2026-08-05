@@ -48,7 +48,7 @@ class CommercialSqliteRepositoryTest {
 
     /** insertCity: 为外键约束准备测试城市。 */
     private static void insertCity(SimuSqliteDatabase database, UUID cityId) throws Exception {
-        try (var connection = database.openConnection();
+        try (var connection = database.borrowConnection();
              PreparedStatement statement = connection.prepareStatement(
                      "INSERT INTO cities(city_id, city_name, core_x, core_y, core_z, funds, city_level) VALUES(?, ?, 0, 64, 0, 20.0, 0)")) {
             statement.setString(1, cityId.toString());

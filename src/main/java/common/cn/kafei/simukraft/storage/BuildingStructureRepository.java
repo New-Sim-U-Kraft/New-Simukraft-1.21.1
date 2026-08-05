@@ -24,9 +24,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+/**
+ * 已建成建筑的结构仓库。
+ * <p>线程约定：写入（{@link #upsert} / {@link #delete}）经建筑库的写线程执行，可在任意非写线程调用；
+ * 读取（{@link #loadByDimension}）借池化连接，调用方通常在服务器主线程。
+ */
 @SuppressWarnings("Null")
 public final class BuildingStructureRepository {
     private final BuildingStructureSqliteDatabase database;
@@ -35,50 +42,87 @@ public final class BuildingStructureRepository {
         this.database = database;
     }
 
-    public synchronized void upsert(PlacedBuildingRecord record) {
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            try {
-                saveBuilding(connection, record);
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
-            }
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to save placed building structure", exception);
-        }
+    /**
+     * WriteOutcome: 一次写入的三种结局。
+     * <p>{@link #FAILED} 与 {@link #STORAGE_UNAVAILABLE} 必须分开：前者是这一条写入出了问题，
+     * 调用方不应更新内存缓存（避免内存与磁盘静默分叉）；后者是整库已降级或已关闭，是**整会话**状态，
+     * 若也按失败作废，降级之后所有新建成的建筑都会彻底不生效（无 POI、无住房、无产线绑定）。
+     */
+    public enum WriteOutcome {
+        PERSISTED,
+        FAILED,
+        STORAGE_UNAVAILABLE
     }
 
-    public synchronized List<PlacedBuildingRecord> loadByDimension(String dimensionId) {
+    /**
+     * upsert: 保存建筑结构。经 callSync 提交到建筑库的写线程执行并同步等待事务提交。
+     *
+     * @return 见 {@link WriteOutcome}
+     */
+    public WriteOutcome upsert(PlacedBuildingRecord record) {
+        if (database.isWriteBlocked()) {
+            return WriteOutcome.STORAGE_UNAVAILABLE;
+        }
+        Boolean saved = database.callSync(connection -> {
+            saveBuilding(connection, record);
+            return true;
+        });
+        if (saved != null && saved) {
+            return WriteOutcome.PERSISTED;
+        }
+        // 上面的预检和这里之间可能刚好发生降级，复查一次才能给出准确结局。
+        if (database.isWriteBlocked()) {
+            return WriteOutcome.STORAGE_UNAVAILABLE;
+        }
+        SimuKraft.LOGGER.error("Failed to save placed building structure {}", record != null ? record.buildingId() : null);
+        return WriteOutcome.FAILED;
+    }
+
+    /**
+     * loadByDimension: 读取一个维度的全部已建成建筑。
+     * <p>方块与 POI 都用一次带 JOIN 的查询批量取回后在内存分组。旧实现对每座建筑另发 3 条子查询
+     * （其中 POI 定义和 POI 实例是完全相同的 SQL，被查了两遍），200 座建筑就是 601 次查询。
+     */
+    public List<PlacedBuildingRecord> loadByDimension(String dimensionId) {
         List<PlacedBuildingRecord> result = new ArrayList<>();
-        try (Connection connection = database.openConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT * FROM placed_buildings WHERE dimension_id = ? ORDER BY completed_at")) {
-            statement.setString(1, dimensionId);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    UUID buildingId = UUID.fromString(resultSet.getString("building_id"));
-                    result.add(new PlacedBuildingRecord(
-                            buildingId,
-                            nullableUuid(resultSet.getString("city_id")),
-                            resultSet.getString("dimension_id"),
-                            resultSet.getString("category"),
-                            resultSet.getString("building_file_name"),
-                            resultSet.getString("display_name"),
-                            resolveAmount(resultSet.getString("amount"), resultSet.getString("category"), resultSet.getString("building_file_name")),
-                            resultSet.getString("structure_file_name"),
-                            resultSet.getString("facing"),
-                            new BlockPos(resultSet.getInt("origin_x"), resultSet.getInt("origin_y"), resultSet.getInt("origin_z")),
-                            new BlockPos(resultSet.getInt("anchor_x"), resultSet.getInt("anchor_y"), resultSet.getInt("anchor_z")),
-                            new BlockPos(resultSet.getInt("min_x"), resultSet.getInt("min_y"), resultSet.getInt("min_z")),
-                            new BlockPos(resultSet.getInt("max_x"), resultSet.getInt("max_y"), resultSet.getInt("max_z")),
-                            resultSet.getLong("completed_at"),
-                            loadBlocks(connection, buildingId),
-                            loadPois(connection, buildingId),
-                            loadPoiInstances(connection, buildingId),
-                            List.of(),
-                            List.of()
-                    ));
+        try (Connection connection = database.borrowConnection()) {
+            Map<UUID, List<BuildingBlockData>> blocksByBuilding = loadBlocksByDimension(connection, dimensionId);
+            Map<UUID, List<BuildingPoiDefinition>> poiDefsByBuilding = new HashMap<>();
+            Map<UUID, List<BuildingPoiInstance>> poiInstancesByBuilding = new HashMap<>();
+            loadPoisByDimension(connection, dimensionId, poiDefsByBuilding, poiInstancesByBuilding);
+            try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM placed_buildings WHERE dimension_id = ? ORDER BY completed_at")) {
+                statement.setString(1, dimensionId);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    while (resultSet.next()) {
+                        String buildingIdText = resultSet.getString("building_id");
+                        try {
+                            UUID buildingId = UUID.fromString(buildingIdText);
+                            result.add(new PlacedBuildingRecord(
+                                    buildingId,
+                                    nullableUuid(resultSet.getString("city_id")),
+                                    resultSet.getString("dimension_id"),
+                                    resultSet.getString("category"),
+                                    resultSet.getString("building_file_name"),
+                                    resultSet.getString("display_name"),
+                                    resolveAmount(resultSet.getString("amount"), resultSet.getString("category"), resultSet.getString("building_file_name")),
+                                    resultSet.getString("structure_file_name"),
+                                    resultSet.getString("facing"),
+                                    new BlockPos(resultSet.getInt("origin_x"), resultSet.getInt("origin_y"), resultSet.getInt("origin_z")),
+                                    new BlockPos(resultSet.getInt("anchor_x"), resultSet.getInt("anchor_y"), resultSet.getInt("anchor_z")),
+                                    new BlockPos(resultSet.getInt("min_x"), resultSet.getInt("min_y"), resultSet.getInt("min_z")),
+                                    new BlockPos(resultSet.getInt("max_x"), resultSet.getInt("max_y"), resultSet.getInt("max_z")),
+                                    resultSet.getLong("completed_at"),
+                                    List.copyOf(blocksByBuilding.getOrDefault(buildingId, List.of())),
+                                    List.copyOf(poiDefsByBuilding.getOrDefault(buildingId, List.of())),
+                                    List.copyOf(poiInstancesByBuilding.getOrDefault(buildingId, List.of())),
+                                    List.of(),
+                                    List.of()
+                            ));
+                        } catch (RuntimeException exception) {
+                            // 单行脏数据不能拖垮整个维度的加载：跳过该行并留痕。
+                            SimuKraft.LOGGER.warn("Skipping corrupted placed building row (building_id={})", buildingIdText, exception);
+                        }
+                    }
                 }
             }
         } catch (SQLException | IllegalArgumentException exception) {
@@ -87,29 +131,101 @@ public final class BuildingStructureRepository {
         return List.copyOf(result);
     }
 
-    public synchronized void delete(UUID buildingId) {
-        if (buildingId == null) {
-            return;
-        }
-        try (Connection connection = database.openConnection()) {
-            connection.setAutoCommit(false);
-            try (PreparedStatement deleteBlocks = connection.prepareStatement("DELETE FROM placed_building_blocks WHERE building_id = ?");
-                 PreparedStatement deletePois = connection.prepareStatement("DELETE FROM placed_building_pois WHERE building_id = ?");
-                 PreparedStatement deleteBuilding = connection.prepareStatement("DELETE FROM placed_buildings WHERE building_id = ?")) {
-                String id = buildingId.toString();
-                deleteBlocks.setString(1, id);
-                deleteBlocks.executeUpdate();
-                deletePois.setString(1, id);
-                deletePois.executeUpdate();
-                deleteBuilding.setString(1, id);
-                deleteBuilding.executeUpdate();
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
+    private Map<UUID, List<BuildingBlockData>> loadBlocksByDimension(Connection connection, String dimensionId) throws SQLException {
+        Map<UUID, List<BuildingBlockData>> blocksByBuilding = new HashMap<>();
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT b.building_id, b.relative_x, b.relative_y, b.relative_z, b.block_id, b.block_state_nbt, b.original_x, b.original_y, b.original_z "
+                        + "FROM placed_building_blocks b JOIN placed_buildings p ON p.building_id = b.building_id "
+                        + "WHERE p.dimension_id = ? ORDER BY b.building_id, b.relative_y, b.relative_x, b.relative_z")) {
+            statement.setString(1, dimensionId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    String buildingIdText = resultSet.getString("building_id");
+                    String blockId = resultSet.getString("block_id");
+                    try {
+                        BlockState state = decodeBlockState(resultSet.getString("block_state_nbt"), blockId);
+                        if (state == null) {
+                            SimuKraft.LOGGER.warn("Skipping undecodable placed building block row (building_id={}, block_id={})", buildingIdText, blockId);
+                            continue;
+                        }
+                        blocksByBuilding.computeIfAbsent(UUID.fromString(buildingIdText), key -> new ArrayList<>())
+                                .add(new BuildingBlockData(
+                                        new BlockPos(resultSet.getInt("relative_x"), resultSet.getInt("relative_y"), resultSet.getInt("relative_z")),
+                                        state,
+                                        new BlockPos(resultSet.getInt("original_x"), resultSet.getInt("original_y"), resultSet.getInt("original_z"))
+                                ));
+                    } catch (RuntimeException exception) {
+                        SimuKraft.LOGGER.warn("Skipping corrupted placed building block row (building_id={}, block_id={})", buildingIdText, blockId, exception);
+                    }
+                }
             }
-        } catch (SQLException exception) {
-            SimuKraft.LOGGER.error("Failed to delete placed building structure", exception);
+        }
+        return blocksByBuilding;
+    }
+
+    // loadPoisByDimension：POI 定义与 POI 实例来自同一批行，一次查询同时填两个映射。
+    private void loadPoisByDimension(Connection connection, String dimensionId,
+                                     Map<UUID, List<BuildingPoiDefinition>> definitions,
+                                     Map<UUID, List<BuildingPoiInstance>> instances) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT o.building_id, o.poi_key, o.poi_type, o.capacity, o.world_x, o.world_y, o.world_z "
+                        + "FROM placed_building_pois o JOIN placed_buildings p ON p.building_id = o.building_id "
+                        + "WHERE p.dimension_id = ? ORDER BY o.building_id, o.poi_key")) {
+            statement.setString(1, dimensionId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    String buildingIdText = resultSet.getString("building_id");
+                    try {
+                        UUID buildingId = UUID.fromString(buildingIdText);
+                        String poiKey = resultSet.getString("poi_key");
+                        CityPoiType poiType = CityPoiType.fromName(resultSet.getString("poi_type"));
+                        int capacity = resultSet.getInt("capacity");
+                        definitions.computeIfAbsent(buildingId, key -> new ArrayList<>())
+                                .add(new BuildingPoiDefinition(poiKey, poiType, capacity));
+                        instances.computeIfAbsent(buildingId, key -> new ArrayList<>())
+                                .add(new BuildingPoiInstance(poiKey, poiType, capacity,
+                                        new BlockPos(resultSet.getInt("world_x"), resultSet.getInt("world_y"), resultSet.getInt("world_z"))));
+                    } catch (RuntimeException exception) {
+                        SimuKraft.LOGGER.warn("Skipping corrupted placed building POI row (building_id={})", buildingIdText, exception);
+                    }
+                }
+            }
+        }
+    }
+
+    /** delete: 删除建筑结构及其方块与 POI；结局语义同 {@link #upsert}。 */
+    public WriteOutcome delete(UUID buildingId) {
+        if (buildingId == null) {
+            return WriteOutcome.PERSISTED;
+        }
+        if (database.isWriteBlocked()) {
+            return WriteOutcome.STORAGE_UNAVAILABLE;
+        }
+        Boolean deleted = database.callSync(connection -> {
+            deleteBuilding(connection, buildingId);
+            return true;
+        });
+        if (deleted != null && deleted) {
+            return WriteOutcome.PERSISTED;
+        }
+        if (database.isWriteBlocked()) {
+            return WriteOutcome.STORAGE_UNAVAILABLE;
+        }
+        SimuKraft.LOGGER.error("Failed to delete placed building structure {}", buildingId);
+        return WriteOutcome.FAILED;
+    }
+
+    private void deleteBuilding(Connection connection, UUID buildingId) throws SQLException {
+        try (PreparedStatement deleteBlocks = connection.prepareStatement("DELETE FROM placed_building_blocks WHERE building_id = ?");
+             PreparedStatement deletePois = connection.prepareStatement("DELETE FROM placed_building_pois WHERE building_id = ?");
+             PreparedStatement deleteBuilding = connection.prepareStatement("DELETE FROM placed_buildings WHERE building_id = ?")) {
+            String id = buildingId.toString();
+            deleteBlocks.setString(1, id);
+            deleteBlocks.executeUpdate();
+            deletePois.setString(1, id);
+            deletePois.executeUpdate();
+            deleteBuilding.setString(1, id);
+            deleteBuilding.executeUpdate();
         }
     }
 
@@ -177,58 +293,6 @@ public final class BuildingStructureRepository {
         }
     }
 
-    private List<BuildingBlockData> loadBlocks(Connection connection, UUID buildingId) throws SQLException {
-        List<BuildingBlockData> blocks = new ArrayList<>();
-        try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM placed_building_blocks WHERE building_id = ? ORDER BY relative_y, relative_x, relative_z")) {
-            statement.setString(1, buildingId.toString());
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    BlockState state = decodeBlockState(resultSet.getString("block_state_nbt"), resultSet.getString("block_id"));
-                    if (state == null) {
-                        continue;
-                    }
-                    blocks.add(new BuildingBlockData(
-                            new BlockPos(resultSet.getInt("relative_x"), resultSet.getInt("relative_y"), resultSet.getInt("relative_z")),
-                            state,
-                            new BlockPos(resultSet.getInt("original_x"), resultSet.getInt("original_y"), resultSet.getInt("original_z"))
-                    ));
-                }
-            }
-        }
-        return List.copyOf(blocks);
-    }
-
-    private List<BuildingPoiDefinition> loadPois(Connection connection, UUID buildingId) throws SQLException {
-        List<BuildingPoiDefinition> pois = new ArrayList<>();
-        try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM placed_building_pois WHERE building_id = ? ORDER BY poi_key")) {
-            statement.setString(1, buildingId.toString());
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    pois.add(new BuildingPoiDefinition(resultSet.getString("poi_key"), CityPoiType.fromName(resultSet.getString("poi_type")), resultSet.getInt("capacity")));
-                }
-            }
-        }
-        return List.copyOf(pois);
-    }
-
-    private List<BuildingPoiInstance> loadPoiInstances(Connection connection, UUID buildingId) throws SQLException {
-        List<BuildingPoiInstance> pois = new ArrayList<>();
-        try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM placed_building_pois WHERE building_id = ? ORDER BY poi_key")) {
-            statement.setString(1, buildingId.toString());
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    pois.add(new BuildingPoiInstance(
-                            resultSet.getString("poi_key"),
-                            CityPoiType.fromName(resultSet.getString("poi_type")),
-                            resultSet.getInt("capacity"),
-                            new BlockPos(resultSet.getInt("world_x"), resultSet.getInt("world_y"), resultSet.getInt("world_z"))
-                    ));
-                }
-            }
-        }
-        return List.copyOf(pois);
-    }
-
     private static String encodeBlockState(BlockState state) {
         CompoundTag tag = new CompoundTag();
         tag.putString("Name", BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
@@ -241,6 +305,8 @@ public final class BuildingStructureRepository {
             NbtIo.write(tag, data);
             return Base64.getEncoder().encodeToString(output.toByteArray());
         } catch (IOException ioException) {
+            // 存入空串会在读取时回退成默认状态，方块属性静默丢失，必须留痕。
+            SimuKraft.LOGGER.warn("Failed to encode block state for {}; its properties will be lost", BuiltInRegistries.BLOCK.getKey(state.getBlock()), ioException);
             return "";
         }
     }
@@ -269,6 +335,7 @@ public final class BuildingStructureRepository {
             }
             return state;
         } catch (Exception exception) {
+            SimuKraft.LOGGER.warn("Failed to decode stored block state for {}; falling back to its default state", blockId, exception);
             Block block = BuiltInRegistries.BLOCK.getOptional(net.minecraft.resources.ResourceLocation.parse(blockId)).orElse(null);
             return block != null ? block.defaultBlockState() : null;
         }

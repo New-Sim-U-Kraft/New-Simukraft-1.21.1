@@ -153,8 +153,9 @@ public final class CitizenService {
                 data.setStatusLabel("");
                 data.setWorkNeedDetail("");
             }
+            // saveCitizenNow 已经把整行（含已清空的职业字段）upsert 进库，
+            // 再补一条局部 UPDATE 只会和队列里的整行写入抢顺序。
             manager.saveCitizenNow(citizenId);
-            SimuSqliteStorage.clearCitizenEmployment(level, citizenId);
         });
     }
 

@@ -8,17 +8,35 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 
-import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * 存储门面。约定：
+ * <ul>
+ *   <li>实例按 {@link MinecraftServer} 注册，关服后不会被新会话复用（旧实现按存档路径注册，
+ *       残留任务会在关服后重建条目，导致同一 JVM 内重进存档拿到僵尸实例）。</li>
+ *   <li>所有写入都经 {@link StorageWriteQueue}，主线程只做"抓快照 + 入队"。</li>
+ *   <li>单行写入带合并键，同一行的后续提交覆盖未执行的旧提交；多行/集合写入用严格 FIFO。</li>
+ *   <li>写入在写线程上由 {@link common.cn.kafei.simukraft.storage.core.TransactionRunner} 合批进事务，
+ *       仓库方法只负责在给定 {@link Connection} 上执行语句，不再自己开连接或管事务。</li>
+ *   <li>读取借池化连接同步执行；失败会把库标记为降级，此后所有写入被拒绝。</li>
+ * </ul>
+ */
 public final class SimuSqliteStorage {
-    private static final ConcurrentMap<Path, SimuSqliteStorage> STORAGES = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<MinecraftServer, SimuSqliteStorage> STORAGES = new ConcurrentHashMap<>();
+    // SHUTDOWN 阻止已关闭的服务器被残留任务重新注册出一个新实例。
+    private static final Set<MinecraftServer> SHUTDOWN = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
+    private final SimuSqliteDatabase database;
     private final CitySqliteRepository cities;
     private final CityChunkSqliteRepository cityChunks;
     private final CityPoiSqliteRepository cityPois;
@@ -34,6 +52,7 @@ public final class SimuSqliteStorage {
     private final VirtualVeinSqliteRepository virtualVeins;
 
     private SimuSqliteStorage(SimuSqliteDatabase database) {
+        this.database = database;
         this.cities = new CitySqliteRepository(database);
         this.cityChunks = new CityChunkSqliteRepository(database);
         this.cityPois = new CityPoiSqliteRepository(database);
@@ -49,30 +68,100 @@ public final class SimuSqliteStorage {
         this.virtualVeins = new VirtualVeinSqliteRepository(database);
     }
 
-    public static SimuSqliteStorage open(MinecraftServer server) {
-        Path databasePath = SimuSqliteDatabase.databasePath(server).toAbsolutePath().normalize();
-        return STORAGES.computeIfAbsent(databasePath, ignored -> new SimuSqliteStorage(SimuSqliteDatabase.open(server)));
-    }
+    // ── 生命周期 ──────────────────────────────────────────────────────────────
 
-    public static void clearServerCache(MinecraftServer server) {
+    /** bootstrap: 服务器启动时打开数据库并建表，把建库失败暴露在启动阶段而不是首个 tick。 */
+    public static void bootstrap(MinecraftServer server) {
         if (server == null) {
             return;
         }
-        STORAGES.remove(SimuSqliteDatabase.databasePath(server).toAbsolutePath().normalize());
+        SHUTDOWN.remove(server);
+        if (openSafely(server) == null) {
+            SimuKraft.LOGGER.error("Simukraft: SQLite storage could not be opened at startup. City/citizen data will not be persisted this session.");
+        }
     }
 
-    private static SimuSqliteStorage openSafely(ServerLevel level) {
-        if (level == null) {
+    /** flush: 等待已提交的写入全部落库。关服与调试命令用。 */
+    public static boolean flush(MinecraftServer server) {
+        SimuSqliteStorage storage = server != null ? STORAGES.get(server) : null;
+        return storage == null || storage.database.drainWrites();
+    }
+
+    /** shutdown: 排空写队列、checkpoint WAL 并关闭数据库。必须在清理各服务缓存之前调用。 */
+    public static void shutdown(MinecraftServer server) {
+        if (server == null) {
+            return;
+        }
+        SHUTDOWN.add(server);
+        SimuSqliteStorage storage = STORAGES.remove(server);
+        if (storage != null) {
+            storage.database.drainWrites();
+            storage.database.close();
+        }
+    }
+
+    /** forgetServer: 服务器实例彻底退出后释放引用，避免 SHUTDOWN 集合长期持有强引用。 */
+    public static void forgetServer(MinecraftServer server) {
+        if (server != null) {
+            STORAGES.remove(server);
+            SHUTDOWN.remove(server);
+        }
+    }
+
+    /** isDegraded: 数据库是否已进入降级（只读）状态。 */
+    public static boolean isDegraded(ServerLevel level) {
+        SimuSqliteStorage storage = level != null && level.getServer() != null ? STORAGES.get(level.getServer()) : null;
+        return storage == null || storage.database.isDegraded();
+    }
+
+    /** summarizeStorage: 输出主库的指标快照（/simukraft storage 命令用）；库不可用时返回不可用说明。 */
+    public static String summarizeStorage(MinecraftServer server) {
+        SimuSqliteStorage storage = server != null ? STORAGES.get(server) : null;
+        return storage != null
+                ? storage.database.metrics().summarize(storage.database.pendingWrites(), storage.database.isDegraded())
+                : "unavailable";
+    }
+
+    private static SimuSqliteStorage openSafely(MinecraftServer server) {
+        if (server == null || SHUTDOWN.contains(server)) {
             return null;
         }
         try {
-            return open(level.getServer());
+            return STORAGES.computeIfAbsent(server, key -> new SimuSqliteStorage(SimuSqliteDatabase.open(key)));
         } catch (RuntimeException exception) {
-            // 数据库不可用时不让游戏崩溃，当前 tick 退回内存/SavedData 状态。
-            SimuKraft.LOGGER.error("SQLite storage is unavailable. Falling back to in-memory/SavedData state for this operation.", exception);
+            // 数据库不可用时不让游戏崩溃，当前操作退回内存状态。
+            SimuKraft.LOGGER.error("SQLite storage is unavailable. Falling back to in-memory state for this operation.", exception);
             return null;
         }
     }
+
+    private static SimuSqliteStorage openSafely(ServerLevel level) {
+        return level != null ? openSafely(level.getServer()) : null;
+    }
+
+    /** StorageWrite: 一次针对仓库的写入。允许抛出 SQLException，由写线程的事务边界统一处理。 */
+    @FunctionalInterface
+    private interface StorageWrite {
+        void execute(SimuSqliteStorage storage, Connection connection) throws SQLException;
+    }
+
+    /** write: 提交一次带合并键的写入；库不可用或已降级时静默丢弃（内存仍是权威）。 */
+    private static void write(ServerLevel level, String key, StorageWrite action) {
+        SimuSqliteStorage storage = openSafely(level);
+        if (storage != null) {
+            storage.database.submitWrite(key, connection -> action.execute(storage, connection));
+        }
+    }
+
+    /** writeOrdered: 提交一次不参与合并的写入，严格按提交顺序执行（多行/集合写入用）。 */
+    private static void writeOrdered(ServerLevel level, StorageWrite action) {
+        SimuSqliteStorage storage = openSafely(level);
+        if (storage != null) {
+            storage.database.submitWrite(connection -> action.execute(storage, connection));
+        }
+    }
+
+    // ── 城市 ──────────────────────────────────────────────────────────────────
 
     public static CompoundTag loadCities(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
@@ -80,58 +169,69 @@ public final class SimuSqliteStorage {
     }
 
     public static void saveCities(ServerLevel level, CompoundTag tag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && tag != null) {
-            storage.cities.saveAll(tag, dimensionId(level));
+        if (tag == null) {
+            return;
         }
+        String dimensionId = dimensionId(level);
+        writeOrdered(level, (storage, connection) -> storage.cities.saveAll(connection, tag, dimensionId));
     }
 
     public static void saveCity(ServerLevel level, CompoundTag cityTag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && cityTag != null) {
-            storage.cities.upsert(cityTag);
+        if (cityTag == null || !cityTag.hasUUID("CityId")) {
+            return;
         }
+        write(level, "cities:" + cityTag.getUUID("CityId"), (storage, connection) -> storage.cities.upsert(connection, cityTag));
     }
 
     public static void deleteCity(ServerLevel level, UUID cityId) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && cityId != null) {
-            storage.cities.delete(cityId);
+        if (cityId == null) {
+            return;
         }
+        write(level, "cities:" + cityId, (storage, connection) -> storage.cities.delete(connection, cityId));
     }
+
+    // ── 城市领地 ──────────────────────────────────────────────────────────────
 
     public static CompoundTag loadCityChunks(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
-        return storage != null ? storage.cityChunks.loadAll(level.dimension().location().toString()) : null;
+        return storage != null ? storage.cityChunks.loadAll(dimensionId(level)) : null;
     }
 
     public static void saveCityChunks(ServerLevel level, CompoundTag tag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null) {
-            storage.cityChunks.saveAll(tag, level.dimension().location().toString());
+        if (tag == null) {
+            return;
         }
+        String dimensionId = dimensionId(level);
+        writeOrdered(level, (storage, connection) -> storage.cityChunks.saveAll(connection, tag, dimensionId));
     }
 
     public static void saveCityChunk(ServerLevel level, UUID cityId, long chunkLong) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && cityId != null) {
-            storage.cityChunks.upsert(cityId, chunkLong, level.dimension().location().toString());
+        if (cityId == null) {
+            return;
         }
+        String dimensionId = dimensionId(level);
+        write(level, "city_chunk:" + dimensionId + ":" + cityId + ":" + chunkLong,
+                (storage, connection) -> storage.cityChunks.upsert(connection, cityId, chunkLong, dimensionId));
     }
 
     public static void deleteCityChunks(ServerLevel level, UUID cityId) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && cityId != null) {
-            storage.cityChunks.deleteCity(cityId, level.dimension().location().toString());
+        if (cityId == null) {
+            return;
         }
+        String dimensionId = dimensionId(level);
+        writeOrdered(level, (storage, connection) -> storage.cityChunks.deleteCity(connection, cityId, dimensionId));
     }
 
     public static void deleteCityChunk(ServerLevel level, UUID cityId, long chunkLong) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && cityId != null) {
-            storage.cityChunks.deleteChunk(cityId, chunkLong, level.dimension().location().toString());
+        if (cityId == null) {
+            return;
         }
+        String dimensionId = dimensionId(level);
+        write(level, "city_chunk:" + dimensionId + ":" + cityId + ":" + chunkLong,
+                (storage, connection) -> storage.cityChunks.deleteChunk(connection, cityId, chunkLong, dimensionId));
     }
+
+    // ── 城市 POI ──────────────────────────────────────────────────────────────
 
     public static CompoundTag loadCityPois(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
@@ -139,25 +239,37 @@ public final class SimuSqliteStorage {
     }
 
     public static void saveCityPois(ServerLevel level, CompoundTag tag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && tag != null) {
-            storage.cityPois.saveAll(tag, dimensionId(level));
+        if (tag == null) {
+            return;
         }
+        String dimensionId = dimensionId(level);
+        writeOrdered(level, (storage, connection) -> storage.cityPois.saveAll(connection, tag, dimensionId));
     }
 
     public static void saveCityPoi(ServerLevel level, CompoundTag poiTag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && poiTag != null) {
-            storage.cityPois.upsert(poiTag, dimensionId(level));
+        if (poiTag == null || !poiTag.hasUUID("PoiId")) {
+            return;
         }
+        String dimensionId = dimensionId(level);
+        write(level, "city_pois:" + poiTag.getUUID("PoiId"), (storage, connection) -> storage.cityPois.upsert(connection, poiTag, dimensionId));
+    }
+
+    /** deleteCityPoi: 删除单个 POI。合并键与 {@link #saveCityPoi} 相同，同一 POI 的 upsert 与 delete 天然定序。 */
+    public static void deleteCityPoi(ServerLevel level, UUID poiId) {
+        if (poiId == null) {
+            return;
+        }
+        write(level, "city_pois:" + poiId, (storage, connection) -> storage.cityPois.delete(connection, poiId));
     }
 
     public static void deleteCityPois(ServerLevel level, UUID cityId) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && cityId != null) {
-            storage.cityPois.deleteCity(cityId);
+        if (cityId == null) {
+            return;
         }
+        writeOrdered(level, (storage, connection) -> storage.cityPois.deleteCity(connection, cityId));
     }
+
+    // ── 居民 ──────────────────────────────────────────────────────────────────
 
     public static CompoundTag loadCitizens(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
@@ -165,38 +277,33 @@ public final class SimuSqliteStorage {
     }
 
     public static void saveCitizens(ServerLevel level, CompoundTag tag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null) {
-            storage.citizens.saveAll(tag);
+        if (tag == null) {
+            return;
         }
+        writeOrdered(level, (storage, connection) -> storage.citizens.saveAll(connection, tag));
     }
 
     public static void saveCitizen(ServerLevel level, CompoundTag citizenTag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && citizenTag != null) {
-            storage.citizens.upsert(citizenTag);
+        if (citizenTag == null || !citizenTag.hasUUID("Uuid")) {
+            return;
         }
+        write(level, "citizens:" + citizenTag.getUUID("Uuid"), (storage, connection) -> storage.citizens.upsert(connection, citizenTag));
     }
 
     public static void deleteCitizen(ServerLevel level, UUID citizenId) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && citizenId != null) {
-            storage.citizens.delete(citizenId);
+        if (citizenId == null) {
+            return;
         }
+        write(level, "citizens:" + citizenId, (storage, connection) -> storage.citizens.delete(connection, citizenId));
     }
 
-    public static void clearCitizenEmployment(ServerLevel level, UUID citizenId) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && citizenId != null) {
-            storage.citizens.clearEmployment(citizenId);
-        }
-    }
+    // ── 建筑任务 ──────────────────────────────────────────────────────────────
 
     public static void saveBuildingTask(ServerLevel level, common.cn.kafei.simukraft.building.BuildingTaskData task) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && task != null) {
-            storage.buildingTasks.upsert(task);
+        if (task == null || task.citizenId() == null) {
+            return;
         }
+        write(level, "building_task:" + task.citizenId(), (storage, connection) -> storage.buildingTasks.upsert(connection, task));
     }
 
     public static common.cn.kafei.simukraft.building.BuildingTaskData loadBuildingTask(ServerLevel level, UUID citizenId) {
@@ -206,18 +313,17 @@ public final class SimuSqliteStorage {
 
     public static List<common.cn.kafei.simukraft.building.BuildingTaskData> loadBuildingTasks(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
-        if (storage == null) {
-            return List.of();
-        }
-        return storage.buildingTasks.findByDimension(level.dimension().location().toString());
+        return storage != null ? storage.buildingTasks.findByDimension(dimensionId(level)) : List.of();
     }
 
     public static void deleteBuildingTask(ServerLevel level, UUID citizenId) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && citizenId != null) {
-            storage.buildingTasks.deleteByCitizen(citizenId);
+        if (citizenId == null) {
+            return;
         }
+        write(level, "building_task:" + citizenId, (storage, connection) -> storage.buildingTasks.deleteByCitizen(connection, citizenId));
     }
+
+    // ── 农田盒 ────────────────────────────────────────────────────────────────
 
     public static CompoundTag loadFarmlandBoxes(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
@@ -225,25 +331,24 @@ public final class SimuSqliteStorage {
     }
 
     public static void saveFarmlandBoxes(ServerLevel level, CompoundTag tag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && tag != null) {
-            storage.farmlandBoxes.saveAll(tag);
+        if (tag == null) {
+            return;
         }
+        writeOrdered(level, (storage, connection) -> storage.farmlandBoxes.saveAll(connection, tag));
     }
 
     public static void saveFarmlandBox(ServerLevel level, CompoundTag boxTag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && boxTag != null) {
-            storage.farmlandBoxes.upsert(boxTag);
+        if (boxTag == null) {
+            return;
         }
+        write(level, "farmland_boxes:" + boxTag.getLong("BoxPos"), (storage, connection) -> storage.farmlandBoxes.upsert(connection, boxTag));
     }
 
     public static void deleteFarmlandBox(ServerLevel level, long boxPosLong) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null) {
-            storage.farmlandBoxes.delete(boxPosLong);
-        }
+        write(level, "farmland_boxes:" + boxPosLong, (storage, connection) -> storage.farmlandBoxes.delete(connection, boxPosLong));
     }
+
+    // ── 工业盒 ────────────────────────────────────────────────────────────────
 
     public static CompoundTag loadIndustrialBoxes(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
@@ -251,25 +356,24 @@ public final class SimuSqliteStorage {
     }
 
     public static void saveIndustrialBoxes(ServerLevel level, CompoundTag tag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && tag != null) {
-            storage.industrialBoxes.saveAll(tag);
+        if (tag == null) {
+            return;
         }
+        writeOrdered(level, (storage, connection) -> storage.industrialBoxes.saveAll(connection, tag));
     }
 
     public static void saveIndustrialBox(ServerLevel level, CompoundTag boxTag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && boxTag != null) {
-            storage.industrialBoxes.upsert(boxTag);
+        if (boxTag == null) {
+            return;
         }
+        write(level, "industrial_boxes:" + boxTag.getLong("BoxPos"), (storage, connection) -> storage.industrialBoxes.upsert(connection, boxTag));
     }
 
     public static void deleteIndustrialBox(ServerLevel level, long boxPosLong) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null) {
-            storage.industrialBoxes.delete(boxPosLong);
-        }
+        write(level, "industrial_boxes:" + boxPosLong, (storage, connection) -> storage.industrialBoxes.delete(connection, boxPosLong));
     }
+
+    // ── 商业 ──────────────────────────────────────────────────────────────────
 
     public static CompoundTag loadCommercialBoxes(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
@@ -277,24 +381,21 @@ public final class SimuSqliteStorage {
     }
 
     public static void saveCommercialBoxes(ServerLevel level, CompoundTag tag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && tag != null) {
-            storage.commercial.saveBoxes(tag);
+        if (tag == null) {
+            return;
         }
+        writeOrdered(level, (storage, connection) -> storage.commercial.saveBoxes(connection, tag));
     }
 
     public static void saveCommercialBox(ServerLevel level, CompoundTag boxTag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && boxTag != null) {
-            storage.commercial.upsertBox(boxTag);
+        if (boxTag == null) {
+            return;
         }
+        write(level, "commercial_boxes:" + boxTag.getLong("BoxPos"), (storage, connection) -> storage.commercial.upsertBox(connection, boxTag));
     }
 
     public static void deleteCommercialBox(ServerLevel level, long boxPosLong) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null) {
-            storage.commercial.deleteBox(boxPosLong);
-        }
+        write(level, "commercial_boxes:" + boxPosLong, (storage, connection) -> storage.commercial.deleteBox(connection, boxPosLong));
     }
 
     public static CompoundTag loadCommercialStock(ServerLevel level) {
@@ -303,30 +404,28 @@ public final class SimuSqliteStorage {
     }
 
     public static void saveCommercialStock(ServerLevel level, CompoundTag tag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && tag != null) {
-            storage.commercial.saveStock(tag);
+        if (tag == null) {
+            return;
         }
+        writeOrdered(level, (storage, connection) -> storage.commercial.saveStock(connection, tag));
     }
 
     public static void saveCommercialStockEntry(ServerLevel level, CompoundTag stockTag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && stockTag != null) {
-            storage.commercial.upsertStockEntry(stockTag);
+        if (stockTag == null) {
+            return;
         }
+        write(level, "commercial_stock:" + stockTag.getLong("BoxPos") + ":" + stockTag.getString("ItemId"),
+                (storage, connection) -> storage.commercial.upsertStockEntry(connection, stockTag));
     }
 
     public static void deleteCommercialStockAtBox(ServerLevel level, long boxPosLong) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null) {
-            storage.commercial.deleteStockAtBox(boxPosLong);
-        }
+        writeOrdered(level, (storage, connection) -> storage.commercial.deleteStockAtBox(connection, boxPosLong));
     }
 
     /** addCommercialDailyIncome: 写入指定城市当天的商业营业收入增量。 */
     public static boolean addCommercialDailyIncome(ServerLevel level, UUID cityId, long incomeDay, double amount) {
         SimuSqliteStorage storage = openSafely(level);
-        return storage != null && storage.commercial.addDailyIncome(cityId, incomeDay, amount);
+        return storage != null && !storage.database.isDegraded() && storage.commercial.addDailyIncome(cityId, incomeDay, amount);
     }
 
     /** loadUntaxedCommercialIncome: 读取指定日期前尚未结算企业税的商业收入。 */
@@ -338,30 +437,31 @@ public final class SimuSqliteStorage {
     /** markCommercialIncomeTaxCollected: 标记指定城市在日期前的企业税已结算。 */
     public static boolean markCommercialIncomeTaxCollected(ServerLevel level, UUID cityId, long dayExclusive) {
         SimuSqliteStorage storage = openSafely(level);
-        return storage != null && storage.commercial.markIncomeTaxCollectedBefore(cityId, dayExclusive);
+        return storage != null && !storage.database.isDegraded() && storage.commercial.markIncomeTaxCollectedBefore(cityId, dayExclusive);
     }
 
+    // ── 规划任务 ──────────────────────────────────────────────────────────────
+
     public static void savePlanningTask(ServerLevel level, common.cn.kafei.simukraft.planner.PlanningTaskData task) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && task != null) {
-            storage.planningTasks.upsert(task);
+        if (task == null || task.citizenId() == null) {
+            return;
         }
+        write(level, "planning_task:" + task.citizenId(), (storage, connection) -> storage.planningTasks.upsert(connection, task));
     }
 
     public static List<common.cn.kafei.simukraft.planner.PlanningTaskData> loadPlanningTasks(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
-        if (storage == null) {
-            return List.of();
-        }
-        return storage.planningTasks.findByDimension(level.dimension().location().toString());
+        return storage != null ? storage.planningTasks.findByDimension(dimensionId(level)) : List.of();
     }
 
     public static void deletePlanningTask(ServerLevel level, UUID citizenId) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && citizenId != null) {
-            storage.planningTasks.deleteByCitizen(citizenId);
+        if (citizenId == null) {
+            return;
         }
+        write(level, "planning_task:" + citizenId, (storage, connection) -> storage.planningTasks.deleteByCitizen(connection, citizenId));
     }
+
+    // ── 物流 ──────────────────────────────────────────────────────────────────
 
     public static CompoundTag loadLogistics(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
@@ -369,76 +469,81 @@ public final class SimuSqliteStorage {
     }
 
     public static void saveLogistics(ServerLevel level, CompoundTag tag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && tag != null) {
-            storage.logistics.saveDimension(tag, dimensionId(level));
+        if (tag == null) {
+            return;
         }
+        String dimensionId = dimensionId(level);
+        writeOrdered(level, (storage, connection) -> storage.logistics.saveDimension(connection, tag, dimensionId));
     }
 
     public static void saveLogisticsWarehouse(ServerLevel level, CompoundTag warehouseTag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && warehouseTag != null) {
-            storage.logistics.upsertWarehouse(warehouseTag);
+        if (warehouseTag == null || !warehouseTag.hasUUID("WarehouseId")) {
+            return;
         }
+        write(level, "logistics_warehouses:" + warehouseTag.getUUID("WarehouseId"),
+                (storage, connection) -> storage.logistics.upsertWarehouse(connection, warehouseTag));
     }
 
     public static void saveLogisticsClient(ServerLevel level, CompoundTag clientTag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && clientTag != null) {
-            storage.logistics.upsertClient(clientTag);
+        if (clientTag == null || !clientTag.hasUUID("ClientId")) {
+            return;
         }
+        write(level, "logistics_clients:" + clientTag.getUUID("ClientId"),
+                (storage, connection) -> storage.logistics.upsertClient(connection, clientTag));
     }
 
     public static void saveLogisticsChannel(ServerLevel level, CompoundTag channelTag) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && channelTag != null) {
-            storage.logistics.upsertChannel(channelTag);
+        if (channelTag == null || !channelTag.hasUUID("ChannelId")) {
+            return;
         }
+        write(level, "logistics_channels:" + channelTag.getUUID("ChannelId"),
+                (storage, connection) -> storage.logistics.upsertChannel(connection, channelTag));
     }
 
     public static void deleteLogisticsWarehouse(ServerLevel level, UUID warehouseId) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && warehouseId != null) {
-            storage.logistics.deleteWarehouse(warehouseId);
+        if (warehouseId == null) {
+            return;
         }
+        write(level, "logistics_warehouses:" + warehouseId, (storage, connection) -> storage.logistics.deleteWarehouse(connection, warehouseId));
     }
 
     public static void deleteLogisticsClient(ServerLevel level, UUID clientId) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && clientId != null) {
-            storage.logistics.deleteClient(clientId);
+        if (clientId == null) {
+            return;
         }
+        write(level, "logistics_clients:" + clientId, (storage, connection) -> storage.logistics.deleteClient(connection, clientId));
     }
 
     public static void deleteLogisticsChannel(ServerLevel level, UUID channelId) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && channelId != null) {
-            storage.logistics.deleteChannel(channelId);
+        if (channelId == null) {
+            return;
         }
+        write(level, "logistics_channels:" + channelId, (storage, connection) -> storage.logistics.deleteChannel(connection, channelId));
     }
 
-    private static String dimensionId(ServerLevel level) {
-        return level.dimension().location().toString();
-    }
+    // ── 家庭 ──────────────────────────────────────────────────────────────────
 
+    /** loadFamilies: 加载全部家庭；库不可用或加载失败返回 null（调用方据此举重试），空表返回空列表。 */
     public static java.util.List<common.cn.kafei.simukraft.citizen.family.FamilyData> loadFamilies(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
-        return storage != null ? storage.families.loadAll() : java.util.List.of();
+        return storage != null ? storage.families.loadAll() : null;
     }
 
     public static void saveFamily(ServerLevel level, common.cn.kafei.simukraft.citizen.family.FamilyData family) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && family != null) {
-            storage.families.upsert(family);
+        if (family == null || family.familyId() == null) {
+            return;
         }
+        write(level, "families:" + family.familyId(), (storage, connection) -> storage.families.upsert(connection, family));
     }
 
     public static void deleteFamily(ServerLevel level, UUID familyId) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && familyId != null) {
-            storage.families.delete(familyId);
+        if (familyId == null) {
+            return;
         }
+        write(level, "families:" + familyId, (storage, connection) -> storage.families.delete(connection, familyId));
     }
+
+    // ── 建筑废弃度 ────────────────────────────────────────────────────────────
 
     public static java.util.Map<UUID, int[]> loadBuildingAbandonment(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
@@ -446,11 +551,23 @@ public final class SimuSqliteStorage {
     }
 
     public static void saveBuildingAbandonment(ServerLevel level, UUID buildingId, UUID cityId, int index, long lastTickDay) {
-        SimuSqliteStorage storage = openSafely(level);
-        if (storage != null && buildingId != null) {
-            storage.buildingAbandonment.upsert(buildingId, cityId, index, lastTickDay);
+        if (buildingId == null) {
+            return;
         }
+        write(level, "building_abandonment:" + buildingId,
+                (storage, connection) -> storage.buildingAbandonment.upsert(connection, buildingId, cityId, index, lastTickDay));
     }
+
+    public static void deleteBuildingAbandonment(ServerLevel level, UUID buildingId) {
+        if (buildingId == null) {
+            return;
+        }
+        write(level, "building_abandonment:" + buildingId, (storage, connection) -> storage.buildingAbandonment.delete(connection, buildingId));
+    }
+
+    // ── 虚拟矿脉 ──────────────────────────────────────────────────────────────
+    // 这几个操作是"读-改-写"且需要返回结果（原子建档、原子扣减储量）：
+    // 仓储内部经 callSync 提交到写线程执行并阻塞等待，与队列中其他写入保持全序，主线程不再直接执行 SQL。
 
     /** findVirtualVeinField: 查询已经建立的虚拟矿区档案。 */
     public static Optional<VirtualVeinFieldProfile> findVirtualVeinField(ServerLevel level, VirtualVeinFieldKey key) {
@@ -461,19 +578,31 @@ public final class SimuSqliteStorage {
     /** createVirtualVeinFieldIfAbsent: 原子建立虚拟矿区档案。 */
     public static Optional<VirtualVeinFieldProfile> createVirtualVeinFieldIfAbsent(ServerLevel level, VirtualVeinFieldProfile profile) {
         SimuSqliteStorage storage = openSafely(level);
-        return storage != null && profile != null ? storage.virtualVeins.createIfAbsent(profile) : Optional.empty();
+        if (storage == null || profile == null || storage.database.isDegraded()) {
+            return Optional.empty();
+        }
+        return storage.virtualVeins.createIfAbsent(profile);
     }
 
     /** repairLegacyVirtualVeinField: 修复旧六项函数匹配逻辑误建的空矿区档案。 */
     public static Optional<VirtualVeinFieldProfile> repairLegacyVirtualVeinField(ServerLevel level, VirtualVeinFieldProfile profile) {
         SimuSqliteStorage storage = openSafely(level);
-        return storage != null && profile != null ? storage.virtualVeins.replaceLegacyEmptyProfile(profile) : Optional.empty();
+        if (storage == null || profile == null || storage.database.isDegraded()) {
+            return Optional.empty();
+        }
+        return storage.virtualVeins.replaceLegacyEmptyProfile(profile);
     }
 
     /** consumeVirtualVein: 原子扣减指定矿脉槽位的储量。 */
     public static Optional<VirtualVeinConsumption> consumeVirtualVein(ServerLevel level, VirtualVeinFieldKey key, int slotIndex, int amount) {
         SimuSqliteStorage storage = openSafely(level);
-        return storage != null && key != null ? storage.virtualVeins.consume(dimensionId(level), key, slotIndex, amount) : Optional.empty();
+        if (storage == null || key == null || storage.database.isDegraded()) {
+            return Optional.empty();
+        }
+        return storage.virtualVeins.consume(dimensionId(level), key, slotIndex, amount);
     }
 
+    private static String dimensionId(ServerLevel level) {
+        return level != null ? level.dimension().location().toString() : "minecraft:overworld";
+    }
 }

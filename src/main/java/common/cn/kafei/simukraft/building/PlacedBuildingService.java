@@ -1,5 +1,6 @@
 package common.cn.kafei.simukraft.building;
 
+import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.storage.BuildingStructureRepository;
 import common.cn.kafei.simukraft.storage.BuildingStructureSqliteDatabase;
 import common.cn.kafei.simukraft.citizen.CitizenHousingService;
@@ -40,8 +41,23 @@ public final class PlacedBuildingService {
             return;
         }
         String cacheKey = SaveScopedCacheKey.levelKey(level);
-        BuildingStructureRepository repository = new BuildingStructureRepository(BuildingStructureSqliteDatabase.open(level.getServer()));
-        repository.upsert(record);
+        BuildingStructureRepository repository = repository(level);
+        BuildingStructureRepository.WriteOutcome outcome = repository != null
+                ? repository.upsert(record)
+                : BuildingStructureRepository.WriteOutcome.STORAGE_UNAVAILABLE;
+        if (outcome == BuildingStructureRepository.WriteOutcome.FAILED) {
+            // 单条写入失败就不写内存缓存：宁可建筑立即表现为未登记，也不让内存与磁盘静默分叉、重启后消失。
+            SimuKraft.LOGGER.error("Placed building {} was not registered because its structure could not be persisted.", record.buildingId());
+            return;
+        }
+        if (outcome == BuildingStructureRepository.WriteOutcome.STORAGE_UNAVAILABLE) {
+            /*
+             * 整库降级/已关闭是整会话状态。此时照样登记进内存：降级的语义是"磁盘冻结、内存权威"，
+             * 若也当成失败作废，降级之后每一座建成的建筑都会彻底不生效（无 POI、无住房、无产线绑定），
+             * 玩家侧只能看到"造完什么都没发生"。代价是这些建筑重启后会丢，日志里必须写清楚。
+             */
+            SimuKraft.LOGGER.error("Placed building {} is registered in memory only: building structure storage is unavailable. It will be lost on restart.", record.buildingId());
+        }
         BY_DIMENSION.compute(cacheKey, (ignored, records) -> {
             List<PlacedBuildingRecord> mutable = new ArrayList<>(records != null ? records : List.of());
             mutable.removeIf(existing -> existing.buildingId().equals(record.buildingId()));
@@ -55,8 +71,21 @@ public final class PlacedBuildingService {
             return;
         }
         String cacheKey = SaveScopedCacheKey.levelKey(level);
-        BuildingStructureRepository repository = new BuildingStructureRepository(BuildingStructureSqliteDatabase.open(level.getServer()));
-        repository.delete(buildingId);
+        BuildingStructureRepository repository = repository(level);
+        BuildingStructureRepository.WriteOutcome outcome = repository != null
+                ? repository.delete(buildingId)
+                : BuildingStructureRepository.WriteOutcome.STORAGE_UNAVAILABLE;
+        if (outcome == BuildingStructureRepository.WriteOutcome.FAILED) {
+            // 单条删除失败则保留内存登记，与库内状态保持一致（重进档后建筑仍在），并留下可追踪日志。
+            SimuKraft.LOGGER.error("Placed building {} could not be removed from storage; keeping it registered to stay consistent with the database.", buildingId);
+            return;
+        }
+        if (outcome == BuildingStructureRepository.WriteOutcome.STORAGE_UNAVAILABLE) {
+            // 降级时磁盘冻结、内存跟随游戏世界：方块已经被拆了，内存里再留着登记会让 POI/住房指向不存在的建筑。
+            SimuKraft.LOGGER.error("Placed building {} is unregistered in memory only: building structure storage is unavailable. It will come back on restart.", buildingId);
+        }
+        // 建筑没了，废弃度记录也要清掉，否则同一 buildingId 的旧废弃度会一直留在库里。
+        BuildingAbandonmentService.forget(level, buildingId);
         BY_DIMENSION.computeIfPresent(cacheKey, (ignored, records) -> {
             List<PlacedBuildingRecord> mutable = new ArrayList<>(records);
             mutable.removeIf(existing -> existing.buildingId().equals(buildingId));
@@ -268,8 +297,17 @@ public final class PlacedBuildingService {
     }
 
     private static List<PlacedBuildingRecord> load(ServerLevel level, String dimensionId) {
-        BuildingStructureRepository repository = new BuildingStructureRepository(BuildingStructureSqliteDatabase.open(level.getServer()));
-        return repository.loadByDimension(dimensionId);
+        BuildingStructureRepository repository = repository(level);
+        return repository != null ? repository.loadByDimension(dimensionId) : List.of();
+    }
+
+    /**
+     * repository：BuildingStructureSqliteDatabase.open 按存档缓存实例，这里不再每次调用都新建数据库对象。
+     * <p>关服之后 open 返回 null（不再重建僵尸实例），此时返回 null，调用方按"存储不可用"处理。
+     */
+    private static BuildingStructureRepository repository(ServerLevel level) {
+        BuildingStructureSqliteDatabase database = BuildingStructureSqliteDatabase.open(level.getServer());
+        return database != null ? new BuildingStructureRepository(database) : null;
     }
 
     // 清理指定存档的建筑实例缓存，防止单人切换世界后复用旧存档数据。
@@ -278,6 +316,7 @@ public final class PlacedBuildingService {
         BY_DIMENSION.keySet().removeIf(key -> key.startsWith(serverKey + "|"));
         POI_REPAIRED_DIMENSIONS.removeIf(key -> key.startsWith(serverKey + "|"));
         BuildingAbandonmentService.clearCache(server);
+        BuildingStructureSqliteDatabase.closeFor(server);
     }
 
     private static boolean isInside(BlockPos pos, BlockPos min, BlockPos max) {

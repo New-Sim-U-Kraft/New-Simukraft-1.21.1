@@ -111,9 +111,8 @@ public final class BuilderConstructionService {
             return;
         }
         TaskRuntime removed = runtime(level).tasksByCitizen.remove(citizenId);
-        waitForPendingSave(removed);
         if (removed != null) NpcWorkChunkLoadService.release(level, removed.task.buildBoxPos());
-        IO_EXECUTOR.execute(() -> SimuSqliteStorage.deleteBuildingTask(level, citizenId));
+        SimuSqliteStorage.deleteBuildingTask(level, citizenId);
     }
 
     // hasActiveBuildTask：供职业外观判断建筑师是否需要播放施工动作。
@@ -147,16 +146,13 @@ public final class BuilderConstructionService {
         }
         TaskRuntime removed = runtime(level).tasksByCitizen.remove(citizenId);
         if (removed != null) {
-            waitForPendingSave(removed);
             NpcWorkChunkLoadService.release(level, removed.task.buildBoxPos());
             CitizenService.findCitizen(level, citizenId)
                     .filter(citizen -> !citizen.dead())
                     .ifPresent(citizen -> flushPendingBuilderXp(level, citizen, removed));
-        BuildingTaskData interrupted = removed.task.withStatus(BuildingTaskStatus.INTERRUPTED);
-            IO_EXECUTOR.execute(() -> {
-                SimuSqliteStorage.saveBuildingTask(level, interrupted);
-                SimuSqliteStorage.deleteBuildingTask(level, citizenId);
-            });
+            // 原来先写入 INTERRUPTED 状态再立刻删除同一行，落库结果只有"删除"，写入是无效动作。
+            // 直接在调用线程入队删除，顺序才和 persistTask 的写入可比。
+            SimuSqliteStorage.deleteBuildingTask(level, citizenId);
         }
         SimuKraft.LOGGER.info("Simukraft: Building task interrupted for {} ({})", citizenId, reason != null ? reason : "unknown");
     }
@@ -182,7 +178,6 @@ public final class BuilderConstructionService {
             return;
         }
         runtime.tasksByCitizen.values().forEach(taskRuntime -> {
-            waitForPendingSave(taskRuntime);
             CitizenService.findCitizen(level, taskRuntime.task.citizenId())
                     .filter(citizen -> !citizen.dead())
                     .ifPresent(citizen -> flushPendingBuilderXp(level, citizen, taskRuntime));
@@ -308,7 +303,7 @@ public final class BuilderConstructionService {
         taskRuntime.nextMaterialRetryTick = 0L;
         syncCitizenTaskState(level, citizen, taskRuntime, updated, cached);
         if (shouldPersist(taskRuntime, updated)) {
-            persistTaskAsync(level, taskRuntime, updated);
+            persistTask(level, taskRuntime, updated);
         }
         if (index >= cached.blocks().size()) {
             completeTask(level, citizen, runtime, taskRuntime, updated, cached);
@@ -352,8 +347,7 @@ public final class BuilderConstructionService {
         flushPendingBuilderXp(level, citizen, taskRuntime);
         NpcWorkChunkLoadService.release(level, task.buildBoxPos());
         runtime.tasksByCitizen.remove(citizen.uuid(), taskRuntime);
-        UUID citizenUuid = citizen.uuid();
-        IO_EXECUTOR.execute(() -> SimuSqliteStorage.deleteBuildingTask(level, citizenUuid));
+        SimuSqliteStorage.deleteBuildingTask(level, citizen.uuid());
         CitizenEmploymentService.clearAfterJobFinished(level, citizen.uuid());
         SimuKraft.LOGGER.info("Simukraft: Building completed by {} for {}", citizen.name(), task.displayName());
     }
@@ -384,7 +378,7 @@ public final class BuilderConstructionService {
                 restoreBuilderEmployment(level, resumed);
                 if (existing == null && restoredFromOfflinePause && !shouldRest(level)) {
                     taskRuntime.dirty = true;
-                    persistTaskAsync(level, taskRuntime, resumed);
+                    persistTask(level, taskRuntime, resumed);
                     CitizenService.findCitizen(level, resumed.citizenId())
                             .filter(citizen -> !citizen.dead())
                             .ifPresent(citizen -> {
@@ -411,10 +405,10 @@ public final class BuilderConstructionService {
 
     private static void flushDirtyTasks(ServerLevel level, LevelRuntime runtime) {
         runtime.tasksByCitizen.values().forEach(taskRuntime -> {
-            if (!taskRuntime.dirty || taskRuntime.saveInFlight) {
+            if (!taskRuntime.dirty) {
                 return;
             }
-            persistTaskAsync(level, taskRuntime, taskRuntime.task);
+            persistTask(level, taskRuntime, taskRuntime.task);
         });
     }
 
@@ -517,7 +511,7 @@ public final class BuilderConstructionService {
         citizen.setStatusLabel(statusLabel);
         citizen.setWorkNeedDetail("build:" + paused.taskId() + ":" + status.id());
         CitizenService.save(level, citizen.uuid());
-        persistTaskAsync(level, taskRuntime, paused);
+        persistTask(level, taskRuntime, paused);
     }
 
     private static BuildingTaskData resumeTask(ServerLevel level, CitizenData citizen, TaskRuntime taskRuntime) {
@@ -527,7 +521,7 @@ public final class BuilderConstructionService {
         taskRuntime.lastPhaseKey = "";
         citizen.setWorkStatus(CitizenWorkStatus.WORKING);
         CitizenService.save(level, citizen.uuid());
-        persistTaskAsync(level, taskRuntime, resumed);
+        persistTask(level, taskRuntime, resumed);
         CitizenWorkplaceMoveService.returnToWorkplace(level, citizen);
         return resumed;
     }
@@ -539,45 +533,18 @@ public final class BuilderConstructionService {
         return CitizenHomeRestService.isRestTime(level);
     }
 
-    private static void persistTaskAsync(ServerLevel level, TaskRuntime taskRuntime, BuildingTaskData snapshot) {
-        if (taskRuntime.saveInFlight) {
-            return;
-        }
-        taskRuntime.saveInFlight = true;
-        // 保存使用快照，防止 IO 线程读取到 taskRuntime 正在变化的中间状态。
-        CompletableFuture<Void> saveFuture = CompletableFuture.runAsync(() -> SimuSqliteStorage.saveBuildingTask(level, snapshot), IO_EXECUTOR);
-        taskRuntime.saveFuture = saveFuture;
-        saveFuture
-                .whenComplete((unused, throwable) -> {
-                    taskRuntime.saveInFlight = false;
-                    if (throwable != null) {
-                        SimuKraft.LOGGER.error("Simukraft: Failed to persist building task {}", snapshot.taskId(), throwable);
-                        return;
-                    }
-                    if (snapshot.equals(taskRuntime.task)) {
-                        taskRuntime.lastSavedIndex = snapshot.currentBlockIndex();
-                        taskRuntime.lastSavedAt = snapshot.updatedAt();
-                        taskRuntime.dirty = false;
-                    } else {
-                        taskRuntime.dirty = true;
-                        persistTaskAsync(level, taskRuntime, taskRuntime.task);
-                    }
-                });
-    }
-
-    private static void waitForPendingSave(TaskRuntime taskRuntime) {
-        if (taskRuntime == null) {
-            return;
-        }
-        CompletableFuture<Void> saveFuture = taskRuntime.saveFuture;
-        if (saveFuture == null || saveFuture.isDone()) {
-            return;
-        }
-        try {
-            saveFuture.join();
-        } catch (CompletionException exception) {
-            SimuKraft.LOGGER.error("Simukraft: Failed while waiting for pending building task save {}", taskRuntime.task.taskId(), exception);
-        }
+    /*
+     * 保存使用快照，防止落库的是 taskRuntime 正在变化的中间状态。
+     * 入队必须在调用线程完成：IO_EXECUTOR 是 2~4 线程的池，若把 save 和 delete 分别丢进池里，
+     * 它们到达写队列的先后顺序不确定，已完成建筑的任务行可能被一条迟到的 save 复活。
+     * SimuSqliteStorage.saveBuildingTask 只做"抓快照 + 入队"，不碰 JDBC，因此可以直接调用；
+     * "保存完成后发现快照已过期就再存一次" 也不再需要，写队列按行合并，后来的快照覆盖旧快照。
+     */
+    private static void persistTask(ServerLevel level, TaskRuntime taskRuntime, BuildingTaskData snapshot) {
+        SimuSqliteStorage.saveBuildingTask(level, snapshot);
+        taskRuntime.lastSavedIndex = snapshot.currentBlockIndex();
+        taskRuntime.lastSavedAt = snapshot.updatedAt();
+        taskRuntime.dirty = !snapshot.equals(taskRuntime.task);
     }
 
     private static void primeStructureLoad(BuildingTaskData task) {
@@ -709,7 +676,7 @@ public final class BuilderConstructionService {
         taskRuntime.nextMaterialRetryTick = level.getGameTime() + MATERIAL_RETRY_INTERVAL_TICKS;
         syncCitizenTaskState(level, citizen, taskRuntime, waitingTask, null);
         WorkMaterialNotificationService.notifyMissing(level, task.cityId(), task.taskId(), task.displayName(), citizen.name(), materialResult);
-        persistTaskAsync(level, taskRuntime, waitingTask);
+        persistTask(level, taskRuntime, waitingTask);
     }
 
     private static List<LayerRange> buildLayerRanges(List<BuildingBlockData> blocks) {
@@ -799,7 +766,7 @@ public final class BuilderConstructionService {
         taskRuntime.task = paused;
         taskRuntime.dirty = true;
         taskRuntime.lastPhaseKey = BuildingTaskStatus.PAUSED_RESTING.id();
-        persistTaskAsync(level, taskRuntime, paused);
+        persistTask(level, taskRuntime, paused);
     }
 
     private static boolean shouldRegisterMedicalBeds(String category,
@@ -928,8 +895,7 @@ public final class BuilderConstructionService {
         private volatile BuildingTaskData task;
         private final WorkMaterialCache materialCache;
         private volatile boolean dirty;
-        private volatile boolean saveInFlight;
-        private volatile CompletableFuture<Void> saveFuture = CompletableFuture.completedFuture(null);
+
         private volatile int lastSavedIndex;
         private volatile long lastSavedAt;
         private volatile String lastPhaseKey = "";
