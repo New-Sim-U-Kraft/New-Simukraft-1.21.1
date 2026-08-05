@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.LongAdder;
  * 失败条数、慢批次数、单批最大条数、是否降级。
  */
 public final class StorageMetrics {
-    /** 提交耗时超过该阈值的批次记为慢批并打告警日志。 */
+    /** 提交耗时达到该阈值的批次记为慢批并打告警日志。 */
     public static final long SLOW_BATCH_MILLIS = 200L;
 
     private final LongAdder submitted = new LongAdder();

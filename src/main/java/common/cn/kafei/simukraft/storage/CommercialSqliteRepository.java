@@ -23,7 +23,7 @@ public final class CommercialSqliteRepository {
     /**
      * saveBoxes: 把内存中的商业箱全部 upsert 进库。
      * <p>不再清空整表再重写：该表没有 dimension_id，而管理器是按维度的，
-     * 关服时逐维度保存会让每个维度都清空全表。删除只走 {@link #deleteBox(long)}。
+     * 关服时逐维度保存会让每个维度都清空全表。删除只走 {@link #deleteBox(Connection, long)}。
      */
     public void saveBoxes(Connection connection, CompoundTag tag) throws SQLException {
         ListTag boxes = tag.getList("Boxes", CompoundTag.TAG_COMPOUND);
@@ -77,8 +77,8 @@ public final class CommercialSqliteRepository {
 
     /**
      * saveStock: 把内存中的商业库存全部 upsert 进库。
-     * <p>不再清空整表再重写，理由同 {@link #saveBoxes(CompoundTag)}。
-     * 库存的删除只走 {@link #deleteStockAtBox(long)}。
+     * <p>不再清空整表再重写，理由同 {@link #saveBoxes(Connection, CompoundTag)}。
+     * 库存的删除只走 {@link #deleteStockAtBox(Connection, long)}。
      */
     public void saveStock(Connection connection, CompoundTag tag) throws SQLException {
         ListTag stock = tag.getList("Stock", CompoundTag.TAG_COMPOUND);

@@ -20,7 +20,7 @@ public final class CityPoiSqliteRepository {
     /**
      * saveAll: 把内存中的 POI 全部 upsert 进库。
      * <p>不再 "DELETE WHERE dimension_id" 再重写。旧实现在 POI 尚未加载完成（异步加载）时执行整表覆盖，
-     * 会把整个维度的 POI 清空。POI 的删除只走 {@link #deleteCity(java.util.UUID)}。
+     * 会把整个维度的 POI 清空。POI 的删除只走 {@link #delete} / {@link #deleteCity}。
      */
     public void saveAll(Connection connection, CompoundTag tag, String dimensionId) throws SQLException {
         ListTag pois = tag.getList("Pois", CompoundTag.TAG_COMPOUND);

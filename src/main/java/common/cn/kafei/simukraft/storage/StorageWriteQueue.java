@@ -59,6 +59,7 @@ public final class StorageWriteQueue {
      * 使落库顺序与最后一次提交顺序一致。
      *
      * @param key 合并键，需能唯一标识目标行（例如 {@code "citizens:<uuid>"}）
+     * @param write 落库 payload，须为不可变快照
      */
     public void submit(Object key, SqlWrite write) {
         if (key == null || write == null) {
@@ -108,6 +109,7 @@ public final class StorageWriteQueue {
      * 语句执行完时事务还没提交，此刻放行调用方会让紧随其后的读取（如 /simukraft reload 的读回）
      * 看到提交前的旧数据。
      *
+     * @param timeoutMillis 等待排空的最长毫秒数
      * @return true 表示已排空；false 表示超时
      */
     public boolean drain(long timeoutMillis) {

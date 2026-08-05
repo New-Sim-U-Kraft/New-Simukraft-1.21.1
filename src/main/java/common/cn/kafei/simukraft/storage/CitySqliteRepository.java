@@ -21,7 +21,7 @@ public final class CitySqliteRepository {
      * saveAll: 把内存中的城市全部 upsert 进库。
      * <p>刻意不做 "DELETE WHERE dimension_id" 再重写：内存快照可能因加载失败或加载未完成而不完整，
      * 一旦按它清库就会连带级联删掉 city_members / finance_transactions / commercial_daily_income。
-     * 城市的真正删除只走 {@link #delete(java.util.UUID)}。
+     * 城市的真正删除只走 {@link #delete(Connection, java.util.UUID)}。
      */
     public void saveAll(Connection connection, CompoundTag tag, String dimensionId) throws SQLException {
         ListTag cityTags = tag.getList("Cities", CompoundTag.TAG_COMPOUND);

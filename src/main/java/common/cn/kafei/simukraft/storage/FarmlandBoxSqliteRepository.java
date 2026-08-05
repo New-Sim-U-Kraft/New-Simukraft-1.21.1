@@ -24,7 +24,7 @@ public final class FarmlandBoxSqliteRepository {
     /**
      * saveAll: 把内存中的农田盒全部 upsert 进库。
      * <p>不再清空整表再重写：该表没有 dimension_id，而管理器是按维度的，
-     * 关服时逐维度保存会让每个维度都清空全表，最终只剩最后一个维度的数据。删除只走 {@link #delete(long)}。
+     * 关服时逐维度保存会让每个维度都清空全表，最终只剩最后一个维度的数据。删除只走 {@link #delete(Connection, long)}。
      */
     public void saveAll(Connection connection, CompoundTag tag) throws SQLException {
         ListTag boxes = tag.getList("Boxes", CompoundTag.TAG_COMPOUND);

@@ -27,7 +27,7 @@ public final class CitizenSqliteRepository {
      * saveAll: 把内存中的居民全部 upsert 进库。
      * <p>不再清空 citizens / citizen_skills 再重写。旧实现只有 "内存非空" 这一道保护，
      * 内存里若只剩部分居民（加载失败或只从 SavedData 兜底恢复了一部分），差集就会被当成"已删除"抹掉。
-     * 居民的删除只走 {@link #delete(java.util.UUID)}。
+     * 居民的删除只走 {@link #delete(Connection, java.util.UUID)}。
      */
     public void saveAll(Connection connection, CompoundTag tag) throws SQLException {
         ListTag citizens = tag.getList("Citizens", CompoundTag.TAG_COMPOUND);
