@@ -2,9 +2,11 @@ package common.cn.kafei.simukraft.job;
 
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.citizen.CitizenSelfFeedingService;
+import common.cn.kafei.simukraft.citizen.CitizenService;
 import common.cn.kafei.simukraft.citizen.CitizenTeleportService;
 import common.cn.kafei.simukraft.citizen.CitizenWorkStatus;
 import common.cn.kafei.simukraft.citizen.CitizenWorkplaceMoveService;
+import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
@@ -49,7 +51,9 @@ public final class CityJobMobilityService {
         }
         CitizenEntity citizenEntity = findCitizenEntity(level, citizenId);
         if (citizenEntity == null) {
-            SimuKraft.LOGGER.warn("Simukraft: sendToWorkplace - citizen {} entity not found, workplace {}", citizenId, workplacePos);
+            CitizenService.findCitizen(level, citizenId)
+                    .ifPresent(citizen -> CityRuntimeService.requestCitizenRecovery(level, citizen));
+            SimuKraft.LOGGER.debug("Simukraft: sendToWorkplace - queued recovery for citizen {} at workplace {}", citizenId, workplacePos);
             return;
         }
         Vec3 target = (jobType == CityJobType.COMMERCIAL_WORKER

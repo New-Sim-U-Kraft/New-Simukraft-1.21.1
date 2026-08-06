@@ -293,6 +293,7 @@ public final class CitizenManager extends SavedData {
         if (entity.level() instanceof ServerLevel level) {
             CitizenProfileGenerator.fillMissingProfile(data, level.random, level.getDayTime() / 24000L);
         }
+        recordEntityChunk(data, entity);
         syncEntityFromData(entity, data);
         return data;
     }
@@ -424,6 +425,17 @@ public final class CitizenManager extends SavedData {
             data.setHappiness(45.0D + level.random.nextDouble() * 20.0D);
         }
         return data;
+    }
+
+    /** recordEntityChunk：仅在居民跨区块时持久化恢复定位信息。 */
+    private void recordEntityChunk(CitizenData data, CitizenEntity entity) {
+        if (data == null || entity == null || !(entity.level() instanceof ServerLevel)) {
+            return;
+        }
+        if (data.updateLastKnownChunk(entity.chunkPosition())) {
+            saveCitizenIncremental(data);
+            markDirtySoon();
+        }
     }
 
     private void tickCitizenData(ServerLevel level, CitizenData data) {

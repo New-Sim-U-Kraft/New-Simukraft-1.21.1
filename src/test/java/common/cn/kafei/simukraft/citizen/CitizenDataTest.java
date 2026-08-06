@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import common.cn.kafei.simukraft.job.CityJobType;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.ChunkPos;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("null")
@@ -46,6 +47,18 @@ class CitizenDataTest {
         CitizenData loaded = CitizenData.fromTag(tag);
 
         assertFalse(loaded.toTag().contains("Hunger"));
+    }
+
+    @Test
+    void lastKnownChunkRoundTripsForRecoveryAfterChunkUnload() {
+        CitizenData data = new CitizenData(UUID.randomUUID());
+        ChunkPos lastChunk = new ChunkPos(-17, 42);
+
+        assertTrue(data.updateLastKnownChunk(lastChunk));
+
+        CitizenData loaded = CitizenData.fromTag(data.toTag());
+        assertEquals(lastChunk, loaded.lastKnownChunk().orElseThrow());
+        assertFalse(loaded.updateLastKnownChunk(lastChunk));
     }
 
     @Test

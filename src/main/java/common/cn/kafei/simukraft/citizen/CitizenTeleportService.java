@@ -1,7 +1,6 @@
 package common.cn.kafei.simukraft.citizen;
 
 import common.cn.kafei.simukraft.entity.CitizenEntity;
-import common.cn.kafei.simukraft.registry.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -49,10 +48,13 @@ public final class CitizenTeleportService {
         spawnTeleportParticles(level, citizenEntity.position(), citizenEntity.getRandom());
         citizenEntity.teleportTo(landing.x, landing.y, landing.z);
         spawnTeleportParticles(level, citizenEntity.position(), citizenEntity.getRandom());
-        return true;
+        return reachedLanding(citizenEntity, landing);
     }
 
-    public static boolean teleportOrSpawnCitizen(ServerLevel level, CitizenData data, Vec3 target) {
+    /**
+     * teleportLoadedCitizen：仅移动已经由世界加载的既有居民，禁止按已有 UUID 补生成实体。
+     */
+    public static boolean teleportLoadedCitizen(ServerLevel level, CitizenData data, Vec3 target) {
         if (level == null || data == null || target == null) {
             return false;
         }
@@ -66,32 +68,20 @@ public final class CitizenTeleportService {
         if (landing == null) {
             return false;
         }
-        // 先合并已加载的同 UUID 实体；找不到时才按居民数据补生成实体。
+        // 只合并当前已加载的同 UUID 实体；找不到时保留世界中的原实体，等待其区块重新加载。
         CitizenEntity citizenEntity = reconcileLoadedCitizenEntities(level, data.uuid(), landing);
         if (citizenEntity != null && citizenEntity.isSleeping()) {
             return false;
         }
         if (citizenEntity == null) {
-            citizenEntity = ModEntities.CITIZEN.get().create(level);
-            if (citizenEntity == null) {
-                return false;
-            }
-            citizenEntity.setUUID(data.uuid());
-            citizenEntity.setPersistenceRequired();
-            citizenEntity.moveTo(landing.x, landing.y, landing.z, level.random.nextFloat() * 360.0F, 0.0F);
-            if (level.getEntity(data.uuid()) instanceof CitizenEntity existing && !existing.isRemoved()) {
-                citizenEntity = existing;
-            } else if (level.getEntity(data.uuid()) == null) {
-                level.addFreshEntity(citizenEntity);
-            }
-            CitizenManager.get(level).syncEntity(citizenEntity);
+            return false;
         }
         citizenEntity.getNavigation().stop();
         citizenEntity.setDeltaMovement(Vec3.ZERO);
         spawnTeleportParticles(level, citizenEntity.position(), citizenEntity.getRandom());
         citizenEntity.teleportTo(landing.x, landing.y, landing.z);
         spawnTeleportParticles(level, citizenEntity.position(), citizenEntity.getRandom());
-        return true;
+        return reachedLanding(citizenEntity, landing);
     }
 
     // teleportCitizenToNearbySafePosition：NPC 卡进方块时，搜索半径 2 内最近的安全脚底点并救出。
@@ -116,6 +106,15 @@ public final class CitizenTeleportService {
 
     public static CitizenEntity findCitizenEntity(ServerLevel level, UUID citizenId) {
         return findLoadedCitizenEntity(level, citizenId);
+    }
+
+    /** refreshClientTracking：跨已卸载区块恢复并传送后，重建服务器实体追踪器以同步客户端生成包。 */
+    public static void refreshClientTracking(ServerLevel level, CitizenEntity citizenEntity) {
+        if (level == null || citizenEntity == null || citizenEntity.isRemoved()) {
+            return;
+        }
+        level.getChunkSource().removeEntity(citizenEntity);
+        level.getChunkSource().addEntity(citizenEntity);
     }
 
     /**
@@ -175,6 +174,9 @@ public final class CitizenTeleportService {
             for (int xOffset = -1; xOffset <= 1; xOffset++) {
                 for (int zOffset = -1; zOffset <= 1; zOffset++) {
                     BlockPos candidate = anchor.offset(xOffset, yOffset, zOffset);
+                    if (!level.isLoaded(candidate)) {
+                        continue;
+                    }
                     Vec3 landing = safeLandingPosition(level, candidate);
                     if (landing == null) {
                         continue;
@@ -240,7 +242,8 @@ public final class CitizenTeleportService {
     }
 
     private static Vec3 safeLandingPosition(ServerLevel level, BlockPos pos) {
-        if (level == null || pos == null || level.isOutsideBuildHeight(pos) || level.isOutsideBuildHeight(pos.above()) || level.isOutsideBuildHeight(pos.below())) {
+        if (level == null || pos == null || !level.isLoaded(pos)
+                || level.isOutsideBuildHeight(pos) || level.isOutsideBuildHeight(pos.above()) || level.isOutsideBuildHeight(pos.below())) {
             return null;
         }
         BlockState floor = level.getBlockState(pos.below());
@@ -264,6 +267,11 @@ public final class CitizenTeleportService {
                 && body.getFluidState().isEmpty()
                 && head.getFluidState().isEmpty();
         return safe ? Vec3.atBottomCenterOf(pos) : null;
+    }
+
+    /** reachedLanding：验证服务端实体位置已实际写入传送安全落点。 */
+    private static boolean reachedLanding(CitizenEntity citizenEntity, Vec3 landing) {
+        return citizenEntity != null && landing != null && citizenEntity.position().distanceToSqr(landing) <= 0.0625D;
     }
 
     // lowStandY：识别半砖、地毯等低矮碰撞面作为实际脚底高度。

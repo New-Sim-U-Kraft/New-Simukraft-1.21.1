@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.citizen;
 
 import common.cn.kafei.simukraft.city.CityData;
+import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.city.CityService;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import net.minecraft.server.level.ServerLevel;
@@ -30,6 +31,9 @@ public final class PopulationGrowthService {
         for (CityData city : CityService.allCities(level)) {
             if (spawned >= maxPerInterval) {
                 break;
+            }
+            if (!CityRuntimeService.isCityActive(level, city.cityId())) {
+                continue;
             }
             CitizenHousingService.fillVacantHomes(level, city.cityId());
             spawned += CitizenHousingService.spawnCitizensForVacantHomes(level, city.cityId(), city.cityCorePos().above(), maxPerInterval - spawned);

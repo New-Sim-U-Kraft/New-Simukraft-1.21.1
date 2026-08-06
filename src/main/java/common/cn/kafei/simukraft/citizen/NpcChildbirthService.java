@@ -9,6 +9,7 @@ import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
+import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.building.MedicalBedPoiService;
 import net.minecraft.core.BlockPos;
@@ -35,6 +36,7 @@ public final class NpcChildbirthService {
 
             CitizenData wife = manager.getCitizen(family.wifeId()).orElse(null);
             if (wife == null || wife.dead() || !wife.pregnant()) continue;
+            if (!CityRuntimeService.isCitizenActive(level, wife)) continue;
             if (currentDay < wife.pregnantSince() + duration) continue;
 
             giveBirth(level, manager, familyManager, family, wife, random, currentDay);
@@ -101,7 +103,7 @@ public final class NpcChildbirthService {
         UUID medicalBedId = wife.medical().medicalBedPoiId();
         if (medicalBedId != null) {
             CityPoiData medicalBed = CityPoiManager.get(level).getPoi(medicalBedId);
-            if (medicalBed != null && medicalBed.active()
+            if (medicalBed != null && medicalBed.active() && level.isLoaded(medicalBed.pos())
                     && MedicalBedPoiService.isWhiteBedHead(level.getBlockState(medicalBed.pos()))) {
                 return medicalBed.pos();
             }
@@ -109,7 +111,7 @@ public final class NpcChildbirthService {
         UUID homeId = wife.homeId();
         if (homeId == null) return null;
         CityPoiData poi = CityPoiManager.get(level).getPoi(homeId);
-        return poi != null ? poi.pos() : null;
+        return poi != null && level.isLoaded(poi.pos()) ? poi.pos() : null;
     }
 
     private static UUID findVacantBedInSameBuilding(ServerLevel level, CitizenData wife) {

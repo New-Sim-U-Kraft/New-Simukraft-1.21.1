@@ -1,8 +1,10 @@
 package common.cn.kafei.simukraft.citizen;
 
 import common.cn.kafei.simukraft.building.BuilderConstructionService;
+import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
+import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.industrial.IndustrialControlBoxService;
 import common.cn.kafei.simukraft.job.CityJobType;
@@ -32,13 +34,26 @@ public final class CitizenWorkplaceMoveService {
 
     // returnToWorkplace：让市民恢复上班时优先走寻路，失败或距离过远时由传送兜底。
     public static boolean returnToWorkplace(ServerLevel level, CitizenData citizen) {
+        return moveToWorkplace(level, citizen, false);
+    }
+
+    /** recoverToWorkplace：实体从强加载来源区块恢复后，强制完成一次岗位复位。 */
+    public static boolean recoverToWorkplace(ServerLevel level, CitizenData citizen) {
+        return moveToWorkplace(level, citizen, true);
+    }
+
+    private static boolean moveToWorkplace(ServerLevel level, CitizenData citizen, boolean recoveringFromUnloadedChunk) {
         if (level == null || citizen == null || citizen.dead() || citizen.workplaceId() == null || citizen.jobType() == CityJobType.UNEMPLOYED) {
             return false;
         }
         if (CitizenSelfFeedingService.isSelfFeeding(level, citizen.uuid())) {
             return false;
         }
-        if (citizen.jobType() == CityJobType.INDUSTRIAL_WORKER && IndustrialControlBoxService.isRunningAssignedWorker(level, citizen)) {
+        if (!CityRuntimeService.isCitizenActive(level, citizen)) {
+            return false;
+        }
+        if (!recoveringFromUnloadedChunk && citizen.jobType() == CityJobType.INDUSTRIAL_WORKER
+                && IndustrialControlBoxService.isRunningAssignedWorker(level, citizen)) {
             return true;
         }
         Optional<Vec3> targetOptional = resolveWorkplaceTarget(level, citizen);
@@ -47,14 +62,31 @@ public final class CitizenWorkplaceMoveService {
         }
         Vec3 target = targetOptional.get();
         CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
+        if (entity == null) {
+            CityRuntimeService.requestCitizenRecovery(level, citizen);
+            return false;
+        }
         if (entity != null && entity.position().distanceToSqr(target) <= ARRIVED_DISTANCE_SQR) {
             return true;
         }
         CitizenNavigationService.stop(level, citizen.uuid());
-        if (entity != null && CitizenNavigationService.requestMove(level, citizen.uuid(), target, MovementIntent.WORK)) {
+        double farMovementDistance = ServerConfig.pathFarMovementTeleportDistance();
+        if (recoveringFromUnloadedChunk && entity.position().distanceToSqr(target)
+                >= farMovementDistance * farMovementDistance) {
+            Vec3 source = entity.position();
+            boolean teleported = CitizenTeleportService.teleportLoadedCitizen(level, citizen, target);
+            if (teleported) {
+                CitizenTeleportService.refreshClientTracking(level, entity);
+            }
+            common.cn.kafei.simukraft.SimuKraft.LOGGER.debug(
+                    "Simukraft: recovery workplace teleport citizen {} result={} source={} target={} final={}",
+                    citizen.uuid(), teleported, source, target, entity.position());
+            return teleported;
+        }
+        if (CitizenNavigationService.requestMove(level, citizen.uuid(), target, MovementIntent.WORK)) {
             return true;
         }
-        return CitizenTeleportService.teleportOrSpawnCitizen(level, citizen, target);
+        return CitizenTeleportService.teleportLoadedCitizen(level, citizen, target);
     }
 
     // resolveWorkplaceTarget：解析普通城市 POI 或建筑师当前施工控制盒的岗位落点。

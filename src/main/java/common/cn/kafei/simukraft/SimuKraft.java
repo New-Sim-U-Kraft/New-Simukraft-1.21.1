@@ -12,6 +12,7 @@ import common.cn.kafei.simukraft.citizen.CitizenTeleportService;
 import common.cn.kafei.simukraft.citizen.PopulationGrowthService;
 import common.cn.kafei.simukraft.city.CityChunkManager;
 import common.cn.kafei.simukraft.city.CityManager;
+import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.city.CityPermissionInviteService;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.building.BuildingCatalog;
@@ -243,6 +244,8 @@ public final class SimuKraft {
     }
 
     private void onServerTick(ServerTickEvent.Post event) {
+        // 先刷新城市运行状态，保证本 tick 的居民和医疗调度使用最新的激活结果。
+        event.getServer().getAllLevels().forEach(CityRuntimeService::tick);
         // CitizenManager 数据挂主世界，tick 只需对 overworld 执行一次，避免 N-1 次无效调用。
         ServerLevel overworld = event.getServer().overworld();
         CitizenManager.get(overworld).tick(overworld);
@@ -291,6 +294,7 @@ public final class SimuKraft {
         LogisticsWorkService.clearServerCaches(event.getServer());
         LogisticsAutoClientService.clearServerCaches(event.getServer());
         FarmlandFarmingService.clearServerCaches(event.getServer());
+        CityRuntimeService.clearServerCaches(event.getServer());
         PlacedBuildingService.clearServerCaches(event.getServer());
         ResidentialBedPoiService.clearServerCaches(event.getServer());
         MedicalBedPoiService.clearServerCaches(event.getServer());

@@ -29,7 +29,7 @@ public final class CitizenBedSleepService {
 
     /** tryStartSleeping：验证床空闲后调用 entity.startSleeping，记录占用和唤醒位置。 */
     public static boolean tryStartSleeping(ServerLevel level, CitizenEntity entity, BlockPos bedHeadPos, Vec3 wakeupPos) {
-        if (entity.isSleeping()) return false;
+        if (level == null || entity == null || bedHeadPos == null || !level.isLoaded(bedHeadPos) || entity.isSleeping()) return false;
         BlockState state = level.getBlockState(bedHeadPos);
         if (!isSupportedBed(state)) return false;
         if (state.hasProperty(BlockStateProperties.OCCUPIED) && state.getValue(BlockStateProperties.OCCUPIED)) return false;
@@ -53,7 +53,7 @@ public final class CitizenBedSleepService {
             return false;
         }
         BlockPos bedHeadPos = entity.getSleepingPos().orElse(null);
-        if (bedHeadPos == null || !isSupportedBed(level.getBlockState(bedHeadPos))) {
+        if (bedHeadPos == null || !level.isLoaded(bedHeadPos) || !isSupportedBed(level.getBlockState(bedHeadPos))) {
             return false;
         }
         String levelKey = SaveScopedCacheKey.levelKey(level);
@@ -89,6 +89,9 @@ public final class CitizenBedSleepService {
 
     /** release：清理占用记录并还原床的 OCCUPIED block state（未加载实体时使用）。 */
     public static void release(ServerLevel level, UUID uuid) {
+        if (level == null || uuid == null) {
+            return;
+        }
         String levelKey = SaveScopedCacheKey.levelKey(level);
         ConcurrentMap<UUID, BlockPos> citizenBed = CITIZEN_BED.get(levelKey);
         if (citizenBed != null) {
@@ -96,9 +99,11 @@ public final class CitizenBedSleepService {
             if (bedPos != null) {
                 ConcurrentMap<BlockPos, UUID> beds = OCCUPIED_BEDS.get(levelKey);
                 if (beds != null) beds.remove(bedPos, uuid);
-                BlockState state = level.getBlockState(bedPos);
-                if (isSupportedBed(state) && state.hasProperty(BlockStateProperties.OCCUPIED)) {
-                    level.setBlock(bedPos, state.setValue(BlockStateProperties.OCCUPIED, false), 3);
+                if (level.isLoaded(bedPos)) {
+                    BlockState state = level.getBlockState(bedPos);
+                    if (isSupportedBed(state) && state.hasProperty(BlockStateProperties.OCCUPIED)) {
+                        level.setBlock(bedPos, state.setValue(BlockStateProperties.OCCUPIED, false), 3);
+                    }
                 }
             }
         }

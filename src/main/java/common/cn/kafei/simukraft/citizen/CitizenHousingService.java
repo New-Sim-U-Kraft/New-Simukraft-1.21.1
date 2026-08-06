@@ -3,6 +3,7 @@ package common.cn.kafei.simukraft.citizen;
 import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
+import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.city.group.CityGroupMessageService;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
@@ -69,6 +70,9 @@ public final class CitizenHousingService {
 
     public static int spawnCitizensForVacantHomes(ServerLevel level, UUID cityId, BlockPos spawnPos, int maxSpawns) {
         if (level == null || cityId == null || spawnPos == null || maxSpawns <= 0) {
+            return 0;
+        }
+        if (!CityRuntimeService.isCityActive(level, cityId)) {
             return 0;
         }
         CityPoiManager spawnPoiManager = CityPoiManager.get(level);
@@ -288,7 +292,7 @@ public final class CitizenHousingService {
     }
 
     private static Vec3 resolveNewResidentSpawnTarget(ServerLevel level, CityPoiData home, BlockPos fallbackPos) {
-        if (home != null) {
+        if (home != null && level.isLoaded(home.pos())) {
             Vec3 homeTarget = CitizenHomeRestService.resolveHomeTarget(level, home.pos());
             if (homeTarget != null) {
                 return homeTarget;

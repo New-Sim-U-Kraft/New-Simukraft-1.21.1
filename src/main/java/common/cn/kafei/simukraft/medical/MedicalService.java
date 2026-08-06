@@ -15,6 +15,7 @@ import common.cn.kafei.simukraft.citizen.PregnancyStage;
 import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
+import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
@@ -168,6 +169,7 @@ public final class MedicalService {
         List<CitizenData> citizens = CitizenManager.get(level).allCitizens().stream()
                 .filter(citizen -> level.dimension().location().toString().equals(citizen.dimensionId()))
                 .filter(citizen -> !citizen.dead())
+                .filter(citizen -> CityRuntimeService.isCitizenActive(level, citizen))
                 .sorted(Comparator.comparing(citizen -> citizen.uuid().toString()))
                 .toList();
         Set<UUID> occupiedBeds = ConcurrentHashMap.newKeySet();
@@ -178,7 +180,15 @@ public final class MedicalService {
                 continue;
             }
             Hospital hospital = hospitalByBed.get(bedId);
-            if (hospital == null || !occupiedBeds.add(bedId)) {
+            if (hospital == null) {
+                CityPoiData assignedBed = CityPoiManager.get(level).getPoi(bedId);
+                if (assignedBed != null && !level.isLoaded(assignedBed.pos())) {
+                    continue;
+                }
+                discharge(level, citizen);
+                continue;
+            }
+            if (!occupiedBeds.add(bedId)) {
                 discharge(level, citizen);
                 continue;
             }
@@ -222,17 +232,19 @@ public final class MedicalService {
         List<Hospital> hospitals = new ArrayList<>();
         CityPoiManager poiManager = CityPoiManager.get(level);
         for (PlacedBuildingRecord building : PlacedBuildingService.getBuildings(level)) {
-            if (building.cityId() == null) {
+            if (building.cityId() == null || !CityRuntimeService.isCityActive(level, building.cityId())) {
                 continue;
             }
             BlockPos boxPos = MedicalControlBoxService.resolveControlBoxPos(level, building);
-            if (!MedicalControlBoxService.isOperational(level, building, boxPos)) {
+            if (boxPos == null || !level.isLoaded(boxPos)
+                    || !MedicalControlBoxService.isOperational(level, building, boxPos)) {
                 continue;
             }
             List<CityPoiData> beds = building.poiInstances().stream()
                     .filter(instance -> instance.poiType() == CityPoiType.MEDICAL)
                     .map(instance -> poiManager.getPoiAt(instance.worldPos()))
-                    .filter(poi -> poi != null && poi.active() && MedicalBedPoiService.isWhiteBedHead(level.getBlockState(poi.pos())))
+                    .filter(poi -> poi != null && poi.active() && level.isLoaded(poi.pos())
+                            && MedicalBedPoiService.isWhiteBedHead(level.getBlockState(poi.pos())))
                     .toList();
             if (beds.isEmpty()) {
                 continue;
@@ -284,10 +296,13 @@ public final class MedicalService {
     }
 
     private static void processAdmittedPatient(ServerLevel level, CitizenData citizen, CityPoiData bed, long currentDay) {
+        if (!level.isLoaded(bed.pos())) {
+            return;
+        }
         CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
         Vec3 target = CitizenHomeRestService.resolveHomeTarget(level, bed.pos());
         if (entity == null) {
-            CitizenTeleportService.teleportOrSpawnCitizen(level, citizen, target);
+            CityRuntimeService.requestCitizenRecovery(level, citizen);
             return;
         }
         if (!entity.isSleeping()) {
@@ -344,10 +359,14 @@ public final class MedicalService {
     private static void navigateHomeForMedicalLeave(ServerLevel level, CitizenData citizen) {
         if (citizen.homeId() == null) return;
         CityPoiData home = CityPoiManager.get(level).getPoi(citizen.homeId());
-        if (home == null || !home.active() || home.type() != CityPoiType.RESIDENTIAL) return;
+        if (home == null || !home.active() || home.type() != CityPoiType.RESIDENTIAL || !level.isLoaded(home.pos())) return;
         Vec3 homeTarget = CitizenHomeRestService.resolveHomeTarget(level, home.pos());
+        if (CitizenTeleportService.findCitizenEntity(level, citizen.uuid()) == null) {
+            CityRuntimeService.requestCitizenRecovery(level, citizen);
+            return;
+        }
         if (!CitizenNavigationService.requestMove(level, citizen.uuid(), homeTarget, MovementIntent.RETURN_HOME)) {
-            CitizenTeleportService.teleportOrSpawnCitizen(level, citizen, homeTarget);
+            CitizenTeleportService.teleportLoadedCitizen(level, citizen, homeTarget);
         }
     }
 

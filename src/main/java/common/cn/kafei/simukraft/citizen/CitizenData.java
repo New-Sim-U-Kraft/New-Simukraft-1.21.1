@@ -5,8 +5,10 @@ import common.cn.kafei.simukraft.medical.DiseaseType;
 import common.cn.kafei.simukraft.medical.MedicalPatientData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.ChunkPos;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -40,6 +42,7 @@ public final class CitizenData {
     private long bornDay;
     private long deathDay;
     private String dimensionId;
+    private long lastKnownChunk = Long.MIN_VALUE;
     private final ConcurrentMap<String, Integer> skills = new ConcurrentHashMap<>();
     private UUID familyId;
     private UUID originFamilyId;
@@ -101,6 +104,7 @@ public final class CitizenData {
         data.dead = tag.getBoolean("Dead");
         data.deathDay = tag.getLong("DeathDay");
         data.dimensionId = tag.contains("DimensionId") ? tag.getString("DimensionId") : "minecraft:overworld";
+        data.lastKnownChunk = tag.contains("LastKnownChunk") ? tag.getLong("LastKnownChunk") : Long.MIN_VALUE;
         data.familyId = tag.hasUUID("FamilyId") ? tag.getUUID("FamilyId") : null;
         data.originFamilyId = tag.hasUUID("OriginFamilyId") ? tag.getUUID("OriginFamilyId") : null;
         data.pregnant = tag.getBoolean("Pregnant");
@@ -153,6 +157,7 @@ public final class CitizenData {
         tag.putBoolean("Dead", dead);
         tag.putLong("DeathDay", deathDay);
         tag.putString("DimensionId", dimensionId);
+        if (lastKnownChunk != Long.MIN_VALUE) tag.putLong("LastKnownChunk", lastKnownChunk);
         if (familyId != null) tag.putUUID("FamilyId", familyId);
         if (originFamilyId != null) tag.putUUID("OriginFamilyId", originFamilyId);
         tag.putBoolean("Pregnant", pregnant);
@@ -448,6 +453,20 @@ public final class CitizenData {
 
     public void setDimensionId(String dimensionId) {
         this.dimensionId = (dimensionId != null && !dimensionId.isBlank()) ? dimensionId : "minecraft:overworld";
+    }
+
+    /** lastKnownChunk：返回居民最后一次由服务端确认的实体区块。 */
+    public Optional<ChunkPos> lastKnownChunk() {
+        return lastKnownChunk != Long.MIN_VALUE ? Optional.of(new ChunkPos(lastKnownChunk)) : Optional.empty();
+    }
+
+    /** updateLastKnownChunk：实体跨区块时更新恢复定位信息。 */
+    public boolean updateLastKnownChunk(ChunkPos chunkPos) {
+        if (chunkPos == null || lastKnownChunk == chunkPos.toLong()) {
+            return false;
+        }
+        lastKnownChunk = chunkPos.toLong();
+        return true;
     }
 
     // markDead：保留市民档案，但让其退出人口、岗位和 AI 调度。

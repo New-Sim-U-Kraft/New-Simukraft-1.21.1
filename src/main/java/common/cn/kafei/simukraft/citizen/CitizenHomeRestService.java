@@ -3,6 +3,7 @@ package common.cn.kafei.simukraft.citizen;
 import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
+import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.job.CityJobType;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
@@ -80,11 +81,14 @@ public final class CitizenHomeRestService {
             if (!dimensionId.equals(citizen.dimensionId())) {
                 continue;
             }
+            if (!CityRuntimeService.isCitizenActive(level, citizen)) {
+                continue;
+            }
             if (citizen.homeId() == null) {
                 continue;
             }
             CityPoiData home = poiManager.getPoi(citizen.homeId());
-            if (home == null || !home.active() || home.type() != CityPoiType.RESIDENTIAL) {
+            if (home == null || !home.active() || home.type() != CityPoiType.RESIDENTIAL || !level.isLoaded(home.pos())) {
                 continue;
             }
             Vec3 homeTarget = homeTargets.computeIfAbsent(home.poiId(), ignored -> resolveHomeTarget(level, home.pos()));
@@ -123,6 +127,7 @@ public final class CitizenHomeRestService {
         String dimensionId = level.dimension().location().toString();
         for (CitizenData citizen : CitizenManager.get(level).allCitizens()) {
             if (citizen.dead() || !dimensionId.equals(citizen.dimensionId())
+                    || !CityRuntimeService.isCitizenActive(level, citizen)
                     || citizen.workplaceId() == null
                     || citizen.jobType() == CityJobType.UNEMPLOYED
                     || citizen.workStatusType() != CitizenWorkStatus.WORKING) continue;
@@ -133,10 +138,14 @@ public final class CitizenHomeRestService {
 
     private static boolean moveOrTeleportHome(ServerLevel level, CitizenData citizen, Vec3 homeTarget) {
         CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
-        if (entity != null && CitizenNavigationService.requestMove(level, citizen.uuid(), homeTarget, MovementIntent.RETURN_HOME)) {
+        if (entity == null) {
+            CityRuntimeService.requestCitizenRecovery(level, citizen);
+            return false;
+        }
+        if (CitizenNavigationService.requestMove(level, citizen.uuid(), homeTarget, MovementIntent.RETURN_HOME)) {
             return true;
         }
-        return CitizenTeleportService.teleportOrSpawnCitizen(level, citizen, homeTarget);
+        return CitizenTeleportService.teleportLoadedCitizen(level, citizen, homeTarget);
     }
 
     private static void restoreHomeRestingCitizens(ServerLevel level) {
@@ -147,6 +156,9 @@ public final class CitizenHomeRestService {
                 continue;
             }
             if (!dimensionId.equals(citizen.dimensionId())) {
+                continue;
+            }
+            if (!CityRuntimeService.isCitizenActive(level, citizen)) {
                 continue;
             }
             if (!HOME_REST_MARKER.equals(citizen.workNeedDetail())) {

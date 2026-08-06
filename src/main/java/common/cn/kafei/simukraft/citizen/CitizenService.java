@@ -237,6 +237,9 @@ public final class CitizenService {
         if (level == null || target == null || cityId == null) {
             return Optional.empty();
         }
+        if (!level.isLoaded(BlockPos.containing(target))) {
+            return Optional.empty();
+        }
         if (!ignoreHousingCapacity && !canAddCitizen(level, cityId)) {
             return Optional.empty();
         }
@@ -246,6 +249,9 @@ public final class CitizenService {
         }
         entity.moveTo(target.x, target.y, target.z, level.random.nextFloat() * 360.0F, 0.0F);
         entity.setPersistenceRequired();
+        if (!level.addFreshEntity(entity)) {
+            return Optional.empty();
+        }
         CitizenData data = ensureCitizen(level, entity);
         if (data != null) {
             data.setCityId(cityId);
@@ -255,7 +261,6 @@ public final class CitizenService {
             manager.syncEntity(entity);
             manager.markChanged();
         }
-        level.addFreshEntity(entity);
         return Optional.of(entity);
     }
 }
