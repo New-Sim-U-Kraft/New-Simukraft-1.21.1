@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.saveddata.SavedData;
 
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
@@ -190,7 +191,7 @@ public final class CityChunkManager extends SavedData {
         return true;
     }
 
-    public boolean isAdjacentToCity(UUID cityId, long chunkLong) {
+    public synchronized boolean isAdjacentToCity(UUID cityId, long chunkLong) {
         Set<Long> chunks = cityChunks.get(cityId);
         if (chunks == null || chunks.isEmpty()) {
             return false;
@@ -201,6 +202,79 @@ public final class CityChunkManager extends SavedData {
                 || chunks.contains(ChunkPos.asLong(chunkPos.x - 1, chunkPos.z))
                 || chunks.contains(ChunkPos.asLong(chunkPos.x, chunkPos.z + 1))
                 || chunks.contains(ChunkPos.asLong(chunkPos.x, chunkPos.z - 1));
+    }
+
+    /** isConnectedToCore：判断目标区块是否与城市核心所在的主领地连通。 */
+    public synchronized boolean isConnectedToCore(UUID cityId, long chunkLong, long coreChunkLong) {
+        Set<Long> chunks = cityChunks.get(cityId);
+        if (chunks == null || !chunks.contains(coreChunkLong)) {
+            return false;
+        }
+        if (chunkLong == coreChunkLong) {
+            return true;
+        }
+        Set<Long> visited = ConcurrentHashMap.newKeySet();
+        ArrayDeque<Long> pending = new ArrayDeque<>();
+        visited.add(coreChunkLong);
+        pending.add(coreChunkLong);
+        while (!pending.isEmpty()) {
+            ChunkPos current = new ChunkPos(pending.removeFirst());
+            long[] neighbors = {
+                    ChunkPos.asLong(current.x + 1, current.z),
+                    ChunkPos.asLong(current.x - 1, current.z),
+                    ChunkPos.asLong(current.x, current.z + 1),
+                    ChunkPos.asLong(current.x, current.z - 1)
+            };
+            for (long neighbor : neighbors) {
+                if (neighbor == chunkLong) {
+                    return true;
+                }
+                if (chunks.contains(neighbor) && visited.add(neighbor)) {
+                    pending.addLast(neighbor);
+                }
+            }
+        }
+        return false;
+    }
+
+    /** countEnclaves：统计与城市核心区块不连通的四向区块连通分量数量。 */
+    public synchronized int countEnclaves(UUID cityId, long coreChunkLong) {
+        Set<Long> chunks = cityChunks.get(cityId);
+        if (chunks == null || chunks.isEmpty()) {
+            return 0;
+        }
+        Set<Long> remaining = ConcurrentHashMap.newKeySet();
+        remaining.addAll(chunks);
+        boolean hasCoreChunk = chunks.contains(coreChunkLong);
+        int enclaveCount = 0;
+        while (!remaining.isEmpty()) {
+            long start = remaining.iterator().next();
+            remaining.remove(start);
+            boolean connectedToCore = hasCoreChunk && start == coreChunkLong;
+            ArrayDeque<Long> pending = new ArrayDeque<>();
+            pending.add(start);
+            while (!pending.isEmpty()) {
+                ChunkPos current = new ChunkPos(pending.removeFirst());
+                long[] neighbors = {
+                        ChunkPos.asLong(current.x + 1, current.z),
+                        ChunkPos.asLong(current.x - 1, current.z),
+                        ChunkPos.asLong(current.x, current.z + 1),
+                        ChunkPos.asLong(current.x, current.z - 1)
+                };
+                for (long neighbor : neighbors) {
+                    if (hasCoreChunk && neighbor == coreChunkLong) {
+                        connectedToCore = true;
+                    }
+                    if (remaining.remove(neighbor)) {
+                        pending.addLast(neighbor);
+                    }
+                }
+            }
+            if (!connectedToCore) {
+                enclaveCount++;
+            }
+        }
+        return enclaveCount;
     }
 
     public synchronized void releaseCity(UUID cityId) {

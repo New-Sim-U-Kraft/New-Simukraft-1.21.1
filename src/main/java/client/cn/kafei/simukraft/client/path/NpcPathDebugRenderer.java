@@ -176,6 +176,7 @@ public final class NpcPathDebugRenderer {
             case RUN -> COLOR_RUN;
             case JUMP -> COLOR_JUMP;
             case SWIM -> COLOR_SWIM;
+            case SWIM_EXIT -> COLOR_JUMP;
             case CLIMB -> COLOR_CLIMB;
             case FALL -> COLOR_FALL;
             default -> COLOR_WALK;

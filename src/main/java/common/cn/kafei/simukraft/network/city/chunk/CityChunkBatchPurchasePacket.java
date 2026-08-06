@@ -4,7 +4,6 @@ import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.city.CityClaimService;
 import common.cn.kafei.simukraft.city.CityService;
 import common.cn.kafei.simukraft.city.group.CityGroupMessageService;
-import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.network.city.core.CityCoreAccessValidator;
 import common.cn.kafei.simukraft.network.city.map.CityCoreMapRequestPacket;
 import common.cn.kafei.simukraft.network.hud.HudSyncService;
@@ -71,11 +70,13 @@ public record CityChunkBatchPurchasePacket(BlockPos pos, List<ChunkEntry> chunks
         CityService.findCityByCorePos(serverLevel, packet.pos()).ifPresent(city -> {
             int purchased = 0;
             int failed = 0;
+            double totalCost = 0.0D;
             Component firstFailure = null;
             for (ChunkEntry chunk : packet.chunks()) {
                 CityClaimService.ClaimResult result = CityClaimService.buyChunk(serverLevel, player, city, chunk.chunkX(), chunk.chunkZ());
                 if (result.success()) {
                     purchased++;
+                    totalCost += result.price();
                 } else {
                     failed++;
                     if (firstFailure == null) {
@@ -84,7 +85,6 @@ public record CityChunkBatchPurchasePacket(BlockPos pos, List<ChunkEntry> chunks
                 }
             }
             if (purchased > 0) {
-                double totalCost = ServerConfig.cityChunkPrice() * purchased;
                 Component message = failed > 0
                         ? Component.translatable("message.simukraft.city_chunk.batch_claimed_partial", purchased, failed, totalCost)
                         : Component.translatable("message.simukraft.city_chunk.batch_claimed", purchased, totalCost);

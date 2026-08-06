@@ -65,7 +65,7 @@ public final class CitizenSelfFeedingService {
             }
             clearStaleFoodStatus(level, manager, citizen);
             // 背包有存粮时直接进食，不必出门购买
-            if (!citizen.dead() && !citizen.child()) {
+            if (!citizen.dead()) {
                 CitizenEntity idleEntity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
                 if (idleEntity != null && idleEntity.getHungerValue() < START_HUNGER_THRESHOLD
                         && tryEatFromBackpack(level, manager, citizen, idleEntity)) {
@@ -115,7 +115,7 @@ public final class CitizenSelfFeedingService {
     }
 
     private static boolean shouldStart(ServerLevel level, CitizenData citizen, long gameTime, LevelRuntime runtime) {
-        if (citizen == null || citizen.dead() || citizen.child() || citizen.cityId() == null) {
+        if (citizen == null || citizen.dead() || citizen.cityId() == null) {
             return false;
         }
         if (MedicalMealService.isDoctorMealRunActive(level, citizen.uuid())) {

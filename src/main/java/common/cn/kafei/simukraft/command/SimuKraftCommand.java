@@ -211,6 +211,14 @@ public final class SimuKraftCommand {
                                         .executes(context -> clearCitizenDisease(
                                                 context.getSource(),
                                                 EntityArgument.getEntity(context, "citizen"))))))
+                .then(Commands.literal("hunger")
+                        .then(Commands.literal("set")
+                                .then(Commands.argument("citizen", EntityArgument.entity())
+                                        .then(Commands.argument("hunger", IntegerArgumentType.integer(0, 20))
+                                                .executes(context -> setNpcHunger(
+                                                        context.getSource(),
+                                                        EntityArgument.getEntity(context, "citizen"),
+                                                        IntegerArgumentType.getInteger(context, "hunger")))))))
                 .then(Commands.literal("xp")
                         .then(Commands.literal("add")
                                 .then(Commands.argument("citizen", EntityArgument.entity())
@@ -327,6 +335,21 @@ public final class SimuKraftCommand {
         CitizenSkillSnapshot after = result.after();
         source.sendSuccess(() -> Component.translatable("message.simukraft.command.npc_level.set",
                 citizen.name(), after.level()), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** setNpcHunger：将选中 NPC 的饥饿度设为 0-20 的整数并触发现有保存流程。 */
+    private static int setNpcHunger(CommandSourceStack source, Entity entity, int hunger) {
+        CitizenData citizen = resolveCommandCitizen(source, entity);
+        if (citizen == null) {
+            return 0;
+        }
+        CitizenEntity citizenEntity = (CitizenEntity) entity;
+        int previousHunger = citizenEntity.getHunger();
+        citizenEntity.setHunger(hunger);
+        CitizenService.save((ServerLevel) entity.level(), citizen.uuid());
+        source.sendSuccess(() -> Component.translatable(
+                "message.simukraft.command.npc_hunger.set", citizen.name(), previousHunger, hunger), true);
         return Command.SINGLE_SUCCESS;
     }
 

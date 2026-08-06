@@ -20,4 +20,15 @@ class SimuKraftCommandTest {
         assertNotNull(setCitizen.getChild("disease"));
         assertNotNull(disease.getChild("clear").getChild("citizen"));
     }
+
+    @Test
+    void registersNpcHungerSetCommand() {
+        CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
+        SimuKraftCommand.register(dispatcher);
+
+        CommandNode<CommandSourceStack> hunger = dispatcher.getRoot().getChild("simukraft")
+                .getChild("npc").getChild("hunger");
+
+        assertNotNull(hunger.getChild("set").getChild("citizen").getChild("hunger"));
+    }
 }

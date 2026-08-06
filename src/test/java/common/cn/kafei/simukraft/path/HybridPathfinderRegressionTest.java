@@ -280,7 +280,23 @@ class HybridPathfinderRegressionTest {
         // Destination-level corners (1,65,0) and (0,65,1) are intentionally absent (solid).
         PathCase result = scene.path(0, 64, 0, 1, 65, 1);
         assertSuccess(result);
+        assertTrue(result.result().waypoints().stream()
+                        .anyMatch(waypoint -> waypoint.mode() == MovementMode.SWIM_EXIT),
+                "water exit must use the dedicated SWIM_EXIT action");
         assertNoDiagonalVerticalTransitions(result);
+    }
+
+    /** 陆地一格台阶仍使用普通 JUMP，不得被上岸动作替换。 */
+    @Test
+    void landStepRemainsRegularJump() {
+        Scene scene = new Scene();
+        scene.floor(0, 64, 0).floor(1, 65, 0);
+
+        PathCase result = scene.path(0, 64, 0, 1, 65, 0);
+
+        assertSuccess(result);
+        assertEquals(MovementMode.JUMP, lastWaypoint(result).mode(),
+                "陆地台阶必须保持 JUMP 动作");
     }
 
     /**
@@ -440,7 +456,7 @@ class HybridPathfinderRegressionTest {
         List<PathWaypoint> waypoints = pathCase.result().waypoints();
         for (int index = 1; index < waypoints.size(); index++) {
             MovementMode mode = waypoints.get(index).mode();
-            if (mode != MovementMode.JUMP && mode != MovementMode.FALL) {
+            if (mode != MovementMode.JUMP && mode != MovementMode.SWIM_EXIT && mode != MovementMode.FALL) {
                 continue;
             }
             BlockPos from = waypoints.get(index - 1).blockPos();
@@ -521,7 +537,8 @@ class HybridPathfinderRegressionTest {
     }
 
     private static boolean isActionMode(MovementMode mode) {
-        return mode == MovementMode.JUMP || mode == MovementMode.SWIM || mode == MovementMode.CLIMB || mode == MovementMode.FALL;
+        return mode == MovementMode.JUMP || mode == MovementMode.SWIM || mode == MovementMode.SWIM_EXIT
+                || mode == MovementMode.CLIMB || mode == MovementMode.FALL;
     }
 
     private static void assertNoActionMode(PathCase pathCase) {

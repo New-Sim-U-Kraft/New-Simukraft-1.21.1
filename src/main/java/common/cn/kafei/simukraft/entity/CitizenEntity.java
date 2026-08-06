@@ -9,6 +9,7 @@ import common.cn.kafei.simukraft.citizen.CitizenJobVisualService;
 import common.cn.kafei.simukraft.citizen.CitizenManager;
 import common.cn.kafei.simukraft.citizen.CitizenManualControlService;
 import common.cn.kafei.simukraft.citizen.CitizenDroppedFoodService;
+import common.cn.kafei.simukraft.citizen.CitizenFoodConsumptionService;
 import common.cn.kafei.simukraft.citizen.CitizenService;
 import common.cn.kafei.simukraft.citizen.CitizenTeleportService;
 import common.cn.kafei.simukraft.citizen.CitizenWorkStatus;
@@ -225,7 +226,14 @@ public class CitizenEntity extends PathfinderMob {
                 discard();
                 return;
             }
-            CitizenDroppedFoodService.tryEatNearbyFood(serverLevel, this, data);
+            // 服务端实体 tick 直接检查背包，避免 NPC 未进入全局自给流程时漏掉进食。
+            boolean ateBackpackFood = false;
+            if (getHungerValue() < DEFAULT_HUNGER) {
+                ateBackpackFood = CitizenFoodConsumptionService.tryEatBackpackFood(serverLevel, this, data);
+            }
+            if (!ateBackpackFood) {
+                CitizenDroppedFoodService.tryEatNearbyFood(serverLevel, this, data);
+            }
         }
     }
 

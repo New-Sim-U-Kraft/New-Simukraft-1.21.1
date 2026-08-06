@@ -265,7 +265,7 @@ final class HybridPathfinder {
      * Water-to-water moves stay permissive so narrow canals remain navigable, but a diagonal still
      * requires both orthogonal corner columns. A same-layer walk exit reuses the corridor check, an
      * adjacent ladder/vine/scaffold is entered with a {@code CLIMB} edge so the swimmer can climb
-     * out of a pool, and vertical (jump/fall) exits are emitted for orthogonal directions only,
+     * out of a pool, and vertical (shore-exit/fall) exits are emitted for orthogonal directions only,
      * mirroring {@link #addVerticalTransitions} so the body never cuts the destination-level corner.
      */
     private static void addWaterNeighbors(PathSnapshot snapshot, PathCell current, MovementIntent intent, List<Neighbor> output) {
@@ -314,7 +314,8 @@ final class HybridPathfinder {
                                 && next.standY() - current.standY() <= 1.25D
                                 && canCrossHorizontalBoundary(snapshot, current, next)
                                 && hasVerticalPassage(snapshot, current, next)) {
-                            output.add(new Neighbor(next, MovementMode.JUMP, 2.5D + distance(current, next)));
+                            // 水面上岸是独立动作，避免误用陆地翻越方块的起跳规则。
+                            output.add(new Neighbor(next, MovementMode.SWIM_EXIT, 2.5D + distance(current, next)));
                         }
                     } else {
                         if (!diagonal
@@ -739,7 +740,8 @@ final class HybridPathfinder {
      * Returns whether the mode performs a discrete action that must not be smoothed away.
      */
     private static boolean isActionMode(MovementMode mode) {
-        return mode == MovementMode.JUMP || mode == MovementMode.SWIM || mode == MovementMode.CLIMB || mode == MovementMode.FALL;
+        return mode == MovementMode.JUMP || mode == MovementMode.SWIM || mode == MovementMode.SWIM_EXIT
+                || mode == MovementMode.CLIMB || mode == MovementMode.FALL;
     }
 
     /**

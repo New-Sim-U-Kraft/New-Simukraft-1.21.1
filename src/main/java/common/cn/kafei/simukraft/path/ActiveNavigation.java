@@ -24,6 +24,7 @@ final class ActiveNavigation {
     private static final double CLIMB_VERTICAL_SPEED_FACTOR = 0.22D;
     private static final double CLIMB_EXIT_DETACH_HORIZONTAL_SPEED = 0.09D;
     private static final double CLIMB_EXIT_DROP_SPEED = -0.12D;
+    private static final double SHORE_EXIT_VERTICAL_SPEED = 0.38D;
     private static final double CORNER_ARRIVAL_DISTANCE = 0.30D;
     private static final double SEGMENT_LOOKAHEAD_BLOCKS = 1.15D;
     private static final double CORNER_LOOKAHEAD_BLOCKS = 0.55D;
@@ -165,7 +166,11 @@ final class ActiveNavigation {
         citizen.getMoveControl().setWantedPosition(commandTarget.x, commandTarget.y, commandTarget.z, speed);
         applyClimbMotion(citizen, commandTarget, commandMode);
         if (shouldTriggerJump(citizen, waypointIndex, waypoint)) {
-            citizen.triggerPathJump();
+            if (waypoint.mode() == MovementMode.SWIM_EXIT) {
+                applyShoreExitImpulse(citizen);
+            } else {
+                citizen.triggerPathJump();
+            }
             jumpTriggered = true;
         }
         level.getGameTime();
@@ -207,7 +212,8 @@ final class ActiveNavigation {
         }
         double arrivalDistance = arrivalDistance(index, waypoint.mode());
         if (position.distanceToSqr(waypoint.position()) <= arrivalDistance * arrivalDistance) {
-            if (waypoint.mode() == MovementMode.JUMP && jumpRequiresLiftoff(index, waypoint) && (!jumpTriggered || !citizen.onGround())) {
+            if (isJumpAction(waypoint.mode()) && jumpRequiresLiftoff(index, waypoint)
+                    && (!jumpTriggered || !citizen.onGround())) {
                 return false;
             }
             return true;
@@ -224,9 +230,9 @@ final class ActiveNavigation {
     /** commandTarget: 未到台阶起跳预备点时只推进到边缘，避免在上一格中心提前起跳。 */
     private Vec3 commandTarget(CitizenEntity citizen, int index, PathWaypoint waypoint, PathWaypoint commandWaypoint) {
         Vec3 position = citizen.position();
-        if (waypoint.mode() == MovementMode.JUMP && index > 0 && !jumpTriggered) {
+        if (isJumpAction(waypoint.mode()) && index > 0 && !jumpTriggered) {
             PathWaypoint start = waypoints.get(index - 1);
-            if (!isAtJumpLaunch(citizen, start, waypoint)) {
+            if (!isAtActionLaunch(citizen, waypoint.mode(), start, waypoint)) {
                 return JumpWaypointPolicy.launchTarget(start, waypoint, citizen.getBbWidth());
             }
         }
@@ -269,25 +275,42 @@ final class ActiveNavigation {
     }
 
     private boolean shouldTriggerJump(CitizenEntity citizen, int index, PathWaypoint waypoint) {
-        if (waypoint.mode() != MovementMode.JUMP || index <= 0 || jumpTriggered) {
+        if (!isJumpAction(waypoint.mode()) || index <= 0 || jumpTriggered) {
             return false;
         }
         PathWaypoint start = waypoints.get(index - 1);
-        if (!isAtJumpLaunch(citizen, start, waypoint)) {
+        if (!isAtActionLaunch(citizen, waypoint.mode(), start, waypoint)) {
             return false;
         }
         if (waypoint.position().y <= waypoints.get(index - 1).position().y + 0.25D) {
             return false;
         }
         // 水中 onGround 始终为 false，但从水面跳上岸同样需要触发跳跃
-        return citizen.onGround() || citizen.isInWater();
+        return waypoint.mode() == MovementMode.SWIM_EXIT
+                ? citizen.onGround() || citizen.isInWater()
+                : citizen.onGround();
     }
 
-    /** isAtJumpLaunch: 水中保留较宽横向容差，陆地必须对准台阶中心线后才允许起跳。 */
-    private boolean isAtJumpLaunch(CitizenEntity citizen, PathWaypoint start, PathWaypoint landing) {
-        return citizen.isInWater()
-                ? JumpWaypointPolicy.isAtFluidLaunchPoint(citizen.position(), start, landing, citizen.getBbWidth())
-                : JumpWaypointPolicy.isAtLaunchPoint(citizen.position(), start, landing, citizen.getBbWidth());
+    /** isAtActionLaunch: 按动作类型选择陆地翻越或水面上岸的起跳预备点。 */
+    private boolean isAtActionLaunch(CitizenEntity citizen, MovementMode mode,
+                                     PathWaypoint start, PathWaypoint landing) {
+        if (mode == MovementMode.SWIM_EXIT) {
+            return JumpWaypointPolicy.isAtFluidLaunchPoint(citizen.position(), start, landing,
+                    citizen.getBbWidth());
+        }
+        return JumpWaypointPolicy.isAtLaunchPoint(citizen.position(), start, landing, citizen.getBbWidth());
+    }
+
+    /** isJumpAction: 判断路径节点是否需要手动触发跳跃。 */
+    private boolean isJumpAction(MovementMode mode) {
+        return mode == MovementMode.JUMP || mode == MovementMode.SWIM_EXIT;
+    }
+
+    /** applyShoreExitImpulse: 水中上岸时直接施加垂直上浮速度，绕过水中无效的普通跳跃控制。 */
+    private void applyShoreExitImpulse(CitizenEntity citizen) {
+        Vec3 motion = citizen.getDeltaMovement();
+        citizen.setDeltaMovement(motion.x, Math.max(motion.y, SHORE_EXIT_VERTICAL_SPEED), motion.z);
+        citizen.fallDistance = 0.0F;
     }
 
     /**
@@ -359,7 +382,8 @@ final class ActiveNavigation {
     }
 
     private boolean isActionMode(MovementMode mode) {
-        return mode == MovementMode.JUMP || mode == MovementMode.SWIM || mode == MovementMode.CLIMB || mode == MovementMode.FALL;
+        return mode == MovementMode.JUMP || mode == MovementMode.SWIM || mode == MovementMode.SWIM_EXIT
+                || mode == MovementMode.CLIMB || mode == MovementMode.FALL;
     }
 
     private boolean hasPassedWaypoint(Vec3 position, int index, PathWaypoint waypoint) {
@@ -419,7 +443,7 @@ final class ActiveNavigation {
         return switch (mode) {
             case CLIMB -> 1.15D;
             case SWIM -> 0.75D; // 收紧到达判定，避免提前停止导致爬不上岸
-            case JUMP, FALL -> 1.05D;
+            case JUMP, SWIM_EXIT, FALL -> 1.05D;
             default -> 0.72D;
         };
     }
@@ -434,6 +458,9 @@ final class ActiveNavigation {
         }
         if (mode == MovementMode.SWIM) {
             return 1.15D; // 提速，快速上岸，避免拖拉
+        }
+        if (mode == MovementMode.SWIM_EXIT) {
+            return 1.0D;
         }
         if (mode == MovementMode.RUN || intent == MovementIntent.RUN || intent == MovementIntent.RETURN_HOME) {
             return 1.2D;

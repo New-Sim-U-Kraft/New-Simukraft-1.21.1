@@ -139,7 +139,8 @@ public final class CitizenFoodConsumptionService {
         return RUNTIMES.computeIfAbsent(SaveScopedCacheKey.levelKey(level).toLowerCase(Locale.ROOT), ignored -> new LevelRuntime());
     }
 
-    private static boolean isFoodPoisoningItem(ItemStack stack) {
+    /** isFoodPoisoningItem: 判断食物是否会触发食物中毒。 */
+    static boolean isFoodPoisoningItem(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
         Item item = stack.getItem();
         return item == Items.SPIDER_EYE || item == Items.ROTTEN_FLESH || item == Items.PUFFERFISH;

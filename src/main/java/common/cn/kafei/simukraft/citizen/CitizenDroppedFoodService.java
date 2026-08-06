@@ -77,6 +77,9 @@ public final class CitizenDroppedFoodService {
         if (isProtectingWorkProduct(data, drop)) {
             return false;
         }
+        if (!entity.isChildNpc() && CitizenFoodConsumptionService.isFoodPoisoningItem(drop.getItem())) {
+            return false;
+        }
         return CitizenFoodConsumptionService.canEatStack(entity, drop.getItem());
     }
 
