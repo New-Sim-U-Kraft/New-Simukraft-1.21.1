@@ -378,17 +378,40 @@ class StorageWriteQueueTest {
 
     @Test
     void constraintFailureDropsOnlyTheBadOperationWithoutDegrading() throws Exception {
-        List<String> executed = new CopyOnWriteArrayList<>();
         StorageWriteQueue queue = newQueue("test-op-fault");
         try {
-            queue.submitOnce(connection -> executed.add("before"));
+            try (Connection connection = pool.borrow(); Statement statement = connection.createStatement()) {
+                statement.executeUpdate("CREATE TABLE constraint_probe(sequence INTEGER PRIMARY KEY, stage TEXT NOT NULL)");
+            }
+
+            queue.submitOnce(connection -> {
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO constraint_probe(sequence, stage) VALUES(1, 'before')")) {
+                    statement.executeUpdate();
+                }
+            });
             queue.submitOnce(connection -> {
                 throw new java.sql.SQLException("pk conflict", "23000", 19);
             });
-            queue.submitOnce(connection -> executed.add("after"));
+            queue.submitOnce(connection -> {
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO constraint_probe(sequence, stage) VALUES(2, 'after')")) {
+                    statement.executeUpdate();
+                }
+            });
 
             assertTrue(queue.drain(5_000L));
-            assertEquals(List.of("before", "after"), executed, "约束冲突只丢弃出错的那条，不拖垮同批其它写入");
+            try (Connection connection = pool.borrow();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "SELECT stage FROM constraint_probe ORDER BY sequence");
+                 ResultSet resultSet = statement.executeQuery()) {
+                List<String> persisted = new java.util.ArrayList<>();
+                while (resultSet.next()) {
+                    persisted.add(resultSet.getString(1));
+                }
+                assertEquals(List.of("before", "after"), persisted,
+                        "约束冲突只丢弃出错的那条，不拖垮同批其它写入");
+            }
             assertEquals(0, environmentFaults.get(), "约束冲突是操作自身问题，不得触发降级");
             assertEquals(1, metrics.failedCount());
         } finally {
