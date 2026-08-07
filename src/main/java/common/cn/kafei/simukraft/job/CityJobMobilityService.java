@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.job;
 
 import common.cn.kafei.simukraft.SimuKraft;
+import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenSelfFeedingService;
 import common.cn.kafei.simukraft.citizen.CitizenService;
 import common.cn.kafei.simukraft.citizen.CitizenTeleportService;
@@ -9,6 +10,7 @@ import common.cn.kafei.simukraft.citizen.CitizenWorkplaceMoveService;
 import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.config.ServerConfig;
+import common.cn.kafei.simukraft.medical.MedicalService;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
 import common.cn.kafei.simukraft.path.MovementIntent;
 import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingConstants;
@@ -47,6 +49,10 @@ public final class CityJobMobilityService {
     /** sendToWorkplace：雇佣入职时移动 NPC 到岗位，根据距离选择传送或寻路。 */
     public static void sendToWorkplace(ServerLevel level, UUID citizenId, BlockPos workplacePos, CityJobType jobType, CitizenWorkStatus workStatus, String statusLabel) {
         if (level == null || citizenId == null || workplacePos == null) {
+            return;
+        }
+        CitizenData citizenData = CitizenService.findCitizen(level, citizenId).orElse(null);
+        if (MedicalService.isOnMedicalLeave(citizenData, level.getDayTime() / 24_000L)) {
             return;
         }
         CitizenEntity citizenEntity = findCitizenEntity(level, citizenId);

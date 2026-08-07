@@ -8,6 +8,7 @@ import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.industrial.IndustrialControlBoxService;
 import common.cn.kafei.simukraft.job.CityJobType;
+import common.cn.kafei.simukraft.medical.MedicalService;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
 import common.cn.kafei.simukraft.path.MovementIntent;
 import net.minecraft.core.BlockPos;
@@ -50,6 +51,9 @@ public final class CitizenWorkplaceMoveService {
             return false;
         }
         if (!CityRuntimeService.isCitizenActive(level, citizen)) {
+            return false;
+        }
+        if (MedicalService.isOnMedicalLeave(citizen, level.getDayTime() / 24_000L)) {
             return false;
         }
         if (!recoveringFromUnloadedChunk && citizen.jobType() == CityJobType.INDUSTRIAL_WORKER

@@ -85,12 +85,19 @@ public final class MedicalService {
                 && CitizenManager.get(level).getCitizen(citizenId).map(MedicalService::isAdmitted).orElse(false);
     }
 
-    /** isOnMedicalLeave：全孕期、产后和住院居民暂停正常工作。 */
+    /** isOnMedicalLeave：低血量、患病、全孕期、产后和住院居民暂停正常工作。 */
     public static boolean isOnMedicalLeave(CitizenData citizen, long currentDay) {
+        return isOnMedicalLeave(citizen, currentDay, ServerConfig.medicalLowHealthThreshold());
+    }
+
+    /** isOnMedicalLeave：按给定低血量阈值判断居民是否应暂停工作。 */
+    static boolean isOnMedicalLeave(CitizenData citizen, long currentDay, double lowHealthThreshold) {
         if (citizen == null || citizen.dead()) {
             return false;
         }
-        return isAdmitted(citizen)
+        return citizen.health() <= lowHealthThreshold
+                || citizen.disease().isActive()
+                || isAdmitted(citizen)
                 || citizen.medical().postpartumUntilDay() > currentDay
                 || citizen.pregnant();
     }
@@ -455,9 +462,20 @@ public final class MedicalService {
         return bedId != null && bedIds.contains(bedId);
     }
 
-    /** canBypassResidentialCoverage：疾病患者无需住宅即可直接前往同城医院。 */
+    /** canBypassResidentialCoverage：紧急医疗患者无需住宅覆盖即可直接前往同城医院。 */
     static boolean canBypassResidentialCoverage(CitizenData citizen) {
-        return citizen != null && citizen.disease().isActive();
+        if (citizen == null) {
+            return false;
+        }
+        if (citizen.disease().isActive()) {
+            return true;
+        }
+        return canBypassResidentialCoverage(citizen, ServerConfig.medicalLowHealthThreshold());
+    }
+
+    /** canBypassResidentialCoverage：按给定低血量阈值判断是否跳过住宅覆盖限制。 */
+    static boolean canBypassResidentialCoverage(CitizenData citizen, double lowHealthThreshold) {
+        return citizen != null && (citizen.disease().isActive() || citizen.health() <= lowHealthThreshold);
     }
 
     /** mealContexts：将当前营业医院、医生和实际住院患者整理为供餐服务输入。 */

@@ -24,8 +24,26 @@ class MedicalServiceTest {
     void diseaseBypassesResidentialCoverageForAdmission() {
         CitizenData citizen = new CitizenData(UUID.randomUUID());
 
-        assertFalse(MedicalService.canBypassResidentialCoverage(citizen));
+        assertFalse(MedicalService.canBypassResidentialCoverage(citizen, 8.0D));
         citizen.setDisease(DiseaseType.COLD, 1L);
-        assertTrue(MedicalService.canBypassResidentialCoverage(citizen));
+        assertTrue(MedicalService.canBypassResidentialCoverage(citizen, 8.0D));
+    }
+
+    @Test
+    void lowHealthBypassesResidentialCoverageForAdmission() {
+        CitizenData citizen = new CitizenData(UUID.randomUUID());
+        citizen.setHealth(8.0D);
+
+        assertTrue(MedicalService.canBypassResidentialCoverage(citizen, 8.0D));
+        assertFalse(MedicalService.canBypassResidentialCoverage(citizen, 7.9D));
+    }
+
+    @Test
+    void lowHealthPutsCitizenOnMedicalLeaveBeforeAdmission() {
+        CitizenData citizen = new CitizenData(UUID.randomUUID());
+        citizen.setHealth(8.0D);
+
+        assertTrue(MedicalService.isOnMedicalLeave(citizen, 0L, 8.0D));
+        assertFalse(MedicalService.isOnMedicalLeave(citizen, 0L, 7.9D));
     }
 }
