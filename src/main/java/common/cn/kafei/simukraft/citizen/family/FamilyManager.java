@@ -68,6 +68,9 @@ public final class FamilyManager extends SavedData {
         FamilyData husband = getFamilyByCitizen(husbandId).orElse(null);
         FamilyData wife = getFamilyByCitizen(wifeId).orElse(null);
         int gen = calcGeneration(husband, wife);
+        // 清理双方成年时创建的单身过渡家庭，防止孤儿记录在SQLite积累
+        dissolveIfSingle(level, husband, husbandId);
+        dissolveIfSingle(level, wife, wifeId);
 
         FamilyData family = new FamilyData(UUID.randomUUID(), cityId);
         family.setHusbandId(husbandId);
@@ -187,5 +190,16 @@ public final class FamilyManager extends SavedData {
         if (citizenId == null) return true;
         var manager = common.cn.kafei.simukraft.citizen.CitizenManager.get(level);
         return manager.getCitizen(citizenId).map(c -> c.dead()).orElse(true);
+    }
+
+    /** dissolveIfSingle: 若该家庭是市民成年时创建的单身FORMING家庭，则将其从内存和数据库中清除。 */
+    private void dissolveIfSingle(ServerLevel level, FamilyData family, UUID citizenId) {
+        if (family == null || family.status() != FamilyStatus.FORMING) return;
+        boolean isSelf = citizenId.equals(family.husbandId()) && family.wifeId() == null
+                || citizenId.equals(family.wifeId()) && family.husbandId() == null;
+        if (!isSelf) return;
+        families.remove(family.familyId());
+        citizenFamilyIndex.remove(citizenId);
+        SimuSqliteStorage.deleteFamily(level, family.familyId());
     }
 }

@@ -4,6 +4,7 @@ import common.cn.kafei.simukraft.citizen.family.FamilyData;
 import common.cn.kafei.simukraft.citizen.family.FamilyManager;
 import common.cn.kafei.simukraft.citizen.family.FamilyStatus;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
+import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
@@ -32,6 +33,8 @@ public final class NpcPregnancyService {
             if (!data.pregnant() || data.dead()) {
                 continue;
             }
+            // 城市休眠时跳过孕期标签刷新
+            if (!CityRuntimeService.isCityActive(level, data.cityId())) continue;
             PregnancyStage stage = PregnancyStage.resolve(
                     currentDay - data.pregnantSince(), ServerConfig.familyPregnancyDurationDays());
             if (!MedicalService.isAdmitted(data) && !MedicalService.MEDICAL_CARE_MARKER.equals(data.workNeedDetail())
@@ -57,6 +60,8 @@ public final class NpcPregnancyService {
             FamilyManager familyManager, ServerLevel level,
             RandomSource random, double chance, long currentDay) {
         if (family.status() != FamilyStatus.ACTIVE) return;
+        // 城市休眠时跳过怀孕判定
+        if (!CityRuntimeService.isCityActive(level, family.cityId())) return;
         if (family.wifeId() == null) return;
 
         CitizenData wife = manager.getCitizen(family.wifeId()).orElse(null);

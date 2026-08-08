@@ -47,6 +47,8 @@ public final class CitizenTeleportService {
         citizenEntity.setDeltaMovement(Vec3.ZERO);
         spawnTeleportParticles(level, citizenEntity.position(), citizenEntity.getRandom());
         citizenEntity.teleportTo(landing.x, landing.y, landing.z);
+        // 远距离传送后重建实体追踪器，确保终点附近的客户端收到 spawn 包。
+        refreshClientTracking(level, citizenEntity);
         spawnTeleportParticles(level, citizenEntity.position(), citizenEntity.getRandom());
         return reachedLanding(citizenEntity, landing);
     }
@@ -80,6 +82,7 @@ public final class CitizenTeleportService {
         citizenEntity.setDeltaMovement(Vec3.ZERO);
         spawnTeleportParticles(level, citizenEntity.position(), citizenEntity.getRandom());
         citizenEntity.teleportTo(landing.x, landing.y, landing.z);
+        refreshClientTracking(level, citizenEntity);
         spawnTeleportParticles(level, citizenEntity.position(), citizenEntity.getRandom());
         return reachedLanding(citizenEntity, landing);
     }
@@ -100,6 +103,7 @@ public final class CitizenTeleportService {
         citizenEntity.setDeltaMovement(Vec3.ZERO);
         spawnTeleportParticles(level, citizenEntity.position(), citizenEntity.getRandom());
         citizenEntity.teleportTo(landing.x, landing.y, landing.z);
+        refreshClientTracking(level, citizenEntity);
         spawnTeleportParticles(level, citizenEntity.position(), citizenEntity.getRandom());
         return true;
     }

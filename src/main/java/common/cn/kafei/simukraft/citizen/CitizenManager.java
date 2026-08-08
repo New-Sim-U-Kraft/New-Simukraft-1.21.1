@@ -370,6 +370,11 @@ public final class CitizenManager extends SavedData {
             CitizenData data = citizens.get(uuid);
             if (data != null && !data.dead()) {
                 tickCitizenData(level, data);
+                // 城市活跃时主动强加载离线居民实体
+                if (common.cn.kafei.simukraft.city.CityRuntimeService.isCitizenActive(level, data)
+                        && common.cn.kafei.simukraft.citizen.CitizenTeleportService.findCitizenEntity(level, data.uuid()) == null) {
+                    common.cn.kafei.simukraft.city.CityRuntimeService.requestCitizenRecovery(level, data);
+                }
                 enqueueAiTick(uuid);
                 processed++;
             }
@@ -403,7 +408,8 @@ public final class CitizenManager extends SavedData {
         if (currentDay % 1 == 0) {
             var familyManager = common.cn.kafei.simukraft.citizen.family.FamilyManager.get(level);
             for (var family : familyManager.allFamilies()) {
-                if (family.status() == common.cn.kafei.simukraft.citizen.family.FamilyStatus.ACTIVE) {
+                if (family.status() == common.cn.kafei.simukraft.citizen.family.FamilyStatus.ACTIVE
+                        && common.cn.kafei.simukraft.city.CityRuntimeService.isCityActive(level, family.cityId())) {
                     common.cn.kafei.simukraft.citizen.FamilyRelocationService.tryRelocate(level, family);
                 }
             }

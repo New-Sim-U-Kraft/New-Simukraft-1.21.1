@@ -322,8 +322,16 @@ public final class BuilderConstructionService {
             }
             CityJobAssignmentService.invalidate(cityId);
         }
-        BlockPos minPos = cached.blocks().stream().map(BuildingBlockData::relativePos).reduce(task.origin(), (current, pos) -> new BlockPos(Math.min(current.getX(), pos.getX()), Math.min(current.getY(), pos.getY()), Math.min(current.getZ(), pos.getZ())));
-        BlockPos maxPos = cached.blocks().stream().map(BuildingBlockData::relativePos).reduce(task.origin(), (current, pos) -> new BlockPos(Math.max(current.getX(), pos.getX()), Math.max(current.getY(), pos.getY()), Math.max(current.getZ(), pos.getZ())));
+        int minX = task.origin().getX(), minY = task.origin().getY(), minZ = task.origin().getZ();
+        int maxX = minX, maxY = minY, maxZ = minZ;
+        for (BuildingBlockData b : cached.blocks()) {
+            BlockPos p = b.relativePos();
+            if (p.getX() < minX) minX = p.getX(); if (p.getX() > maxX) maxX = p.getX();
+            if (p.getY() < minY) minY = p.getY(); if (p.getY() > maxY) maxY = p.getY();
+            if (p.getZ() < minZ) minZ = p.getZ(); if (p.getZ() > maxZ) maxZ = p.getZ();
+        }
+        BlockPos minPos = new BlockPos(minX, minY, minZ);
+        BlockPos maxPos = new BlockPos(maxX, maxY, maxZ);
         List<BuildingUnitDefinition> unitDefs = resolveUnitDefinitions(task);
         List<BuildingUnitInstance> unitInsts = buildUnitInstances(unitDefs, poiInstances, task.origin());
         if (cityId != null && !unitInsts.isEmpty()) {

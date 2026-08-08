@@ -39,17 +39,24 @@ public final class CitizenHousingService {
         // 阶段一：家庭整体分配到同一住宅户
         int familyAssigned = fillFamilyUnits(level, cityId, poiManager, assigned);
 
-        // 阶段二：Phase 1 已更新内存中 homeId，重新计算 occupied 包含 Phase 1 分配结果，避免双重分配
-        Set<UUID> occupied = occupiedPoiIds(CitizenManager.get(level), cityId, poiManager);
+        // 阶段二：Phase 1 已更新内存中 homeId，扫描一次居民后复用，避免重复遍历
+        List<CitizenData> cityCitizens = CitizenManager.get(level).allCitizens().stream()
+                .filter(c -> !c.dead() && cityId.equals(c.cityId()))
+                .toList();
+        Set<UUID> occupied = cityCitizens.stream()
+                .filter(c -> hasValidHome(poiManager, cityId, c.homeId()))
+                .map(CitizenData::homeId)
+                .collect(Collectors.toSet());
         Set<UUID> blockedByOccupied = vacantPoiIdsInPartiallyOccupied(level, cityId, poiManager, occupied);
-        List<CityPoiData> vacantHomes = vacantHomes(level, cityId, java.util.Collections.emptySet()).stream()
-                .filter(poi -> !blockedByOccupied.contains(poi.poiId()))
+        List<CityPoiData> vacantHomes = poiManager.getCityPois(cityId, CityPoiType.RESIDENTIAL).stream()
+                .filter(CityPoiData::active)
+                .filter(poi -> !occupied.contains(poi.poiId()) && !blockedByOccupied.contains(poi.poiId()))
+                .sorted(Comparator.comparing(poi -> poi.pos().asLong()))
                 .toList();
         if (vacantHomes.isEmpty()) return familyAssigned;
 
-        List<CitizenData> homelessCitizens = CitizenManager.get(level).allCitizens().stream()
-                .filter(c -> !c.dead())
-                .filter(c -> cityId.equals(c.cityId()) && !hasValidHome(poiManager, cityId, c.homeId()))
+        List<CitizenData> homelessCitizens = cityCitizens.stream()
+                .filter(c -> !hasValidHome(poiManager, cityId, c.homeId()))
                 .filter(c -> !assigned.contains(c.uuid()))
                 .sorted(Comparator.comparing(CitizenData::name, String.CASE_INSENSITIVE_ORDER))
                 .toList();
@@ -263,20 +270,6 @@ public final class CitizenHousingService {
                 .filter(c -> hasValidHome(poiManager, cityId, c.homeId()))
                 .map(CitizenData::homeId)
                 .collect(Collectors.toSet());
-    }
-
-    private static List<CityPoiData> vacantHomes(ServerLevel level, UUID cityId, Set<UUID> excludedCitizenIds) {
-        CityPoiManager poiManager = CityPoiManager.get(level);
-        Set<UUID> occupied = CitizenManager.get(level).allCitizens().stream()
-                .filter(c -> !c.dead() && cityId.equals(c.cityId()) && !excludedCitizenIds.contains(c.uuid()))
-                .filter(c -> hasValidHome(poiManager, cityId, c.homeId()))
-                .map(CitizenData::homeId)
-                .collect(Collectors.toSet());
-        return poiManager.getCityPois(cityId, CityPoiType.RESIDENTIAL).stream()
-                .filter(CityPoiData::active)
-                .filter(poi -> !occupied.contains(poi.poiId()))
-                .sorted(Comparator.comparing(poi -> poi.pos().asLong()))
-                .toList();
     }
 
     /** notifyNewResident: 新市民成功入住后通知城市在线成员。 */

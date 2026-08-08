@@ -136,8 +136,11 @@ public final class CommercialWorkService {
                 CitizenService.save(level, worker.uuid());
             }
             setStatus(CommercialBoxManager.get(level), data, "gui.simukraft.commercial.status.open", "");
+            // 成功交易后才等满间隔；失败（含原料不足）短间隔重试，确保漏斗/物流补料后能及时感知
+            runtime.nextTick = gameTime + NPC_TRADE_INTERVAL_TICKS;
+        } else {
+            runtime.nextTick = gameTime + IDLE_RETRY_TICKS;
         }
-        runtime.nextTick = gameTime + NPC_TRADE_INTERVAL_TICKS;
     }
 
     private static void applyHeldItem(java.util.UUID citizenId, String itemId) {

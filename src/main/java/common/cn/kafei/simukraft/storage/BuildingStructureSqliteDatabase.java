@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft.storage;
 
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.storage.core.SqlFunction;
+import common.cn.kafei.simukraft.storage.core.SqlWrite;
 import common.cn.kafei.simukraft.storage.core.SqliteConnectionPool;
 import common.cn.kafei.simukraft.storage.core.StorageMetrics;
 import common.cn.kafei.simukraft.storage.core.TransactionRunner;
@@ -108,6 +109,15 @@ public final class BuildingStructureSqliteDatabase implements Closeable {
             return null;
         }
         return writeQueue.submitAndWait(SYNC_WRITE_TIMEOUT_MILLIS, function);
+    }
+
+    /** submitAsync: 把写入提交到写队列立即返回，不阻塞调用线程。写入失败时写线程已记录日志。 */
+    public void submitAsync(Object key, SqlWrite write) {
+        if (isWriteBlocked()) {
+            SimuKraft.LOGGER.warn("Simukraft: async write for key {} skipped, storage is write-blocked.", key);
+            return;
+        }
+        writeQueue.submit(key, write);
     }
 
     /**

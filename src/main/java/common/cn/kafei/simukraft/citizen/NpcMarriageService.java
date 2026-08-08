@@ -2,6 +2,8 @@ package common.cn.kafei.simukraft.citizen;
 
 import common.cn.kafei.simukraft.citizen.family.FamilyData;
 import common.cn.kafei.simukraft.citizen.family.FamilyManager;
+import common.cn.kafei.simukraft.citizen.family.FamilyStatus;
+import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.city.group.CityGroupMessageService;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import net.minecraft.network.chat.Component;
@@ -31,7 +33,13 @@ public final class NpcMarriageService {
 
         for (CitizenData data : manager.allCitizens()) {
             if (data.dead() || data.child() || data.cityId() == null) continue;
-            if (data.familyId() != null) continue; // 已有家庭
+            // 已有ACTIVE婚姻家庭则跳过；FORMING（成年单身过渡）或无家庭均可婚配
+            if (data.familyId() != null) {
+                FamilyData existing = familyManager.getFamily(data.familyId()).orElse(null);
+                if (existing != null && existing.status() == FamilyStatus.ACTIVE) continue;
+            }
+            // 城市休眠时跳过婚配
+            if (!CityRuntimeService.isCityActive(level, data.cityId())) continue;
             if ("female".equals(data.gender())) {
                 femalesByCityId.computeIfAbsent(data.cityId(), k -> new ArrayList<>()).add(data);
             } else {

@@ -28,6 +28,9 @@ public final class FamilyRelocationService {
 
         int expectedBeds = expectedBedCount(citizenManager, family);
         Set<UUID> occupiedPoiIds = buildOccupiedSet(citizenManager);
+        // 排除该家庭自身占用：评分应反映"搬走后"的空余状态，
+        // 否则当前建筑因自住导致空房率虚低，与空建筑分差巨大，造成乒乓搬迁。
+        occupiedPoiIds.removeAll(getFamilyHomeIds(citizenManager, family));
 
         // 找当前家庭的建筑
         PlacedBuildingRecord currentBuilding = findCurrentBuilding(level, family, citizenManager, poiManager);
@@ -78,6 +81,22 @@ public final class FamilyRelocationService {
                 .filter(c -> !c.dead() && c.homeId() != null)
                 .map(CitizenData::homeId)
                 .collect(Collectors.toSet());
+    }
+
+    /** getFamilyHomeIds：收集家庭所有在世成员当前的 homeId，用于从占用集合中排除。 */
+    private static Set<UUID> getFamilyHomeIds(CitizenManager manager, FamilyData family) {
+        Set<UUID> ids = new HashSet<>();
+        List<UUID> memberIds = new ArrayList<>();
+        if (family.husbandId() != null) memberIds.add(family.husbandId());
+        if (family.wifeId() != null) memberIds.add(family.wifeId());
+        memberIds.addAll(family.childIds());
+        for (UUID memberId : memberIds) {
+            manager.getCitizen(memberId)
+                    .filter(c -> !c.dead() && c.homeId() != null)
+                    .map(CitizenData::homeId)
+                    .ifPresent(ids::add);
+        }
+        return ids;
     }
 
     private static PlacedBuildingRecord findCurrentBuilding(ServerLevel level, FamilyData family,

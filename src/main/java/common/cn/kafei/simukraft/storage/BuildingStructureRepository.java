@@ -55,7 +55,8 @@ public final class BuildingStructureRepository {
     }
 
     /**
-     * upsert: 保存建筑结构。经 callSync 提交到建筑库的写线程执行并同步等待事务提交。
+     * upsert: 异步保存建筑结构，写入提交到写队列后立即返回，不阻塞调用线程。
+     * 写入失败由写线程记录日志；调用方可安全更新内存缓存而无需等待落库确认。
      *
      * @return 见 {@link WriteOutcome}
      */
@@ -63,19 +64,9 @@ public final class BuildingStructureRepository {
         if (database.isWriteBlocked()) {
             return WriteOutcome.STORAGE_UNAVAILABLE;
         }
-        Boolean saved = database.callSync(connection -> {
-            saveBuilding(connection, record);
-            return true;
-        });
-        if (saved != null && saved) {
-            return WriteOutcome.PERSISTED;
-        }
-        // 上面的预检和这里之间可能刚好发生降级，复查一次才能给出准确结局。
-        if (database.isWriteBlocked()) {
-            return WriteOutcome.STORAGE_UNAVAILABLE;
-        }
-        SimuKraft.LOGGER.error("Failed to save placed building structure {}", record != null ? record.buildingId() : null);
-        return WriteOutcome.FAILED;
+        database.submitAsync("placed_building:" + record.buildingId(),
+                connection -> saveBuilding(connection, record));
+        return WriteOutcome.PERSISTED;
     }
 
     /**

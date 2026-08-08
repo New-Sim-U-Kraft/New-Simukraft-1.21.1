@@ -340,7 +340,7 @@ public final class MedicalService {
             }
         }
         expirePostpartumIfNeeded(level, citizen, currentDay);
-        if (!needsCare(level, citizen, currentDay)) {
+        if (isReadyForDischarge(citizen, entity, currentDay)) {
             discharge(level, citizen);
             return;
         }
@@ -418,6 +418,17 @@ public final class MedicalService {
                 || citizen.disease().isActive()
                 || citizen.medical().postpartumUntilDay() > currentDay
                 || citizen.pregnant();
+    }
+
+    /** isReadyForDischarge：血量恢复至满值、疾病治愈且无其他医疗需求时方可出院。 */
+    private static boolean isReadyForDischarge(CitizenData citizen, CitizenEntity entity, long currentDay) {
+        // 血量未恢复至最大值则继续留院
+        if (citizen.health() < entity.getMaxHealth()) {
+            return false;
+        }
+        return !citizen.disease().isActive()
+                && citizen.medical().postpartumUntilDay() <= currentDay
+                && !citizen.pregnant();
     }
 
     private static int carePriority(ServerLevel level, CitizenData citizen, long currentDay) {
