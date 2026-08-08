@@ -25,7 +25,7 @@
       },
       "unlocks": {
         "chunks": 9,
-        "enclaves": 1
+        "enclaves": 0
       }
     },
     {
@@ -33,8 +33,8 @@
       "display_name": "村落",
       "duration_ticks": 600,
       "requirements": {
-        "funds": 5.0,
-        "population": 4,
+        "funds": 60.0,
+        "population": 6,
         "items": [
           {"tag": "minecraft:logs", "count": 8, "display_icon": "minecraft:oak_log", "display_name": "原木"},
           {"item": "minecraft:cobblestone", "count": 8}
@@ -42,7 +42,7 @@
       },
       "unlocks": {
         "chunks": 25,
-        "enclaves": 2
+        "enclaves": 0
       }
     },
     {
@@ -50,8 +50,8 @@
       "display_name": "城镇",
       "duration_ticks": 800,
       "requirements": {
-        "funds": 10.0,
-        "population": 5,
+        "funds": 100.0,
+        "population": 10,
         "items": [
           {"tag": "minecraft:logs", "count": 16, "display_icon": "minecraft:oak_log", "display_name": "原木"},
           {"item": "minecraft:cobblestone", "count": 16}
@@ -59,7 +59,7 @@
       },
       "unlocks": {
         "chunks": 49,
-        "enclaves": 3
+        "enclaves": 2
       }
     },
     {
@@ -67,8 +67,8 @@
       "display_name": "城市",
       "duration_ticks": 1000,
       "requirements": {
-        "funds": 15.0,
-        "population": 8,
+        "funds": 150.0,
+        "population": 15,
         "items": [
           {"tag": "minecraft:logs", "count": 32, "display_icon": "minecraft:oak_log", "display_name": "原木"},
           {"item": "minecraft:cobblestone", "count": 32}
@@ -76,7 +76,7 @@
       },
       "unlocks": {
         "chunks": 81,
-        "enclaves": 5
+        "enclaves": 3
       }
     },
     {
@@ -84,8 +84,8 @@
       "display_name": "城池",
       "duration_ticks": 1200,
       "requirements": {
-        "funds": 20.0,
-        "population": 10,
+        "funds": 220.0,
+        "population": 22,
         "items": [
           {"tag": "minecraft:logs", "count": 64, "display_icon": "minecraft:oak_log", "display_name": "原木"},
           {"item": "minecraft:cobblestone", "count": 64},
@@ -94,7 +94,7 @@
       },
       "unlocks": {
         "chunks": 121,
-        "enclaves": 7
+        "enclaves": 5
       }
     },
     {
@@ -102,8 +102,8 @@
       "display_name": "都会",
       "duration_ticks": 1400,
       "requirements": {
-        "funds": 30.0,
-        "population": 15,
+        "funds": 300.0,
+        "population": 30,
         "items": [
           {"tag": "minecraft:logs", "count": 128, "display_icon": "minecraft:oak_log", "display_name": "原木"},
           {"item": "minecraft:cobblestone", "count": 128},
@@ -112,7 +112,7 @@
       },
       "unlocks": {
         "chunks": 169,
-        "enclaves": 9
+        "enclaves": 7
       }
     },
     {
@@ -120,8 +120,8 @@
       "display_name": "重镇",
       "duration_ticks": 1600,
       "requirements": {
-        "funds": 60.0,
-        "population": 20,
+        "funds": 400.0,
+        "population": 40,
         "items": [
           {"tag": "minecraft:logs", "count": 256, "display_icon": "minecraft:oak_log", "display_name": "原木"},
           {"item": "minecraft:cobblestone", "count": 256},
@@ -131,7 +131,7 @@
       },
       "unlocks": {
         "chunks": 225,
-        "enclaves": 11
+        "enclaves": 9
       }
     },
     {
@@ -139,11 +139,11 @@
       "display_name": "中心城",
       "duration_ticks": 1800,
       "requirements": {
-        "funds": 80.0,
-        "population": 25,
+        "funds": 520.0,
+        "population": 52,
         "items": [
-          {"tag": "minecraft:logs", "count": 512, "display_icon": "minecraft:oak_log", "display_name": "原木"},
-          {"item": "minecraft:cobblestone", "count": 128},
+          {"tag": "minecraft:logs", "count": 320, "display_icon": "minecraft:oak_log", "display_name": "原木"},
+          {"item": "minecraft:cobblestone", "count": 320},
           {"item": "minecraft:iron_ingot", "count": 24},
           {"item": "minecraft:gold_ingot", "count": 20},
           {"item": "minecraft:diamond", "count": 3}
@@ -151,7 +151,7 @@
       },
       "unlocks": {
         "chunks": 289,
-        "enclaves": 12
+        "enclaves": 11
       }
     },
     {
@@ -159,20 +159,20 @@
       "display_name": "枢纽城",
       "duration_ticks": 2000,
       "requirements": {
-        "funds": 90.0,
-        "population": 30,
+        "funds": 660.0,
+        "population": 66,
         "items": [
-          {"tag": "minecraft:logs", "count": 512, "display_icon": "minecraft:oak_log", "display_name": "原木"},
-          {"item": "minecraft:cobblestone", "count": 256},
-          {"item": "minecraft:iron_ingot", "count": 48},
-          {"item": "minecraft:gold_ingot", "count": 40},
+          {"tag": "minecraft:logs", "count": 384, "display_icon": "minecraft:oak_log", "display_name": "原木"},
+          {"item": "minecraft:cobblestone", "count": 384},
+          {"item": "minecraft:iron_ingot", "count": 36},
+          {"item": "minecraft:gold_ingot", "count": 32},
           {"item": "minecraft:diamond", "count": 6},
-          {"item": "minecraft:lapis_lazuli", "count": 28}
+          {"item": "minecraft:lapis_lazuli", "count": 24}
         ]
       },
       "unlocks": {
         "chunks": 361,
-        "enclaves": 14
+        "enclaves": 12
       }
     },
     {
@@ -180,20 +180,20 @@
       "display_name": "大都市",
       "duration_ticks": 2200,
       "requirements": {
-        "funds": 100.0,
-        "population": 35,
+        "funds": 820.0,
+        "population": 82,
         "items": [
-          {"tag": "minecraft:logs", "count": 512, "display_icon": "minecraft:oak_log", "display_name": "原木"},
-          {"item": "minecraft:cobblestone", "count": 256},
-          {"item": "minecraft:iron_ingot", "count": 64},
-          {"item": "minecraft:gold_ingot", "count": 64},
-          {"item": "minecraft:diamond", "count": 12},
-          {"item": "minecraft:lapis_lazuli", "count": 32}
+          {"tag": "minecraft:logs", "count": 448, "display_icon": "minecraft:oak_log", "display_name": "原木"},
+          {"item": "minecraft:cobblestone", "count": 448},
+          {"item": "minecraft:iron_ingot", "count": 48},
+          {"item": "minecraft:gold_ingot", "count": 48},
+          {"item": "minecraft:diamond", "count": 9},
+          {"item": "minecraft:lapis_lazuli", "count": 36}
         ]
       },
       "unlocks": {
         "chunks": 441,
-        "enclaves": 15
+        "enclaves": 14
       }
     },
     {
@@ -201,15 +201,15 @@
       "display_name": "不夜都",
       "duration_ticks": 2400,
       "requirements": {
-        "funds": 120.0,
-        "population": 40,
+        "funds": 1000.0,
+        "population": 100,
         "items": [
           {"tag": "minecraft:logs", "count": 512, "display_icon": "minecraft:oak_log", "display_name": "原木"},
-          {"item": "minecraft:cobblestone", "count": 256},
-          {"item": "minecraft:iron_ingot", "count": 128},
+          {"item": "minecraft:cobblestone", "count": 512},
+          {"item": "minecraft:iron_ingot", "count": 64},
           {"item": "minecraft:gold_ingot", "count": 64},
           {"item": "minecraft:diamond", "count": 12},
-          {"item": "minecraft:lapis_lazuli", "count": 64}
+          {"item": "minecraft:lapis_lazuli", "count": 48}
         ]
       },
       "unlocks": {
