@@ -266,6 +266,10 @@ public final class BuilderConstructionService {
                 placed++;
                 continue;
             }
+            // 先检查目标区块是否加载，未加载则跳过（不消耗材料），等待下一 tick 重试
+            if (!level.isAreaLoaded(worldPos, 4)) {
+                break;
+            }
             WorkMaterialResult materialResult = BuilderMaterialService.tryConsumeForBlock(level, taskRuntime.materialCache, targetState);
             if (!materialResult.available()) {
                 markWaitingForMaterials(level, citizen, taskRuntime, task, materialResult);
@@ -275,9 +279,6 @@ public final class BuilderConstructionService {
                 playChestAnimation(level, taskRuntime, true);
                 taskRuntime.chestCloseAtTick = level.getGameTime() + 20;
                 wasWaiting = false;
-            }
-            if (!level.isAreaLoaded(worldPos, 4)) {
-                break;
             }
             // 拆除原有方块时掉落物存入工作箱子，与 replaceWithAir 无关
             if (!currentState.isAir()) {

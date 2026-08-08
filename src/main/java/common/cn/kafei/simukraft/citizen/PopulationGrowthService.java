@@ -23,21 +23,20 @@ public final class PopulationGrowthService {
         if (maxPerInterval <= 0 || timesPerWeek <= 0) {
             return 0;
         }
-        // 一周7天，随机命中 timesPerWeek 次
-        if (level.random.nextInt(7) >= timesPerWeek) {
-            return 0;
-        }
-        int spawned = 0;
+        int totalSpawned = 0;
         for (CityData city : CityService.allCities(level)) {
-            if (spawned >= maxPerInterval) {
-                break;
-            }
             if (!CityRuntimeService.isCityActive(level, city.cityId())) {
                 continue;
             }
+            // 每城市独立掷骰，互不影响：一周7天随机命中 timesPerWeek 次
+            if (level.random.nextInt(7) >= timesPerWeek) {
+                continue;
+            }
             CitizenHousingService.fillVacantHomes(level, city.cityId());
-            spawned += CitizenHousingService.spawnCitizensForVacantHomes(level, city.cityId(), city.cityCorePos().above(), maxPerInterval - spawned);
+            // 每城市有独立的配额，不与其他城市共享
+            totalSpawned += CitizenHousingService.spawnCitizensForVacantHomes(
+                    level, city.cityId(), city.cityCorePos().above(), maxPerInterval);
         }
-        return spawned;
+        return totalSpawned;
     }
 }
