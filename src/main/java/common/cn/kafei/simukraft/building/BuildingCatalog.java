@@ -69,6 +69,7 @@ public final class BuildingCatalog {
                                      String amount,
                                      String author,
                                      String description,
+                                     int unlockLevel,
                                      String metaFileName,
                                      String structureFileName,
                                      BuildingType buildingType,

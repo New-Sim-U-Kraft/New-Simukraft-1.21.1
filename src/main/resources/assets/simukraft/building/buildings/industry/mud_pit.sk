@@ -9,3 +9,4 @@ job_name:泥胚工
 held_item:minecraft:packed_mud
 industrial:mud_pit.json
 structure:mud_pit.nbt
+unlockLevel:

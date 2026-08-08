@@ -9,3 +9,4 @@ job_name:伐木工
 held_item:minecraft:iron_axe
 industrial:lumberjacks_house.json
 structure:lumberjacks_house.nbt
+unlockLevel:

@@ -7,3 +7,4 @@ tags:price_low,material_low,stage_early
 job_type:wool_farmer
 job_name:牧羊人
 held_item:minecraft:shears
+unlockLevel:

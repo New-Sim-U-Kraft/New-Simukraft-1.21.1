@@ -7,3 +7,4 @@ tags:price_medium,material_medium,stage_middle
 job_type:brick_maker
 job_name:制砖人
 held_item:minecraft:brick
+unlockLevel:

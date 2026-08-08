@@ -67,6 +67,7 @@ public final class BuildingCacheService {
                 definition.amount(),
                 definition.author(),
                 definition.description(),
+                definition.unlockLevel(),
                 definition.metaFileName(),
                 definition.structureFileName(),
                 definition.packageName()
@@ -79,6 +80,7 @@ public final class BuildingCacheService {
                                String amount,
                                String author,
                                String description,
+                               int unlockLevel,
                                String metaFileName,
                                String structureFileName,
                                String packageName) {

@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft.network.building;
 
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.building.BuildingBlockData;
+import common.cn.kafei.simukraft.building.BuildingCatalog;
 import common.cn.kafei.simukraft.building.BuildingStructure;
 import common.cn.kafei.simukraft.building.BuildingTaskStatus;
 import common.cn.kafei.simukraft.building.BuilderConstructionMobilityService;
@@ -92,7 +93,18 @@ public record BuildBoxStartConstructionPacket(BlockPos buildBoxPos,
             InfoToastService.warning(player, Component.translatable("message.simukraft.build_box.no_permission"));
             return;
         }
-        Optional<BuildingStructure> structureOptional = BuildingStructureService.loadStructure(packet.category(), packet.buildingFileName());
+        Optional<BuildingCatalog.BuildingDefinition> definitionOptional = BuildingCatalog.findBuilding(packet.category(), packet.buildingFileName());
+        if (definitionOptional.isEmpty()) {
+            InfoToastService.error(player, Component.translatable("message.simukraft.build_box.structure_not_found"));
+            return;
+        }
+        BuildingCatalog.BuildingDefinition definition = definitionOptional.get();
+        int cityLevel = CityService.findCity(level, cityId).map(city -> city.cityLevel()).orElse(0);
+        if (definition.unlockLevel() > 0 && cityLevel < definition.unlockLevel()) {
+            InfoToastService.warning(player, Component.translatable("message.simukraft.build_box.level_locked", definition.unlockLevel()));
+            return;
+        }
+        Optional<BuildingStructure> structureOptional = BuildingStructureService.loadStructure(definition);
         if (structureOptional.isEmpty()) {
             InfoToastService.error(player, Component.translatable("message.simukraft.build_box.structure_not_found"));
             return;

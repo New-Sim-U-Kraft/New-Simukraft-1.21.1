@@ -9,3 +9,4 @@ job_name:冶铁工人
 held_item:minecraft:iron_ingot
 industrial:ironworks.json
 structure:ironworks.nbt
+unlockLevel:

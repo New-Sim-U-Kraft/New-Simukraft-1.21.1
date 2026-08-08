@@ -5,6 +5,7 @@ import client.cn.kafei.simukraft.client.toast.ClientInfoToast;
 import client.cn.kafei.simukraft.client.ui.SimuKraftUiTheme;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import client.cn.kafei.simukraft.client.ui.SimuKraftFlexLayout;
+import com.lowdragmc.lowdraglib2.gui.texture.ColorBorderTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -67,13 +68,18 @@ public final class BuildingListScreenOpener {
     private static final int PREFERRED_CARD_WIDTH = 180;
     private static final int MIN_CARD_WIDTH = 130;
     private static final int PREFERRED_CARD_HEIGHT = 70;
-    private static final int MIN_CARD_HEIGHT = 62;
+    private static final int MIN_CARD_HEIGHT = 66;
     private static final int TOOLBAR_GAP = 6;
     private static final int FAVORITE_BUTTON_SIZE = 18;
     private static final int FAVORITE_BUTTON_TOP = 8;
     private static final int FAVORITE_BUTTON_RIGHT_INSET = 4;
     private static final int FAVORITE_STAR_COLOR  = 0xFFFFD700;
     private static final int ITEM_ICON_SIZE        = 10; // 来源图标尺寸（书/书架）
+    private static final int LOCK_OVERLAY_COLOR = 0x920C1118;
+    private static final int LOCK_BODY_WIDTH = 18;
+    private static final int LOCK_BODY_HEIGHT = 12;
+    private static final int LOCK_SHACKLE_WIDTH = 12;
+    private static final int LOCK_SHACKLE_HEIGHT = 8;
     private static int currentPage;
     private static String currentCategory;
     private static BlockPos currentBuildBoxPos;
@@ -212,6 +218,7 @@ public final class BuildingListScreenOpener {
 
     private static UIElement createBuildingCard(BuildingCacheService.BuildingMeta building, int width, int height, int accentColor, Runnable refreshAction) {
         boolean selected = building.structureFileName().equals(selectedBuildingFileName);
+        boolean locked = isLocked(building);
         int buttonInset = 2;
         int buttonWidth = Math.max(1, width - buttonInset * 2);
         int buttonHeight = Math.max(1, height - buttonInset * 2);
@@ -235,6 +242,10 @@ public final class BuildingListScreenOpener {
         card.addClass("simukraft_card_button");
         card.setOnClick(event -> {
             if (event.button == 0) {
+                if (locked) {
+                    showLockedMessage(building);
+                    return;
+                }
                 selectedBuildingFileName = building.structureFileName();
                 refreshAction.run();
             }
@@ -305,6 +316,17 @@ public final class BuildingListScreenOpener {
             layout.width(infoWidth);
             layout.height(10);
         }));
+        if (locked) {
+            card.addChild(infoLine(Component.translatable("gui.building.unlock_level", building.unlockLevel()),
+                    infoWidth, SimuKraftUiTheme.TEXT_WARNING_COLOR).layout(layout -> {
+                layout.positionType(TaffyPosition.ABSOLUTE);
+                layout.left(infoLeft);
+                layout.top(Math.max(infoY + 30, buttonHeight - 14));
+                layout.width(infoWidth);
+                layout.height(10);
+            }));
+            card.addChild(lockedCardOverlay(buttonWidth, buttonHeight));
+        }
         wrapper.addChild(card);
         if (selected) {
             wrapper.addChild(SimuKraftUiTheme.createSelectionBorder(width, height));
@@ -346,6 +368,55 @@ public final class BuildingListScreenOpener {
         });
         root.addChild(hitArea);
         return root;
+    }
+
+    /** lockedCardOverlay: 为等级不足的建筑卡片添加不拦截点击的锁形遮罩。 */
+    private static UIElement lockedCardOverlay(int cardWidth, int cardHeight) {
+        UIElement overlay = new UIElement().layout(layout -> {
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.left(0);
+            layout.top(0);
+            layout.width(cardWidth);
+            layout.height(cardHeight);
+        }).style(style -> style.backgroundTexture(new ColorRectTexture(LOCK_OVERLAY_COLOR)).zIndex(20));
+        overlay.setAllowHitTest(false);
+
+        int iconLeft = Math.max(0, (cardWidth - LOCK_BODY_WIDTH) / 2);
+        int iconTop = Math.max(4, (cardHeight - LOCK_BODY_HEIGHT - LOCK_SHACKLE_HEIGHT) / 2);
+        int shackleLeft = iconLeft + (LOCK_BODY_WIDTH - LOCK_SHACKLE_WIDTH) / 2;
+        int shackleColor = 0xFFE3BC62;
+        int bodyColor = 0xFFF1D887;
+        int keyholeColor = 0xFF25313A;
+
+        overlay.addChild(lockPart(shackleLeft, iconTop, LOCK_SHACKLE_WIDTH, 3, shackleColor));
+        overlay.addChild(lockPart(shackleLeft, iconTop + 3, 3, LOCK_SHACKLE_HEIGHT - 3, shackleColor));
+        overlay.addChild(lockPart(shackleLeft + LOCK_SHACKLE_WIDTH - 3, iconTop + 3, 3, LOCK_SHACKLE_HEIGHT - 3, shackleColor));
+
+        UIElement body = new UIElement().layout(layout -> {
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.left(iconLeft);
+            layout.top(iconTop + LOCK_SHACKLE_HEIGHT - 1);
+            layout.width(LOCK_BODY_WIDTH);
+            layout.height(LOCK_BODY_HEIGHT);
+        }).style(style -> style.backgroundTexture(new GuiTextureGroup(
+                new ColorRectTexture(bodyColor),
+                new ColorBorderTexture(1, 0xFFFFE5A5)
+        )));
+        overlay.addChild(body);
+        body.addChild(lockPart((LOCK_BODY_WIDTH - 4) / 2, 3, 4, 4, keyholeColor));
+        body.addChild(lockPart((LOCK_BODY_WIDTH - 2) / 2, 6, 2, 3, keyholeColor));
+        return overlay;
+    }
+
+    /** lockPart: 创建锁图标的固定尺寸色块。 */
+    private static UIElement lockPart(int left, int top, int width, int height, int color) {
+        return new UIElement().layout(layout -> {
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.left(left);
+            layout.top(top);
+            layout.width(width);
+            layout.height(height);
+        }).style(style -> style.backgroundTexture(new ColorRectTexture(color)));
     }
 
     private static UIElement infoLine(Component text, int width, int color) {
@@ -594,6 +665,11 @@ public final class BuildingListScreenOpener {
             return;
         }
         BuildingCacheService.BuildingMeta building = selectedBuilding.get();
+        if (isLocked(building)) {
+            selectedBuildingFileName = null;
+            showLockedMessage(building);
+            return;
+        }
         Optional<BuildingStructure> structure = BuildingStructureService.loadStructure(building.category(), building.metaFileName());
         if (structure.isPresent()) {
             pendingPreview = new PendingPreview(building, currentBuildBoxPos, structure.get());
@@ -616,6 +692,21 @@ public final class BuildingListScreenOpener {
             case "other" -> Component.translatable("gui.category.other").getString();
             default -> category;
         };
+    }
+
+    /** isLocked: 按服务端同步的城市等级判断建筑是否仍被锁定。 */
+    private static boolean isLocked(BuildingCacheService.BuildingMeta building) {
+        return building != null && building.unlockLevel() > 0
+                && BuildBoxScreenOpener.currentCityLevel() < building.unlockLevel();
+    }
+
+    /** showLockedMessage: 阻止预览时向玩家显示所需城市等级。 */
+    private static void showLockedMessage(BuildingCacheService.BuildingMeta building) {
+        ClientInfoToast.show(
+                Component.translatable("toast.simukraft.title"),
+                Component.translatable("message.simukraft.build_box.level_locked", building.unlockLevel()),
+                "warning"
+        );
     }
 
     private static int categoryColor(String category) {
@@ -711,8 +802,19 @@ public final class BuildingListScreenOpener {
             if (selectedBuildingFileName == null) {
                 return;
             }
-            infoRegion.addChild(textElement(Component.translatable("gui.building_list.selected", selectedBuildingFileName),
-                    regions.selectedInfoRegion().width(), SimuKraftUiTheme.TEXT_WARNING_COLOR, TextTexture.TextType.NORMAL).layout(layout -> {
+            BuildingCacheService.BuildingMeta selected = buildings.stream()
+                    .filter(building -> selectedBuildingFileName.equals(building.structureFileName()))
+                    .findFirst()
+                    .orElse(null);
+            if (isLocked(selected)) {
+                selectedBuildingFileName = null;
+                return;
+            }
+            Component selectedText = selected != null && selected.unlockLevel() > 0
+                    ? Component.translatable("gui.building_list.selected_with_level", selectedBuildingFileName, selected.unlockLevel())
+                    : Component.translatable("gui.building_list.selected", selectedBuildingFileName);
+            infoRegion.addChild(textElement(selectedText, regions.selectedInfoRegion().width(),
+                    SimuKraftUiTheme.TEXT_WARNING_COLOR, TextTexture.TextType.NORMAL).layout(layout -> {
                 layout.widthPercent(100);
                 layout.height(12);
             }));
@@ -760,7 +862,12 @@ public final class BuildingListScreenOpener {
             Button confirmButton = new Button();
             confirmButton.setText(Component.translatable("gui.button.select"));
             layoutButtonInRegion(confirmButton, regions.confirmRegion(), 0.88F, 0.82F);
-            if (selectedBuildingFileName != null) {
+            BuildingCacheService.BuildingMeta selected = buildings.stream()
+                    .filter(building -> selectedBuildingFileName != null
+                            && selectedBuildingFileName.equals(building.structureFileName()))
+                    .findFirst()
+                    .orElse(null);
+            if (selected != null && !isLocked(selected)) {
                 confirmButton.setOnClick(event -> confirmSelectedBuilding());
             } else {
                 confirmButton.setActive(false);

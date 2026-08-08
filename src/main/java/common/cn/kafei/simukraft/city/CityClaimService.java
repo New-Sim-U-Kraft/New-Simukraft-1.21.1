@@ -10,7 +10,7 @@ import net.minecraft.world.level.ChunkPos;
 
 public final class CityClaimService {
     /** MAX_CITY_ENCLAVES：每座城市允许购买的独立飞地数量上限。 */
-    public static final int MAX_CITY_ENCLAVES = 9;
+    public static final int MAX_CITY_ENCLAVES = CityLevelDefinition.DEFAULT_UNLOCKED_ENCLAVES;
     /** ENCLAVE_CHUNK_PRICE：不与城市主领地连通的飞地区块固定价格。 */
     public static final double ENCLAVE_CHUNK_PRICE = 50.0D;
 
@@ -30,9 +30,16 @@ public final class CityClaimService {
         if (chunkManager.getChunkOwner(chunkLong) != null) {
             return ClaimResult.failed(Component.translatable("message.simukraft.city_chunk.already_claimed"));
         }
+        CityLevelDefinition levelDefinition = CityLevelDefinitionLoader.INSTANCE.definition(city.cityLevel());
+        int chunkLimit = levelDefinition == null ? CityLevelDefinition.UNLIMITED : levelDefinition.unlockedChunks();
+        if (chunkLimit >= 0 && chunkManager.getCityChunks(city.cityId()).size() >= chunkLimit) {
+            return ClaimResult.failed(Component.translatable("message.simukraft.city_chunk.chunk_limit", chunkLimit));
+        }
         boolean adjacentToCity = chunkManager.isAdjacentToCity(city.cityId(), chunkLong);
-        if (!adjacentToCity && chunkManager.countEnclaves(city.cityId(), new ChunkPos(city.cityCorePos()).toLong()) >= MAX_CITY_ENCLAVES) {
-            return ClaimResult.failed(Component.translatable("message.simukraft.city_chunk.enclave_limit", MAX_CITY_ENCLAVES));
+        int enclaveLimit = levelDefinition == null ? MAX_CITY_ENCLAVES : levelDefinition.unlockedEnclaves();
+        if (!adjacentToCity && enclaveLimit >= 0
+                && chunkManager.countEnclaves(city.cityId(), new ChunkPos(city.cityCorePos()).toLong()) >= enclaveLimit) {
+            return ClaimResult.failed(Component.translatable("message.simukraft.city_chunk.enclave_limit", enclaveLimit));
         }
         if (!adjacentToCity && chunkManager.getCityChunks(city.cityId()).isEmpty()) {
             return ClaimResult.failed(Component.translatable("message.simukraft.city_chunk.not_adjacent"));

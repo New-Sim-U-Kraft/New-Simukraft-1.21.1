@@ -170,9 +170,13 @@ public final class BuildingPackageCatalog {
         metaFiles.sort(String.CASE_INSENSITIVE_ORDER);
 
         for (String metaFile : metaFiles) {
-            BuildingCatalog.BuildingDefinition definition = readDefinition(packagePath, zipFile, category, metaFile, packageFiles);
-            if (definition != null) {
-                target.put(stripExtension(metaFile).toLowerCase(Locale.ROOT), definition);
+            try {
+                BuildingCatalog.BuildingDefinition definition = readDefinition(packagePath, zipFile, category, metaFile, packageFiles);
+                if (definition != null) {
+                    target.put(stripExtension(metaFile).toLowerCase(Locale.ROOT), definition);
+                }
+            } catch (IllegalArgumentException exception) {
+                SimuKraft.LOGGER.warn("Simukraft: Ignored invalid building metadata {} in {}", metaFile, packagePath, exception);
             }
         }
     }
@@ -224,6 +228,7 @@ public final class BuildingPackageCatalog {
         String size = findValue(metaText.get(), "size", "-");
         String amount = findValue(metaText.get(), "amount", findValue(metaText.get(), "price", "-"));
         String description = findValue(metaText.get(), "description", findValue(metaText.get(), "desc", ""));
+        int unlockLevel = readUnlockLevel(metaText.get());
         String structureFile = findValue(metaText.get(), "structure", findValue(metaText.get(), "file", ""));
         if (structureFile.isBlank()) {
             structureFile = baseName + ".nbt";
@@ -242,6 +247,7 @@ public final class BuildingPackageCatalog {
                 amount,
                 author,
                 description,
+                unlockLevel,
                 metaFile,
                 actualStructureFile,
                 buildingType,
@@ -401,16 +407,42 @@ public final class BuildingPackageCatalog {
     }
 
     private static String findValue(String text, String key, String fallback) {
+        String value = findDeclaredValue(text, key);
+        return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static String findDeclaredValue(String text, String key) {
+        if (text == null || key == null || key.isBlank()) {
+            return null;
+        }
         String prefix = key + ":";
         for (String line : text.split("\\R")) {
             String trimmedLine = line.trim();
-            if (!trimmedLine.regionMatches(true, 0, prefix, 0, prefix.length())) {
-                continue;
+            if (trimmedLine.regionMatches(true, 0, prefix, 0, prefix.length())) {
+                return trimmedLine.substring(prefix.length()).trim();
             }
-            String value = trimmedLine.substring(prefix.length()).trim();
-            return value.isEmpty() ? fallback : value;
         }
-        return fallback;
+        return null;
+    }
+
+    /** readUnlockLevel: 读取建筑解锁等级；仅缺失或空白表示不限制。 */
+    static int readUnlockLevel(String text) {
+        String value = findDeclaredValue(text, "unlockLevel");
+        if (value == null || value.isBlank()) {
+            value = findDeclaredValue(text, "unlock_level");
+        }
+        if (value == null || value.isBlank()) {
+            return 0;
+        }
+        try {
+            int unlockLevel = Integer.parseInt(value.trim());
+            if (unlockLevel <= 0) {
+                throw new IllegalArgumentException("unlockLevel must be a positive integer when specified");
+            }
+            return unlockLevel;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("unlockLevel must be a positive integer when specified", exception);
+        }
     }
 
     public static String normalizeCategory(String category) {

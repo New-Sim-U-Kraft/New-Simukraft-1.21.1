@@ -9,3 +9,4 @@ medical:hospital_small.json
 job_type:doctor
 job_name:医生
 canParturition:true
+unlockLevel:

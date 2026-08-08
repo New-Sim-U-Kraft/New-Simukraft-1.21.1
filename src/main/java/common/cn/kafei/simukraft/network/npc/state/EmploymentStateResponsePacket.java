@@ -5,6 +5,7 @@ import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenManager;
 import common.cn.kafei.simukraft.citizen.CitizenService;
+import common.cn.kafei.simukraft.city.CityService;
 import common.cn.kafei.simukraft.job.CitizenEmploymentService;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import net.minecraft.core.BlockPos;
@@ -22,7 +23,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @SuppressWarnings("null")
-public record EmploymentStateResponsePacket(BlockPos sourcePos, String sourceType, UUID builderCitizenId, UUID plannerCitizenId, String statusKey) implements CustomPacketPayload {
+public record EmploymentStateResponsePacket(BlockPos sourcePos, String sourceType, UUID builderCitizenId, UUID plannerCitizenId, String statusKey, int cityLevel) implements CustomPacketPayload {
     public static final Type<EmploymentStateResponsePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "employment_state_response"));
     public static final StreamCodec<RegistryFriendlyByteBuf, EmploymentStateResponsePacket> STREAM_CODEC = StreamCodec.of(EmploymentStateResponsePacket::encode, EmploymentStateResponsePacket::decode);
 
@@ -43,6 +44,7 @@ public record EmploymentStateResponsePacket(BlockPos sourcePos, String sourceTyp
             buffer.writeUUID(packet.plannerCitizenId());
         }
         buffer.writeUtf(packet.statusKey(), 64);
+        buffer.writeVarInt(Math.max(0, packet.cityLevel()));
     }
 
     public static EmploymentStateResponsePacket decode(RegistryFriendlyByteBuf buffer) {
@@ -51,7 +53,8 @@ public record EmploymentStateResponsePacket(BlockPos sourcePos, String sourceTyp
         UUID builderCitizenId = buffer.readBoolean() ? buffer.readUUID() : null;
         UUID plannerCitizenId = buffer.readBoolean() ? buffer.readUUID() : null;
         String statusKey = buffer.readUtf(64);
-        return new EmploymentStateResponsePacket(sourcePos, sourceType, builderCitizenId, plannerCitizenId, statusKey);
+        int cityLevel = buffer.readVarInt();
+        return new EmploymentStateResponsePacket(sourcePos, sourceType, builderCitizenId, plannerCitizenId, statusKey, cityLevel);
     }
 
     public static void handleRequest(EmploymentStateRequestPacket packet, IPayloadContext context) {
@@ -70,7 +73,13 @@ public record EmploymentStateResponsePacket(BlockPos sourcePos, String sourceTyp
             UUID builderCitizenId = builderCitizen.map(CitizenData::uuid).orElse(null);
             UUID plannerCitizenId = plannerCitizen.map(CitizenData::uuid).orElse(null);
             String statusKey = builderCitizenId != null || plannerCitizenId != null ? "gui.build_box.status_working" : "gui.build_box.status_idle";
-            PacketDistributor.sendToPlayer(player, new EmploymentStateResponsePacket(packet.sourcePos(), packet.sourceType(), builderCitizenId, plannerCitizenId, statusKey));
+            int cityLevel = builderCitizen
+                    .or(() -> plannerCitizen)
+                    .flatMap(citizen -> CityService.findCity(level, citizen.cityId()))
+                    .map(city -> city.cityLevel())
+                    .orElse(0);
+            PacketDistributor.sendToPlayer(player, new EmploymentStateResponsePacket(
+                    packet.sourcePos(), packet.sourceType(), builderCitizenId, plannerCitizenId, statusKey, cityLevel));
         }
     }
 

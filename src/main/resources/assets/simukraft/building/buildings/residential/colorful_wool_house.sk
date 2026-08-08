@@ -6,3 +6,4 @@ description:多巴胺配色双层带阳台住宅
 tags:price_low,material_medium,stage_early
 unit:room1, 10,0,4~1,7,13
 unit:room2, 10,9,4~1,13,13
+unlockLevel:

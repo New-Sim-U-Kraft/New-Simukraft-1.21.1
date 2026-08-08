@@ -67,6 +67,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
@@ -78,25 +79,60 @@ public final class CityCoreScreenOpener {
     private static final int BUTTON_HEIGHT = 24;
     private static final int BACK_BUTTON_WIDTH = 52;
     private static final int BACK_BUTTON_HEIGHT = 20;
+    private static final AtomicLong WINDOW_SEQUENCE = new AtomicLong();
     private static volatile CityChunkMapElement activeMapElement;
     private static volatile CityCoreWindow activeWindow;
+    private static volatile com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen activeScreen;
     private static volatile CityCoreOpenResponsePacket lastSummaryPacket;
+    private static volatile UpgradeRefreshExpectation pendingUpgradeRefresh;
 
     private CityCoreScreenOpener() {
     }
 
     public static void open(CityCoreOpenResponsePacket packet) {
         Minecraft minecraft = Minecraft.getInstance();
-        rememberSummary(packet);
-        minecraft.execute(() -> minecraft.setScreen(new com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen(createUi(packet), Component.empty())));
+        minecraft.execute(() -> {
+            UpgradeRefreshExpectation expectation = takeUpgradeRefresh(packet);
+            if (expectation != null) {
+                CityCoreWindow window = activeWindow;
+                if (!isActiveScreen(minecraft, window)
+                        || window.instanceId != expectation.sourceWindowId()
+                        || !window.matches(packet)) {
+                    return;
+                }
+            }
+            rememberSummary(packet);
+            show(minecraft, createUi(packet, expectation != null ? "upgrade" : null));
+        });
+    }
+
+    /** expectUpgradeRefresh: 标记一次升级后的定向刷新，避免迟到响应重新弹出已关闭窗口。 */
+    static void expectUpgradeRefresh(CityCoreOpenResponsePacket packet) {
+        CityCoreWindow window = activeWindow;
+        if (packet != null && packet.hasCity() && window != null && window.matches(packet)) {
+            pendingUpgradeRefresh = new UpgradeRefreshExpectation(packet.pos(), packet.cityId(), window.instanceId);
+        }
+    }
+
+    /** takeUpgradeRefresh: 消费匹配的升级响应；不按时间降级为普通开窗响应。 */
+    private static UpgradeRefreshExpectation takeUpgradeRefresh(CityCoreOpenResponsePacket packet) {
+        UpgradeRefreshExpectation expectation = pendingUpgradeRefresh;
+        if (expectation != null && expectation.matches(packet)) {
+            pendingUpgradeRefresh = null;
+            return expectation;
+        }
+        return null;
     }
 
     public static void openMembers(CityCoreMembersResponsePacket packet) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (!(minecraft.screen instanceof com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen)) {
-            return;
-        }
-        minecraft.execute(() -> minecraft.setScreen(new com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen(createUi(packet), Component.empty())));
+        minecraft.execute(() -> {
+            CityCoreWindow window = activeWindow;
+            if (!isActiveScreen(minecraft, window) || !window.matches(packet.pos(), packet.cityId())) {
+                return;
+            }
+            show(minecraft, createUi(packet));
+        });
     }
 
     public static void openMap(CityCoreMapResponsePacket packet) {
@@ -105,7 +141,8 @@ public final class CityCoreScreenOpener {
                 .map(chunk -> ChunkPos.asLong(chunk.chunkX(), chunk.chunkZ()))
                 .collect(Collectors.toUnmodifiableSet());
         minecraft.execute(() -> {
-            if (!(minecraft.screen instanceof com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen)) {
+            CityCoreWindow window = activeWindow;
+            if (!isActiveScreen(minecraft, window) || !window.matches(packet.pos(), packet.cityId())) {
                 return;
             }
             ClientCityChunkCache.getInstance().updateCurrentCity(packet.cityId(), chunks, packet.pos(), packet.cityName());
@@ -114,8 +151,23 @@ public final class CityCoreScreenOpener {
                 mapElement.updatePacket(packet);
                 return;
             }
-            minecraft.setScreen(new com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen(createUi(packet), Component.empty()));
+            show(minecraft, createUi(packet));
         });
+    }
+
+    /** isActiveScreen: 验证异步响应仍属于当前城市核心窗口。 */
+    private static boolean isActiveScreen(Minecraft minecraft, CityCoreWindow window) {
+        return window != null
+                && activeWindow == window
+                && minecraft.screen == activeScreen;
+    }
+
+    /** show: 记录并切换城市核心 Screen，供迟到响应进行精确身份校验。 */
+    private static void show(Minecraft minecraft, ModularUI ui) {
+        com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen screen =
+                new com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen(ui, Component.empty());
+        activeScreen = screen;
+        minecraft.setScreen(screen);
     }
 
     private static ModularUI createUi(CityCoreMapResponsePacket packet) {
@@ -134,8 +186,8 @@ public final class CityCoreScreenOpener {
                 .shouldCloseOnKeyInventory(false);
     }
 
-    private static ModularUI createUi(CityCoreOpenResponsePacket packet) {
-        CityCoreWindow window = new CityCoreWindow(packet);
+    private static ModularUI createUi(CityCoreOpenResponsePacket packet, String initialTabId) {
+        CityCoreWindow window = new CityCoreWindow(packet, initialTabId);
         UIElement root = createWindowRoot(window);
         return new ModularUI(SimuKraftUiTheme.createUi(root))
                 .shouldCloseOnEsc(true)
@@ -167,11 +219,18 @@ public final class CityCoreScreenOpener {
 
     private static UIElement createWindowRoot(CityCoreWindow window) {
         SimuKraftFlexLayout.ScreenSize screenSize = SimuKraftFlexLayout.screenSize();
-        return SimuKraftWindowFrame.create(
+        UIElement root = SimuKraftWindowFrame.create(
                 screenSize,
                 Component.translatable("screen.simukraft.city_core.title"),
                 workspace(window),
                 CityCoreScreenOpener::close);
+        root.addEventListener(UIEvents.REMOVED, event -> {
+            if (activeWindow == window) {
+                activeWindow = null;
+                activeScreen = null;
+            }
+        });
+        return root;
     }
 
     private static UIElement workspace(CityCoreWindow window) {
@@ -249,11 +308,7 @@ public final class CityCoreScreenOpener {
     }
 
     private static UIElement upgradePanel(CityCoreOpenResponsePacket packet) {
-        UIElement panel = basePanel();
-        panel.addChild(line(Component.translatable("screen.simukraft.city_core.upgrade.current", packet.cityLevel())));
-        panel.addChild(line(Component.translatable("screen.simukraft.city_core.upgrade.next", packet.cityLevel() + 1)));
-        panel.addChild(line(Component.translatable("screen.simukraft.city_core.upgrade.pending")));
-        return scrollable(panel);
+        return CityUpgradePanelFactory.create(packet);
     }
 
     private static UIElement financePanel(CityCoreOpenResponsePacket packet) {
@@ -292,10 +347,14 @@ public final class CityCoreScreenOpener {
     }
 
     public static void openCitizens(CityCitizenManageResponsePacket packet) {
-        CityCoreWindow window = activeWindow;
-        if (window == null) return;
         Minecraft minecraft = Minecraft.getInstance();
-        minecraft.execute(() -> window.openTab("citizens", "screen.simukraft.city_core.menu.citizens", citizensPanel(packet)));
+        minecraft.execute(() -> {
+            CityCoreWindow window = activeWindow;
+            if (!isActiveScreen(minecraft, window) || !window.matches(packet.pos())) {
+                return;
+            }
+            window.openTab("citizens", "screen.simukraft.city_core.menu.citizens", citizensPanel(packet));
+        });
     }
 
     private static UIElement citizensPanel(CityCitizenManageResponsePacket packet) {
@@ -684,7 +743,15 @@ public final class CityCoreScreenOpener {
 
     private static void close() {
         Minecraft minecraft = Minecraft.getInstance();
+        activeWindow = null;
+        activeScreen = null;
         minecraft.setScreen(null);
+    }
+
+    private record UpgradeRefreshExpectation(BlockPos pos, UUID cityId, long sourceWindowId) {
+        private boolean matches(CityCoreOpenResponsePacket packet) {
+            return packet != null && pos.equals(packet.pos()) && cityId.equals(packet.cityId());
+        }
     }
 
     private static Label line(Component component) {
@@ -776,31 +843,41 @@ public final class CityCoreScreenOpener {
     }
 
     private static final class CityCoreWindow {
+        private final long instanceId = WINDOW_SEQUENCE.incrementAndGet();
         private final CityCoreOpenResponsePacket packet;
         private final CityCoreMembersResponsePacket membersPacket;
         private final CityCoreMapResponsePacket mapPacket;
+        private final String initialTabId;
         private final ViewContainer rightTabs = new ViewContainer();
         private final Map<String, View> openedTabs = new ConcurrentHashMap<>();
         private final UIElement sidebarContainer = new UIElement();
         private boolean sidebarCollapsed;
 
         private CityCoreWindow(CityCoreOpenResponsePacket packet) {
-            this(packet, null, null);
+            this(packet, null);
+        }
+
+        private CityCoreWindow(CityCoreOpenResponsePacket packet, String initialTabId) {
+            this(packet, null, null, initialTabId);
         }
 
         private CityCoreWindow(CityCoreMembersResponsePacket membersPacket) {
-            this(summaryPacket(membersPacket), membersPacket, null);
+            this(summaryPacket(membersPacket), membersPacket, null, null);
         }
 
         private CityCoreWindow(CityCoreMapResponsePacket mapPacket) {
-            this(summaryPacket(mapPacket), null, mapPacket);
+            this(summaryPacket(mapPacket), null, mapPacket, null);
         }
 
-        private CityCoreWindow(CityCoreOpenResponsePacket packet, CityCoreMembersResponsePacket membersPacket, CityCoreMapResponsePacket mapPacket) {
+        private CityCoreWindow(CityCoreOpenResponsePacket packet,
+                               CityCoreMembersResponsePacket membersPacket,
+                               CityCoreMapResponsePacket mapPacket,
+                               String initialTabId) {
             CityCoreScreenOpener.activeWindow = this;
             this.packet = packet;
             this.membersPacket = membersPacket;
             this.mapPacket = mapPacket;
+            this.initialTabId = initialTabId;
             rightTabs.layout(layout -> {
                 layout.flex(1);
                 layout.heightPercent(100);
@@ -815,10 +892,14 @@ public final class CityCoreScreenOpener {
             CityCoreOpenResponsePacket cached = cachedSummary(packet.cityId(), packet.pos());
             int population = cached != null ? cached.cityPopulation() : 0;
             int housingCapacity = cached != null ? cached.housingCapacity() : 0;
+            int cityChunkCount = cached != null ? cached.cityChunkCount() : 0;
+            int cityEnclaveCount = cached != null ? cached.cityEnclaveCount() : 0;
             List<CityCoreOpenResponsePacket.FinanceEntry> finances = cached != null ? cached.financeEntries() : List.of();
             List<CityCoreOpenResponsePacket.PoiStat> poiStats = cached != null ? cached.poiStats() : List.of();
             List<CityCoreOpenResponsePacket.JobStat> jobStats = cached != null ? cached.jobStats() : List.of();
-            return new CityCoreOpenResponsePacket(packet.pos(), true, packet.cityId(), packet.cityName(), packet.funds(), packet.cityLevel(), packet.members().size(), population, housingCapacity, packet.viewerPermission(), false, packet.canManageCity(), finances, poiStats, jobStats);
+            List<CityCoreOpenResponsePacket.UpgradeTarget> upgradeTargets = cached != null ? cached.upgradeTargets() : List.of();
+            CityCoreOpenResponsePacket.UpgradeProgress upgradeProgress = cached != null ? cached.upgradeProgress() : CityCoreOpenResponsePacket.UpgradeProgress.NONE;
+            return new CityCoreOpenResponsePacket(packet.pos(), true, packet.cityId(), packet.cityName(), packet.funds(), packet.cityLevel(), packet.members().size(), population, housingCapacity, cityChunkCount, cityEnclaveCount, packet.viewerPermission(), false, packet.canManageCity(), finances, poiStats, jobStats, upgradeTargets, upgradeProgress);
         }
 
         /** summaryPacket：地图响应不带统计字段时，复用最近一次城市核心统计。 */
@@ -826,10 +907,14 @@ public final class CityCoreScreenOpener {
             CityCoreOpenResponsePacket cached = cachedSummary(packet.cityId(), packet.pos());
             int population = cached != null ? cached.cityPopulation() : 0;
             int housingCapacity = cached != null ? cached.housingCapacity() : 0;
+            int cityChunkCount = cached != null ? cached.cityChunkCount() : 0;
+            int cityEnclaveCount = cached != null ? cached.cityEnclaveCount() : 0;
             List<CityCoreOpenResponsePacket.FinanceEntry> finances = cached != null ? cached.financeEntries() : List.of();
             List<CityCoreOpenResponsePacket.PoiStat> poiStats = cached != null ? cached.poiStats() : List.of();
             List<CityCoreOpenResponsePacket.JobStat> jobStats = cached != null ? cached.jobStats() : List.of();
-            return new CityCoreOpenResponsePacket(packet.pos(), true, packet.cityId(), packet.cityName(), packet.funds(), packet.cityLevel(), packet.memberCount(), population, housingCapacity, packet.permissionLevel(), false, packet.canManageCity(), finances, poiStats, jobStats);
+            List<CityCoreOpenResponsePacket.UpgradeTarget> upgradeTargets = cached != null ? cached.upgradeTargets() : List.of();
+            CityCoreOpenResponsePacket.UpgradeProgress upgradeProgress = cached != null ? cached.upgradeProgress() : CityCoreOpenResponsePacket.UpgradeProgress.NONE;
+            return new CityCoreOpenResponsePacket(packet.pos(), true, packet.cityId(), packet.cityName(), packet.funds(), packet.cityLevel(), packet.memberCount(), population, housingCapacity, cityChunkCount, cityEnclaveCount, packet.permissionLevel(), false, packet.canManageCity(), finances, poiStats, jobStats, upgradeTargets, upgradeProgress);
         }
 
         private void rebuildSidebar() {
@@ -853,7 +938,10 @@ public final class CityCoreScreenOpener {
         }
 
         private void openDefaultTabs() {
-            if (mapPacket != null) {
+            if ("upgrade".equals(initialTabId) && packet.hasCity() && packet.canManageCity()) {
+                openTab("info", "screen.simukraft.city_core.menu.info", scrollable(contentPanel(packet)));
+                openTab("upgrade", "screen.simukraft.city_core.menu.upgrade", upgradePanel(packet));
+            } else if (mapPacket != null) {
                 openTab("info", "screen.simukraft.city_core.menu.info", scrollable(contentPanel(packet)));
                 openTab("map", "screen.simukraft.city_core.map_title", cityMapPanel(mapPacket));
             } else if (membersPacket != null) {
@@ -877,6 +965,20 @@ public final class CityCoreScreenOpener {
             openedTabs.put(id, view);
             rightTabs.addView(view);
             rightTabs.selectView(view);
+        }
+
+        private boolean matches(CityCoreOpenResponsePacket other) {
+            return other != null && packet.cityId().equals(other.cityId()) && packet.pos().equals(other.pos());
+        }
+
+        /** matches: 校验带城市标识的异步响应归属。 */
+        private boolean matches(BlockPos pos, UUID cityId) {
+            return packet.pos().equals(pos) && packet.cityId().equals(cityId);
+        }
+
+        /** matches: 校验仅携带核心坐标的异步响应归属。 */
+        private boolean matches(BlockPos pos) {
+            return packet.pos().equals(pos);
         }
 
     }

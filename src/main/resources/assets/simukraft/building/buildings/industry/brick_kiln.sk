@@ -9,3 +9,4 @@ job_name:烧砖工
 held_item:minecraft:brick
 industrial:brick_kiln.json
 structure:brick_kiln.nbt
+unlockLevel:

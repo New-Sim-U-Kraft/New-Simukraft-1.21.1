@@ -23,6 +23,7 @@ import common.cn.kafei.simukraft.network.city.core.CityCoreCreateCityPacket;
 import common.cn.kafei.simukraft.network.city.core.CityCoreManageCityPacket;
 import common.cn.kafei.simukraft.network.city.core.CityCoreOpenRequestPacket;
 import common.cn.kafei.simukraft.network.city.core.CityCoreOpenResponsePacket;
+import common.cn.kafei.simukraft.network.city.core.CityUpgradeRequestPacket;
 import common.cn.kafei.simukraft.network.city.map.CityCoreMapRequestPacket;
 import common.cn.kafei.simukraft.network.city.map.CityCoreMapResponsePacket;
 import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenManageActionPacket;
@@ -80,7 +81,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 @SuppressWarnings("null")
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "25";
+    private static final String NETWORK_VERSION = "27";
 
     private ModNetwork() {
     }
@@ -91,6 +92,7 @@ public final class ModNetwork {
         registrar.playToServer(CityCoreOpenRequestPacket.TYPE, CityCoreOpenRequestPacket.STREAM_CODEC, CityCoreOpenRequestPacket::handle);
         registrar.playToServer(CityCoreCreateCityPacket.TYPE, CityCoreCreateCityPacket.STREAM_CODEC, CityCoreCreateCityPacket::handle);
         registrar.playToServer(CityCoreManageCityPacket.TYPE, CityCoreManageCityPacket.STREAM_CODEC, CityCoreManageCityPacket::handle);
+        registrar.playToServer(CityUpgradeRequestPacket.TYPE, CityUpgradeRequestPacket.STREAM_CODEC, CityUpgradeRequestPacket::handle);
         registrar.playToServer(CityCoreMembersRequestPacket.TYPE, CityCoreMembersRequestPacket.STREAM_CODEC, CityCoreMembersRequestPacket::handle);
         registrar.playToServer(CityCoreMemberActionPacket.TYPE, CityCoreMemberActionPacket.STREAM_CODEC, CityCoreMemberActionPacket::handle);
         registrar.playToServer(CityCitizenManageRequestPacket.TYPE, CityCitizenManageRequestPacket.STREAM_CODEC, CityCitizenManageRequestPacket::handle);

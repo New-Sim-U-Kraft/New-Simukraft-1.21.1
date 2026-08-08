@@ -3,6 +3,7 @@ package common.cn.kafei.simukraft.network.city;
 import common.cn.kafei.simukraft.city.CityChunkManager;
 import common.cn.kafei.simukraft.city.CityData;
 import common.cn.kafei.simukraft.city.CityMemberData;
+import common.cn.kafei.simukraft.city.CityLevelDefinitionLoader;
 import common.cn.kafei.simukraft.city.CityPermissionLevel;
 import common.cn.kafei.simukraft.city.CityPopulationStats;
 import common.cn.kafei.simukraft.city.CityService;
@@ -38,7 +39,7 @@ public final class CityNetworkViewFactory {
 
     public static CityCoreOpenResponsePacket buildOpenResponse(ServerLevel level, BlockPos pos, Optional<CityData> city, CityPermissionLevel permissionLevel, boolean canCreateCity, boolean canManageCity) {
         if (city.isEmpty()) {
-            return new CityCoreOpenResponsePacket(pos, false, CityCoreOpenResponsePacket.EMPTY_CITY_ID, "", 0.0D, 0, 0, 0, 0, permissionLevel, canCreateCity, canManageCity, List.of(), List.of(), List.of());
+            return new CityCoreOpenResponsePacket(pos, false, CityCoreOpenResponsePacket.EMPTY_CITY_ID, "", 0.0D, 0, 0, 0, 0, permissionLevel, canCreateCity, canManageCity, List.of(), List.of(), List.of(), List.of());
         }
         CityData data = city.get();
         if (level != null) {
@@ -48,7 +49,17 @@ public final class CityNetworkViewFactory {
         List<CityCoreOpenResponsePacket.PoiStat> poiStats = level == null ? List.of() : CityCoreOpenResponsePacket.PoiStat.from(level, data.cityId());
         List<CityCoreOpenResponsePacket.JobStat> jobStats = level == null ? List.of() : CityCoreOpenResponsePacket.JobStat.from(level, data.cityId());
         CityPopulationStats.Snapshot stats = level == null ? new CityPopulationStats.Snapshot(0, 0) : CityPopulationStats.snapshot(level, data.cityId());
-        return new CityCoreOpenResponsePacket(pos, true, data.cityId(), data.cityName(), data.funds(), data.cityLevel(), data.members().size(), stats.population(), stats.housingCapacity(), permissionLevel, canCreateCity, canManageCity, financeEntries, poiStats, jobStats);
+        int cityChunkCount = 0;
+        int cityEnclaveCount = 0;
+        if (level != null) {
+            CityChunkManager chunkManager = CityChunkManager.get(level);
+            cityChunkCount = chunkManager.getCityChunks(data.cityId()).size();
+            cityEnclaveCount = chunkManager.countEnclaves(data.cityId(), new ChunkPos(data.cityCorePos()).toLong());
+        }
+        List<CityCoreOpenResponsePacket.UpgradeTarget> upgradeTargets = CityCoreOpenResponsePacket.UpgradeTarget.from(
+                CityLevelDefinitionLoader.INSTANCE.futureLevels(data.cityLevel(), CityCoreOpenResponsePacket.MAX_UPGRADE_TARGETS));
+        CityCoreOpenResponsePacket.UpgradeProgress upgradeProgress = CityCoreOpenResponsePacket.UpgradeProgress.from(data.upgradeState());
+        return new CityCoreOpenResponsePacket(pos, true, data.cityId(), data.cityName(), data.funds(), data.cityLevel(), data.members().size(), stats.population(), stats.housingCapacity(), cityChunkCount, cityEnclaveCount, permissionLevel, canCreateCity, canManageCity, financeEntries, poiStats, jobStats, upgradeTargets, upgradeProgress);
     }
 
     public static CityCoreOpenResponsePacket buildCreatedCityResponse(ServerLevel level, BlockPos pos, CityData city, UUID viewerId) {

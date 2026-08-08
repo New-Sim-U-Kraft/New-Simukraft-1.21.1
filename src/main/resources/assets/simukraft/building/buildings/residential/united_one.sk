@@ -5,3 +5,4 @@ home_teleport: 3, 0, 1
 author:XiaoLiang小亮
 description:类似于监狱的房子
 tags:price_low,material_low,stage_early
+unlockLevel:

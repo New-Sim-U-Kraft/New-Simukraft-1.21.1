@@ -373,6 +373,18 @@ public final class CityManager extends SavedData {
         return true;
     }
 
+    /** persistUpgrade: 单次持久化升级后的等级、资金和财政流水。 */
+    synchronized boolean persistUpgrade(CityData city) {
+        ServerLevel targetLevel = level;
+        if (city == null || cities.get(city.cityId()) != city || targetLevel == null
+                || SimuSqliteStorage.isDegraded(targetLevel)) {
+            return false;
+        }
+        saveCityIncremental(city);
+        setDirty();
+        return true;
+    }
+
     private static String coreKey(String dimensionId, BlockPos pos) {
         return dimensionId + "@" + pos.asLong();
     }

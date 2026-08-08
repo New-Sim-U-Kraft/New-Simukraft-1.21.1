@@ -39,6 +39,7 @@ public class BuildBoxScreenOpener {
     private static final float CATEGORY_GRID_TOP_RATIO = 0.625F;
     private static final float CATEGORY_GRID_WIDTH_RATIO = 0.78F;
     private static final float CATEGORY_GRID_HEIGHT_RATIO = 0.32F;
+    private static volatile int currentCityLevel;
 
     public static void open(BlockPos buildBoxPos) {
         PacketDistributor.sendToServer(new EmploymentStateRequestPacket(buildBoxPos, "build_box"));
@@ -49,7 +50,15 @@ public class BuildBoxScreenOpener {
         if (minecraft == null) {
             return;
         }
-        minecraft.execute(() -> minecraft.setScreen(new com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen(createUi(packet.sourcePos(), packet), Component.empty())));
+        minecraft.execute(() -> {
+            currentCityLevel = Math.max(0, packet.cityLevel());
+            minecraft.setScreen(new com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen(createUi(packet.sourcePos(), packet), Component.empty()));
+        });
+    }
+
+    /** currentCityLevel: 返回建筑列表展示锁定状态所需的服务端城市等级快照。 */
+    public static int currentCityLevel() {
+        return currentCityLevel;
     }
 
     private static ModularUI createUi(BlockPos buildBoxPos, EmploymentStateResponsePacket state) {

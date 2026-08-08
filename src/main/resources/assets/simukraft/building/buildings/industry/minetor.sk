@@ -5,3 +5,4 @@ author:咖啡&梦蓝
 description:用于矿物钻探的工业钻井平台。
 structure:minetor.nbt
 drilling:minetor.drilling.json
+unlockLevel:5
