@@ -7,6 +7,7 @@ import common.cn.kafei.simukraft.citizen.CitizenWorkStatus;
 import common.cn.kafei.simukraft.citizen.CitizenWorkplaceMoveService;
 import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
+import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.util.SaveScopedCacheKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -48,13 +49,8 @@ public final class CityRuntimeService {
         }
         LevelRuntime runtime = RUNTIMES.computeIfAbsent(SaveScopedCacheKey.levelKey(level), ignored -> new LevelRuntime());
         long gameTime = level.getGameTime();
-        CityChunkManager chunkManager = CityChunkManager.get(level);
         CityManager cityManager = CityManager.get(level);
         for (ServerPlayer player : level.players()) {
-            UUID chunkCityId = chunkManager.getChunkOwner(new ChunkPos(player.blockPosition()).toLong());
-            if (chunkCityId != null) {
-                activate(runtime, chunkCityId, gameTime);
-            }
             cityManager.getPlayerCity(player.getUUID())
                     .filter(city -> CityService.belongsToLevel(level, city))
                     .filter(city -> city.hasPermission(player.getUUID(), CityPermissionLevel.OFFICIAL))
@@ -149,7 +145,9 @@ public final class CityRuntimeService {
                 releaseRecovery(level, cityRuntime, citizenId, pending);
                 return;
             }
-            if (CitizenTeleportService.findCitizenEntity(level, citizenId) != null) {
+            CitizenEntity citizenEntity = CitizenTeleportService.findCitizenEntity(level, citizenId);
+            if (citizenEntity != null) {
+                CitizenTeleportService.refreshClientTracking(level, citizenEntity);
                 common.cn.kafei.simukraft.SimuKraft.LOGGER.debug(
                         "Simukraft: recovery loaded citizen {} from chunk {}", citizenId, new ChunkPos(pending.chunkLong()));
                 if (citizen.workStatusType() == CitizenWorkStatus.WORKING && citizen.workplaceId() != null) {
