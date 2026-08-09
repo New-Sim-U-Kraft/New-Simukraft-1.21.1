@@ -8,7 +8,6 @@ import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
-import common.cn.kafei.simukraft.city.poi.CityPoiType;
 import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.building.MedicalBedPoiService;
@@ -52,7 +51,7 @@ public final class NpcChildbirthService {
         // 优先使用怀孕时预约的床位，预约丢失时兜底搜索
         UUID vacantBedPoiId = wife.reservedBabyBedPoiId() != null
                 ? wife.reservedBabyBedPoiId()
-                : findVacantBedInSameBuilding(level, wife);
+                : findVacantBedInSameHousehold(level, wife);
         if (vacantBedPoiId == null) return;
 
         Optional<common.cn.kafei.simukraft.entity.CitizenEntity> entityOpt =
@@ -114,7 +113,8 @@ public final class NpcChildbirthService {
         return poi != null && level.isLoaded(poi.pos()) ? poi.pos() : null;
     }
 
-    private static UUID findVacantBedInSameBuilding(ServerLevel level, CitizenData wife) {
+    /** findVacantBedInSameHousehold：在产妇所在户内兜底查找空床。 */
+    private static UUID findVacantBedInSameHousehold(ServerLevel level, CitizenData wife) {
         UUID homeId = wife.homeId();
         if (homeId == null) return null;
         CityPoiManager poiManager = CityPoiManager.get(level);
@@ -134,9 +134,8 @@ public final class NpcChildbirthService {
                 .map(CitizenData::reservedBabyBedPoiId)
                 .forEach(occupiedPoiIds::add);
 
-        for (var instance : building.poiInstances()) {
-            if (instance.poiType() != CityPoiType.RESIDENTIAL) continue;
-            CityPoiData poi = poiManager.getPoiAt(instance.worldPos());
+        for (UUID poiId : CitizenHousingService.householdOf(building, poiManager, homeId)) {
+            CityPoiData poi = poiManager.getPoi(poiId);
             if (poi == null || !poi.active()) continue;
             if (!occupiedPoiIds.contains(poi.poiId())) return poi.poiId();
         }

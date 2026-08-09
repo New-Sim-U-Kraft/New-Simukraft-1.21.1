@@ -210,6 +210,39 @@ public final class CitizenHomeRestService {
         CitizenBedSleepService.clearServerCaches(server);
     }
 
+    /** invalidateMovedHomes：建筑搬迁后清理居民住宅落点、床位和回家导航缓存。 */
+    public static void invalidateMovedHomes(ServerLevel level, Set<UUID> homePoiIds) {
+        if (level == null || homePoiIds == null || homePoiIds.isEmpty()) {
+            return;
+        }
+        String levelKey = SaveScopedCacheKey.levelKey(level);
+        ConcurrentMap<UUID, Vec3> homeTargets = HOME_TARGETS_BY_LEVEL.get(levelKey);
+        if (homeTargets != null) {
+            homePoiIds.forEach(homeTargets::remove);
+        }
+        Set<UUID> restedCitizens = RESTED_CITIZENS_BY_LEVEL.get(levelKey);
+        CityPoiManager poiManager = CityPoiManager.get(level);
+        for (CitizenData citizen : CitizenManager.get(level).allCitizens()) {
+            if (citizen.dead() || citizen.homeId() == null || !homePoiIds.contains(citizen.homeId())) {
+                continue;
+            }
+            if (restedCitizens != null) {
+                restedCitizens.remove(citizen.uuid());
+            }
+            CitizenNavigationService.stopReturnHome(level, citizen.uuid());
+            CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
+            CitizenBedSleepService.release(level, citizen.uuid());
+            if (entity == null || !entity.isSleeping()) {
+                continue;
+            }
+            CityPoiData home = poiManager.getPoi(citizen.homeId());
+            Vec3 fallback = home != null && home.active() && home.type() == CityPoiType.RESIDENTIAL
+                    ? resolveHomeTarget(level, home.pos())
+                    : null;
+            CitizenBedSleepService.wakeUp(level, entity, fallback);
+        }
+    }
+
     // resolveHomeTarget：解析住宅床边的安全脚底坐标，供回家和新入住生成共用。
     public static Vec3 resolveHomeTarget(ServerLevel level, BlockPos homePos) {
         BlockPos anchor = resolveHomeAnchor(level, homePos);

@@ -4,7 +4,9 @@ import client.cn.kafei.simukraft.client.buildbox.BuildingBoundsRenderer;
 import client.cn.kafei.simukraft.client.buildbox.PreviewBlockData;
 import client.cn.kafei.simukraft.client.buildbox.PreviewMesh;
 import client.cn.kafei.simukraft.client.buildbox.PreviewMeshBuilder;
+import client.cn.kafei.simukraft.client.city.ClientCityChunkCache;
 import client.cn.kafei.simukraft.client.freecamera.FreeCameraManager;
+import common.cn.kafei.simukraft.building.BuildingTerritoryValidator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -30,7 +32,11 @@ public final class RtsMovePreviewManager {
     private static BlockPos manualOffset = BlockPos.ZERO;
     private static BlockPos destinationPos;
     private static AABB sourceBounds;
+    private static int sourceBottomY;
+    private static boolean surfaceReady;
     private static boolean active;
+    private static final RtsSurfaceHeightResolver.SurfaceHeightCache SURFACE_HEIGHT_CACHE =
+            new RtsSurfaceHeightResolver.SurfaceHeightCache();
 
     private RtsMovePreviewManager() {
     }
@@ -58,8 +64,10 @@ public final class RtsMovePreviewManager {
         manualOffset = BlockPos.ZERO;
         destinationPos = immutableSource;
         sourceBounds = knownBounds == null ? new AABB(immutableSource) : knownBounds;
+        sourceBottomY = blocks.stream().mapToInt(block -> block.pos().getY()).min().orElse(immutableSource.getY());
         active = true;
         BuildingBoundsRenderer.setRtsMovePreviewBounds(sourceBounds);
+        moveTo(destinationForCurrentPlacement());
         return true;
     }
 
@@ -69,7 +77,7 @@ public final class RtsMovePreviewManager {
             return;
         }
         currentPlacementPos = placement.immutable();
-        moveTo(sourcePos.offset(currentPlacementPos.subtract(referencePlacementPos)).offset(manualOffset));
+        moveTo(destinationForCurrentPlacement());
     }
 
     /** moveRelativeToCamera: 按建筑预览的方向键规则相对相机平移预览。 */
@@ -93,7 +101,26 @@ public final class RtsMovePreviewManager {
             return;
         }
         manualOffset = manualOffset.offset(dx, dy, dz);
-        moveTo(sourcePos.offset(currentPlacementPos.subtract(referencePlacementPos)).offset(manualOffset));
+        moveTo(destinationForCurrentPlacement());
+    }
+
+    /** destinationForCurrentPlacement: 保持建筑投影范围的最低层贴合最高地表，并叠加手动微调。 */
+    private static BlockPos destinationForCurrentPlacement() {
+        int deltaX = currentPlacementPos.getX() - referencePlacementPos.getX() + manualOffset.getX();
+        int deltaZ = currentPlacementPos.getZ() - referencePlacementPos.getZ() + manualOffset.getZ();
+        int minX = (int) Math.floor(sourceBounds.minX) + deltaX;
+        int maxX = (int) Math.ceil(sourceBounds.maxX) - 1 + deltaX;
+        int minZ = (int) Math.floor(sourceBounds.minZ) + deltaZ;
+        int maxZ = (int) Math.ceil(sourceBounds.maxZ) - 1 + deltaZ;
+        Minecraft minecraft = Minecraft.getInstance();
+        RtsSurfaceHeightResolver.SurfaceHeight surface = minecraft.level instanceof ClientLevel level
+                ? SURFACE_HEIGHT_CACHE.resolve(level, minX, maxX, minZ, maxZ, currentPlacementPos.getY())
+                : new RtsSurfaceHeightResolver.SurfaceHeight(currentPlacementPos.getY(), false);
+        surfaceReady = surface.complete();
+        int surfaceY = surface.y();
+        int destinationY = sourcePos.getY() + surfaceY - sourceBottomY + manualOffset.getY();
+        return new BlockPos(sourcePos.getX() + deltaX, destinationY, sourcePos.getZ() + deltaZ)
+                .immutable();
     }
 
     private static void moveTo(BlockPos nextDestination) {
@@ -124,6 +151,31 @@ public final class RtsMovePreviewManager {
         return destinationPos;
     }
 
+    /** manualVerticalOffset: 返回预览高度键产生的纵向微调值，供服务端最终贴地时保留。 */
+    public static int manualVerticalOffset() {
+        return manualOffset.getY();
+    }
+
+    /** isSurfaceReady：返回当前预览投影是否已获得完整的地表高度。 */
+    public static boolean isSurfaceReady() {
+        return surfaceReady;
+    }
+
+    /** isDestinationInCurrentCityTerritory：校验当前预览整体边界是否仍在客户端同步的城市领地内。 */
+    public static boolean isDestinationInCurrentCityTerritory() {
+        if (!active || sourceBounds == null || sourcePos == null || destinationPos == null) {
+            return false;
+        }
+        int deltaX = destinationPos.getX() - sourcePos.getX();
+        int deltaZ = destinationPos.getZ() - sourcePos.getZ();
+        int minX = (int) Math.floor(sourceBounds.minX) + deltaX;
+        int maxX = (int) Math.ceil(sourceBounds.maxX) - 1 + deltaX;
+        int minZ = (int) Math.floor(sourceBounds.minZ) + deltaZ;
+        int maxZ = (int) Math.ceil(sourceBounds.maxZ) - 1 + deltaZ;
+        return BuildingTerritoryValidator.boundsInChunks(minX, maxX, minZ, maxZ,
+                ClientCityChunkCache.getInstance().getCurrentCityChunks());
+    }
+
     /** mesh: 返回当前预览网格，只供客户端渲染器读取。 */
     public static PreviewMesh mesh() {
         return mesh;
@@ -141,6 +193,9 @@ public final class RtsMovePreviewManager {
         manualOffset = BlockPos.ZERO;
         destinationPos = null;
         sourceBounds = null;
+        sourceBottomY = 0;
+        surfaceReady = false;
+        SURFACE_HEIGHT_CACHE.clear();
         active = false;
         BuildingBoundsRenderer.setRtsMovePreviewBounds(null);
     }

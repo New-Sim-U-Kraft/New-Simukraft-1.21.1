@@ -10,10 +10,12 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import client.cn.kafei.simukraft.client.city.ClientCityChunkCache;
+import client.cn.kafei.simukraft.client.rts.RtsMovePreviewManager;
 import client.cn.kafei.simukraft.client.rts.RtsSelectionManager;
 import common.cn.kafei.simukraft.building.BuildingTerritoryValidator;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
+import common.cn.kafei.simukraft.config.ServerConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
@@ -197,12 +199,16 @@ public final class BuildingBoundsRenderer {
         PoseStack poseStack = event.getPoseStack();
         Vec3 cameraPos = event.getCamera().getPosition();
         boolean rtsPreview = BuildingPreviewManager.isPreviewActive() && RtsSelectionManager.isActive();
+        boolean rtsMovePreview = RtsMovePreviewManager.isActive();
         // RTS 建筑预览只保留城市边界；普通预览仍显示侵入提示。
         if (BuildingPreviewManager.isPreviewActive() && (previewPlayerId == null || previewPlayerId.equals(minecraft.player.getUUID()))) {
             renderCityBoundary(poseStack, cameraPos, minecraft);
             if (!rtsPreview) {
                 renderIntrusions(poseStack, cameraPos, minecraft);
             }
+        }
+        if (rtsMovePreview && ServerConfig.claimProtectionEnabled()) {
+            renderCityBoundary(poseStack, cameraPos, minecraft);
         }
         if (!rtsPreview) {
             renderSelectedBuildingBounds(poseStack, cameraPos);

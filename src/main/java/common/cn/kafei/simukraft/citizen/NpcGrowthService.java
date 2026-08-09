@@ -98,6 +98,9 @@ public final class NpcGrowthService {
             common.cn.kafei.simukraft.storage.SimuSqliteStorage.saveFamily(level, newFamily);
         }
 
+        if (CitizenHousingService.hasFullyVacantHousehold(level, cityId)) {
+            CitizenService.setHome(level, data.uuid(), null);
+        }
         manager.saveCitizenNow(data.uuid());
         CitizenHousingService.fillVacantHomes(level, cityId, 1);
     }

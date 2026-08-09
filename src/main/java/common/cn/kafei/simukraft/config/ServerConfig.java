@@ -9,9 +9,6 @@ import java.util.List;
 public final class ServerConfig {
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.DoubleValue CITY_CHUNK_PRICE;
-    public static final ModConfigSpec.IntValue POPULATION_GROWTH_INTERVAL_TICKS;
-    public static final ModConfigSpec.IntValue POPULATION_GROWTH_MAX_PER_INTERVAL;
-    public static final ModConfigSpec.IntValue POPULATION_GROWTH_TIMES_PER_WEEK;
     public static final ModConfigSpec.EnumValue<CitizenNameStyle> NPC_NAME_STYLE;
     public static final ModConfigSpec.BooleanValue ENABLE_BLACKLIST_PROTECTION;
     public static final ModConfigSpec.BooleanValue ENABLE_CLAIM_PROTECTION;
@@ -95,17 +92,10 @@ public final class ServerConfig {
                 .translation("config.simukraft.general.enableClaimProtection")
                 .define("enableClaimProtection", true);
         builder.pop();
-        builder.push("population");
-        POPULATION_GROWTH_INTERVAL_TICKS = builder.defineInRange("growthIntervalTicks", 24_000, 20, 2_400_000);
-        POPULATION_GROWTH_MAX_PER_INTERVAL = builder.defineInRange("growthMaxPerInterval", 1, 0, 100);
-        POPULATION_GROWTH_TIMES_PER_WEEK = builder
-                .comment("How many times per game week (7 days) the population growth check fires. Range: 1~7.")
-                .defineInRange("growthTimesPerWeek", 7, 1, 7);
         NPC_NAME_STYLE = builder
                 .comment("NPC name style used when generating new citizens.")
                 .translation("config.simukraft.npc.nameStyle")
                 .defineEnum("npcNameStyle", CitizenNameStyle.CHINESE);
-        builder.pop();
         builder.push("construction");
         BUILDER_BLOCKS_PER_SECOND = builder
                 .comment(
@@ -394,18 +384,6 @@ public final class ServerConfig {
 
     public static double cityChunkPrice() {
         return CITY_CHUNK_PRICE.get();
-    }
-
-    public static int populationGrowthIntervalTicks() {
-        return POPULATION_GROWTH_INTERVAL_TICKS.get();
-    }
-
-    public static int populationGrowthMaxPerInterval() {
-        return POPULATION_GROWTH_MAX_PER_INTERVAL.get();
-    }
-
-    public static int populationGrowthTimesPerWeek() {
-        return POPULATION_GROWTH_TIMES_PER_WEEK.get();
     }
 
     /** npcNameStyle: 返回新生成 NPC 名字使用的风格。 */

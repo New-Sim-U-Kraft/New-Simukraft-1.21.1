@@ -7,7 +7,6 @@ import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
-import common.cn.kafei.simukraft.city.poi.CityPoiType;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.medical.MedicalService;
 import net.minecraft.server.level.ServerLevel;
@@ -89,7 +88,7 @@ public final class NpcPregnancyService {
         manager.saveCitizenNow(wife.uuid());
     }
 
-    /** findVacantBedForBaby：在妻子所在建筑中找一张未被占用也未被其他孕妇预约的空床，返回其 poiId。 */
+    /** findVacantBedForBaby：在妻子所在户中找一张未被占用也未被其他孕妇预约的空床。 */
     private static UUID findVacantBedForBaby(ServerLevel level, CitizenManager manager, CitizenData wife) {
         if (wife.homeId() == null) return null;
         var building = PlacedBuildingService.findByPoi(level, wife.homeId());
@@ -104,9 +103,8 @@ public final class NpcPregnancyService {
                 .filter(c -> !c.dead() && c.reservedBabyBedPoiId() != null)
                 .map(CitizenData::reservedBabyBedPoiId)
                 .forEach(occupied::add);
-        for (var inst : building.poiInstances()) {
-            if (inst.poiType() != CityPoiType.RESIDENTIAL) continue;
-            CityPoiData poi = poiManager.getPoiAt(inst.worldPos());
+        for (UUID poiId : CitizenHousingService.householdOf(building, poiManager, wife.homeId())) {
+            CityPoiData poi = poiManager.getPoi(poiId);
             if (poi != null && poi.active() && !occupied.contains(poi.poiId())) return poi.poiId();
         }
         return null;

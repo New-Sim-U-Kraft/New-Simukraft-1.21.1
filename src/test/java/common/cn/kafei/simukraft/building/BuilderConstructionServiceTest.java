@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BuilderConstructionServiceTest {
     /** rotatedResidentialBedStillBelongsToItsSourceUnit：验证所有朝向下床位均能归属原始户型单元。 */
+    @SuppressWarnings("null")
     @Test
     void rotatedResidentialBedStillBelongsToItsSourceUnit() {
         BlockPos origin = new BlockPos(120, 64, -48);

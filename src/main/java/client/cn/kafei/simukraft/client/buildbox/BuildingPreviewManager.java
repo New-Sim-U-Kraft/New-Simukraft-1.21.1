@@ -3,9 +3,12 @@ package client.cn.kafei.simukraft.client.buildbox;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import client.cn.kafei.simukraft.client.freecamera.FreeCameraManager;
+import client.cn.kafei.simukraft.client.rts.RtsSurfaceHeightResolver;
 import common.cn.kafei.simukraft.building.BuildingBlockData;
 import common.cn.kafei.simukraft.building.BuildingStructure;
 import common.cn.kafei.simukraft.building.BuildingStructureService;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 
 import java.util.ArrayList;
@@ -28,6 +31,14 @@ public final class BuildingPreviewManager {
     private static BlockPos rtsCurrentPlacement;
     private static BlockPos rtsBaseOrigin = BlockPos.ZERO;
     private static BlockPos rtsManualOffset = BlockPos.ZERO;
+    private static int rtsMinX;
+    private static int rtsMaxX;
+    private static int rtsMinY;
+    private static int rtsMinZ;
+    private static int rtsMaxZ;
+    private static boolean rtsSurfaceReady;
+    private static final RtsSurfaceHeightResolver.SurfaceHeightCache RTS_SURFACE_HEIGHT_CACHE =
+            new RtsSurfaceHeightResolver.SurfaceHeightCache();
 
     private BuildingPreviewManager() {
     }
@@ -62,6 +73,10 @@ public final class BuildingPreviewManager {
         rtsCurrentPlacement = rtsReferencePlacement;
         rtsBaseOrigin = previewOrigin;
         rtsManualOffset = BlockPos.ZERO;
+        captureRtsFootprint();
+        if (rtsReferencePlacement != null) {
+            moveRtsPreviewTo();
+        }
     }
 
     /** updateRtsPreview: 将预览建筑平移到当前 RTS 光标落点对应的位置。 */
@@ -117,6 +132,11 @@ public final class BuildingPreviewManager {
         int nextRotation = Math.floorMod(rotationDegrees + 90, 360);
         rotationDegrees = nextRotation;
         rebuildBlocks(structure);
+        if (rtsReferencePlacement != null) {
+            RTS_SURFACE_HEIGHT_CACHE.clear();
+            captureRtsFootprint();
+            moveRtsPreviewTo();
+        }
     }
 
     public static void clearPreview() {
@@ -133,6 +153,13 @@ public final class BuildingPreviewManager {
         rtsCurrentPlacement = null;
         rtsBaseOrigin = BlockPos.ZERO;
         rtsManualOffset = BlockPos.ZERO;
+        rtsMinX = 0;
+        rtsMaxX = 0;
+        rtsMinY = 0;
+        rtsMinZ = 0;
+        rtsMaxZ = 0;
+        rtsSurfaceReady = false;
+        RTS_SURFACE_HEIGHT_CACHE.clear();
         previewRevision++;
     }
 
@@ -183,11 +210,55 @@ public final class BuildingPreviewManager {
         moveRtsPreviewTo();
     }
 
-    /** moveRtsPreviewTo: 以抓取参考点、当前落点和手动偏移计算目标位置。 */
+    /** moveRtsPreviewTo: 以建筑投影范围的最高地表、抓取参考点和手动偏移计算目标位置。 */
     private static void moveRtsPreviewTo() {
-        BlockPos desiredOrigin = rtsBaseOrigin.offset(rtsCurrentPlacement.subtract(rtsReferencePlacement)).offset(rtsManualOffset);
+        int offsetX = rtsCurrentPlacement.getX() - rtsReferencePlacement.getX() + rtsManualOffset.getX();
+        int offsetZ = rtsCurrentPlacement.getZ() - rtsReferencePlacement.getZ() + rtsManualOffset.getZ();
+        int originX = rtsBaseOrigin.getX() + offsetX;
+        int originZ = rtsBaseOrigin.getZ() + offsetZ;
+        Minecraft minecraft = Minecraft.getInstance();
+        RtsSurfaceHeightResolver.SurfaceHeight surface = minecraft.level instanceof ClientLevel level
+                ? RTS_SURFACE_HEIGHT_CACHE.resolve(level, originX + rtsMinX, originX + rtsMaxX,
+                originZ + rtsMinZ, originZ + rtsMaxZ, rtsCurrentPlacement.getY())
+                : new RtsSurfaceHeightResolver.SurfaceHeight(rtsCurrentPlacement.getY(), false);
+        rtsSurfaceReady = surface.complete();
+        int surfaceY = surface.y();
+        BlockPos desiredOrigin = new BlockPos(originX, surfaceY - rtsMinY + rtsManualOffset.getY(), originZ);
         BlockPos offset = desiredOrigin.subtract(previewOrigin);
         movePreviewRelative(offset.getX(), offset.getY(), offset.getZ());
+    }
+
+    /** captureRtsFootprint: 记录建筑相对于预览原点的底部投影范围。 */
+    private static void captureRtsFootprint() {
+        if (PREVIEW_BLOCKS.isEmpty()) {
+            rtsMinX = rtsMaxX = rtsMinY = rtsMinZ = rtsMaxZ = 0;
+            return;
+        }
+        List<PreviewBlockData> blocks = getPreviewBlocks();
+        PreviewBlockData first = blocks.getFirst();
+        int minX = first.pos().getX();
+        int maxX = minX;
+        int minY = first.pos().getY();
+        int minZ = first.pos().getZ();
+        int maxZ = minZ;
+        for (int index = 1; index < blocks.size(); index++) {
+            BlockPos pos = blocks.get(index).pos();
+            minX = Math.min(minX, pos.getX());
+            maxX = Math.max(maxX, pos.getX());
+            minY = Math.min(minY, pos.getY());
+            minZ = Math.min(minZ, pos.getZ());
+            maxZ = Math.max(maxZ, pos.getZ());
+        }
+        rtsMinX = minX - previewOrigin.getX();
+        rtsMaxX = maxX - previewOrigin.getX();
+        rtsMinY = minY - previewOrigin.getY();
+        rtsMinZ = minZ - previewOrigin.getZ();
+        rtsMaxZ = maxZ - previewOrigin.getZ();
+    }
+
+    /** isRtsSurfaceReady：返回 RTS 建筑预览是否已获得完整投影范围的地表高度。 */
+    public static boolean isRtsSurfaceReady() {
+        return rtsSurfaceReady;
     }
 
     private static void rebuildBlocks(BuildingStructure structure) {

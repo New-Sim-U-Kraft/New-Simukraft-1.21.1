@@ -240,12 +240,12 @@ public final class PlacedBuildingService {
                 manager.registerPoi(stablePoiId(poi, record.dimensionId()), record.cityId(), poi.worldPos(), poi.poiType(), poi.capacity());
             }
         }
-        // 服务器重启后 unitInstances 为空，从持久化的 CityPoiData.unitId 重建
+        // 服务器重启后按建筑元数据重建单元，兼容旧存档缺少 unitId 的情况。
         rebuildUnitInstancesIfNeeded(level, manager);
         repairedCities.forEach(cityId -> CitizenHousingService.fillVacantHomes(level, cityId));
     }
 
-    // 从持久化的 CityPoiData.unitId 重建 BuildingUnitInstance，解决重启后 unitInstances 为空的问题。
+    // 通过已记录或建筑包中的 unit: 定义重建运行时单元，并同步 POI 的 unitId。
     private static void rebuildUnitInstancesIfNeeded(ServerLevel level, CityPoiManager poiManager) {
         String cacheKey = SaveScopedCacheKey.levelKey(level);
         List<PlacedBuildingRecord> current = BY_DIMENSION.getOrDefault(cacheKey, List.of());
@@ -256,14 +256,15 @@ public final class PlacedBuildingService {
                 updated.add(record);
                 continue;
             }
-            List<BuildingUnitInstance> rebuilt = rebuildUnitsFromPois(record, poiManager);
+            List<BuildingUnitDefinition> unitDefs = BuildingUnitResolver.resolveUnitDefinitions(record);
+            List<BuildingUnitInstance> rebuilt = BuildingUnitResolver.resolveUnitInstances(record, poiManager);
             if (rebuilt.isEmpty()) {
                 updated.add(record);
                 continue;
             }
-            // Re-read unit definitions from catalog for label info
-            List<BuildingUnitDefinition> unitDefs = record.unitDefinitions().isEmpty()
-                    ? readUnitDefsFromCatalog(record) : record.unitDefinitions();
+            for (BuildingUnitInstance unit : rebuilt) {
+                unit.poiIds().forEach(poiId -> poiManager.updatePoiUnitId(poiId, unit.unitId()));
+            }
             updated.add(new PlacedBuildingRecord(
                     record.buildingId(), record.cityId(), record.dimensionId(),
                     record.category(), record.buildingFileName(), record.displayName(),
@@ -276,27 +277,6 @@ public final class PlacedBuildingService {
         if (anyChanged) {
             BY_DIMENSION.put(cacheKey, List.copyOf(updated));
         }
-    }
-
-    private static List<BuildingUnitInstance> rebuildUnitsFromPois(PlacedBuildingRecord record,
-            CityPoiManager poiManager) {
-        java.util.Map<UUID, List<UUID>> byUnitId = new java.util.LinkedHashMap<>();
-        for (BuildingPoiInstance inst : record.poiInstances()) {
-            if (inst.poiType() != common.cn.kafei.simukraft.city.poi.CityPoiType.RESIDENTIAL) continue;
-            common.cn.kafei.simukraft.city.poi.CityPoiData poi = poiManager.getPoiAt(inst.worldPos());
-            if (poi == null || poi.unitId() == null) continue;
-            byUnitId.computeIfAbsent(poi.unitId(), k -> new ArrayList<>()).add(poi.poiId());
-        }
-        if (byUnitId.isEmpty()) return List.of();
-        return byUnitId.entrySet().stream()
-                .map(e -> new BuildingUnitInstance(e.getKey(), "unit_" + e.getKey().toString().substring(0, 8), List.copyOf(e.getValue())))
-                .toList();
-    }
-
-    private static List<BuildingUnitDefinition> readUnitDefsFromCatalog(PlacedBuildingRecord record) {
-        BuildingCatalog.BuildingDefinition def = BuildingCatalog.findBuilding(record.category(), record.buildingFileName()).orElse(null);
-        if (def == null) return List.of();
-        return BuildingMetadataReader.readUnitDefinitions(def);
     }
 
     private static List<PlacedBuildingRecord> load(ServerLevel level, String dimensionId) {

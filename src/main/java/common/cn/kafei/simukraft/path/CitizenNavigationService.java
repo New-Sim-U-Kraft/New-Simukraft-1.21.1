@@ -176,6 +176,43 @@ public final class CitizenNavigationService {
         PathCrowdCoordinator.clear(level, citizenId);
     }
 
+    /** stopReturnHome：仅取消指定居民已排队、计算中或执行中的回家导航。 */
+    public static void stopReturnHome(ServerLevel level, UUID citizenId) {
+        if (level == null || citizenId == null) {
+            return;
+        }
+        LevelRuntime runtime = runtime(level);
+        boolean stopped = false;
+        ActiveNavigation active = runtime.active.get(citizenId);
+        if (active != null && active.intent == MovementIntent.RETURN_HOME) {
+            runtime.active.remove(citizenId, active);
+            stopped = true;
+        }
+        RunningRequest running = runtime.pending.get(citizenId);
+        if (running != null && running.cacheKey().intent() == MovementIntent.RETURN_HOME) {
+            runtime.pending.remove(citizenId, running);
+            running.future().cancel(true);
+            stopped = true;
+        }
+        PathRequest queued = runtime.latestRequests.get(citizenId);
+        if (queued != null && queued.intent() == MovementIntent.RETURN_HOME) {
+            runtime.latestRequests.remove(citizenId, queued);
+            runtime.queuedCitizenIds.remove(citizenId);
+            stopped = true;
+        }
+        if (!stopped) {
+            return;
+        }
+        runtime.blockedSince.remove(citizenId);
+        runtime.cooldowns.remove(citizenId);
+        CitizenEntity citizen = CitizenTeleportService.findCitizenEntity(level, citizenId);
+        if (citizen != null) {
+            citizen.getNavigation().stop();
+            citizen.getMoveControl().setWantedPosition(citizen.getX(), citizen.getY(), citizen.getZ(), 0.0D);
+        }
+        PathCrowdCoordinator.clear(level, citizenId);
+    }
+
     public static boolean isNavigating(ServerLevel level, UUID citizenId) {
         if (level == null || citizenId == null) {
             return false;

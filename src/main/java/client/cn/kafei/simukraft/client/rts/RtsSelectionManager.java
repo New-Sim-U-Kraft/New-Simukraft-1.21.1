@@ -4,7 +4,9 @@ import client.cn.kafei.simukraft.client.buildbox.BuildingBoundsRenderer;
 import client.cn.kafei.simukraft.client.freecamera.FreeCameraManager;
 import client.cn.kafei.simukraft.client.freecamera.FreeCameraScreen;
 import client.cn.kafei.simukraft.client.input.SimuKraftKeyMappings;
+import client.cn.kafei.simukraft.client.toast.ClientInfoToast;
 import client.cn.kafei.simukraft.mixin.MixinGameRenderer;
+import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.network.rts.RtsBuildingBoundsRequestPacket;
 import common.cn.kafei.simukraft.network.rts.RtsDemolishPacket;
 import common.cn.kafei.simukraft.network.rts.RtsMovePacket;
@@ -15,6 +17,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.state.BlockState;
@@ -83,11 +86,11 @@ public final class RtsSelectionManager {
         }
     }
 
-    /** cursorPlacementPos: 返回 RTS 光标所在面外侧的方块落点。 */
+    /** cursorPlacementPos: 返回 RTS 光标 X/Z 对应最高地表上方的默认落点。 */
     public static BlockPos cursorPlacementPos() {
-        BlockHitResult hit = rayTraceCursor(Minecraft.getInstance());
-        return hit != null && hit.getType() == HitResult.Type.BLOCK
-                ? hit.getBlockPos().relative(hit.getDirection()).immutable() : null;
+        Minecraft minecraft = Minecraft.getInstance();
+        BlockHitResult hit = rayTraceCursor(minecraft);
+        return surfacePlacementPos(minecraft, hit);
     }
 
     /** cursorTargetPos: 返回 RTS 系统光标命中的原始方块坐标。 */
@@ -349,7 +352,17 @@ public final class RtsSelectionManager {
         }
         BlockState state = minecraft.level.getBlockState(hit.getBlockPos());
         setTarget(ClientConfig.isRtsTargetBlockEnabled(state) ? hit.getBlockPos() : null,
-                ClientConfig.isRtsTargetBlockEnabled(state) ? hit.getBlockPos().relative(hit.getDirection()) : null);
+                ClientConfig.isRtsTargetBlockEnabled(state) ? surfacePlacementPos(minecraft, hit) : null);
+    }
+
+    /** surfacePlacementPos: 将射线命中转换为同列最高可阻挡地表的上方落点。 */
+    private static BlockPos surfacePlacementPos(Minecraft minecraft, BlockHitResult hit) {
+        if (hit == null || hit.getType() != HitResult.Type.BLOCK || !(minecraft.level instanceof ClientLevel level)) {
+            return null;
+        }
+        BlockPos hitPos = hit.getBlockPos();
+        int surfaceY = RtsSurfaceHeightResolver.resolveSurfaceY(level, hitPos.getX(), hitPos.getZ());
+        return new BlockPos(hitPos.getX(), surfaceY, hitPos.getZ());
     }
 
     /** rayTraceCursor: 将系统光标转换为与当前投影一致的世界射线。 */
@@ -425,7 +438,24 @@ public final class RtsSelectionManager {
                 updateTarget(Minecraft.getInstance());
             }
             RtsMovePreviewManager.update(targetPlacementPos);
-            sendMove(RtsMovePreviewManager.sourcePos(), RtsMovePreviewManager.destinationPos());
+            if (!RtsMovePreviewManager.isSurfaceReady()) {
+                ClientInfoToast.show(
+                        Component.translatable("toast.simukraft.title"),
+                        Component.translatable("message.simukraft.rts.surface_loading"),
+                        "warning"
+                );
+                return;
+            }
+            if (ServerConfig.claimProtectionEnabled() && !RtsMovePreviewManager.isDestinationInCurrentCityTerritory()) {
+                ClientInfoToast.show(
+                        Component.translatable("toast.simukraft.title"),
+                        Component.translatable("message.simukraft.construction.outside_city"),
+                        "warning"
+                );
+                return;
+            }
+            sendMove(RtsMovePreviewManager.sourcePos(), RtsMovePreviewManager.destinationPos(),
+                    RtsMovePreviewManager.manualVerticalOffset());
             clearMoveState();
             return;
         }
@@ -477,9 +507,9 @@ public final class RtsSelectionManager {
         lastLeftClickNanos = now;
     }
 
-    private static void sendMove(BlockPos source, BlockPos destination) {
+    private static void sendMove(BlockPos source, BlockPos destination, int manualVerticalOffset) {
         if (source != null && destination != null && !source.equals(destination)) {
-            PacketDistributor.sendToServer(new RtsMovePacket(source, destination));
+            PacketDistributor.sendToServer(new RtsMovePacket(source, destination, manualVerticalOffset));
         }
     }
 

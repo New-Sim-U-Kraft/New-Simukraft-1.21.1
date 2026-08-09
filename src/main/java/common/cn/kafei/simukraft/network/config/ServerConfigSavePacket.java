@@ -21,9 +21,6 @@ public record ServerConfigSavePacket(
         boolean blacklistProtection,
         boolean logBlacklistSkippedBlocks,
         boolean claimProtection,
-        int populationGrowthIntervalTicks,
-        int populationGrowthMaxPerInterval,
-        int populationGrowthTimesPerWeek,
         CitizenNameStyle npcNameStyle,
         int familyPregnancyDurationDays,
         int familyPostpartumRecoveryDays,
@@ -94,9 +91,6 @@ public record ServerConfigSavePacket(
         buf.writeBoolean(p.blacklistProtection);
         buf.writeBoolean(p.logBlacklistSkippedBlocks);
         buf.writeBoolean(p.claimProtection);
-        buf.writeVarInt(p.populationGrowthIntervalTicks);
-        buf.writeVarInt(p.populationGrowthMaxPerInterval);
-        buf.writeVarInt(p.populationGrowthTimesPerWeek);
         buf.writeUtf(safeNameStyle(p.npcNameStyle).name(), 16);
         buf.writeVarInt(p.familyPregnancyDurationDays);
         buf.writeVarInt(p.familyPostpartumRecoveryDays);
@@ -157,8 +151,7 @@ public record ServerConfigSavePacket(
 
     public static ServerConfigSavePacket decode(RegistryFriendlyByteBuf buf) {
         return new ServerConfigSavePacket(
-                buf.readDouble(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(),
-                buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), CitizenNameStyle.fromName(buf.readUtf(16)),
+                buf.readDouble(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), CitizenNameStyle.fromName(buf.readUtf(16)),
                 buf.readVarInt(), buf.readVarInt(), buf.readDouble(), buf.readDouble(),
                 buf.readDouble(), buf.readVarInt(), buf.readDouble(), buf.readDouble(), buf.readVarInt(),
                 buf.readVarInt(), buf.readVarInt(), buf.readVarInt(),
@@ -183,9 +176,6 @@ public record ServerConfigSavePacket(
         ServerConfig.ENABLE_BLACKLIST_PROTECTION.set(p.blacklistProtection);
         ServerConfig.LOG_BLACKLIST_SKIPPED_BLOCKS.set(p.logBlacklistSkippedBlocks);
         ServerConfig.ENABLE_CLAIM_PROTECTION.set(p.claimProtection);
-        ServerConfig.POPULATION_GROWTH_INTERVAL_TICKS.set(p.populationGrowthIntervalTicks);
-        ServerConfig.POPULATION_GROWTH_MAX_PER_INTERVAL.set(p.populationGrowthMaxPerInterval);
-        ServerConfig.POPULATION_GROWTH_TIMES_PER_WEEK.set(p.populationGrowthTimesPerWeek);
         ServerConfig.NPC_NAME_STYLE.set(safeNameStyle(p.npcNameStyle));
         ServerConfig.FAMILY_PREGNANCY_DURATION_DAYS.set(Math.clamp(p.familyPregnancyDurationDays, 1, 3));
         ServerConfig.FAMILY_POSTPARTUM_RECOVERY_DAYS.set(p.familyPostpartumRecoveryDays);

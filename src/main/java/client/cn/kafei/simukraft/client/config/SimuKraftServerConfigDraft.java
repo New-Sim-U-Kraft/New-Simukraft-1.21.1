@@ -15,9 +15,6 @@ final class SimuKraftServerConfigDraft {
     boolean blacklistProtection;
     boolean logBlacklistSkippedBlocks;
     boolean claimProtection;
-    int populationGrowthIntervalTicks;
-    int populationGrowthMaxPerInterval;
-    int populationGrowthTimesPerWeek;
     CitizenNameStyle npcNameStyle;
     int familyPregnancyDurationDays;
     int familyPostpartumRecoveryDays;
@@ -90,9 +87,6 @@ final class SimuKraftServerConfigDraft {
         blacklistProtection = ServerConfig.ENABLE_BLACKLIST_PROTECTION.get();
         logBlacklistSkippedBlocks = ServerConfig.LOG_BLACKLIST_SKIPPED_BLOCKS.get();
         claimProtection = ServerConfig.ENABLE_CLAIM_PROTECTION.get();
-        populationGrowthIntervalTicks = ServerConfig.POPULATION_GROWTH_INTERVAL_TICKS.get();
-        populationGrowthMaxPerInterval = ServerConfig.POPULATION_GROWTH_MAX_PER_INTERVAL.get();
-        populationGrowthTimesPerWeek = ServerConfig.POPULATION_GROWTH_TIMES_PER_WEEK.get();
         npcNameStyle = ServerConfig.NPC_NAME_STYLE.get();
         familyPregnancyDurationDays = ServerConfig.FAMILY_PREGNANCY_DURATION_DAYS.get();
         familyPostpartumRecoveryDays = ServerConfig.FAMILY_POSTPARTUM_RECOVERY_DAYS.get();
@@ -156,9 +150,6 @@ final class SimuKraftServerConfigDraft {
         blacklistProtection = true;
         logBlacklistSkippedBlocks = true;
         claimProtection = true;
-        populationGrowthIntervalTicks = 24_000;
-        populationGrowthMaxPerInterval = 1;
-        populationGrowthTimesPerWeek = 7;
         npcNameStyle = CitizenNameStyle.CHINESE;
         familyPregnancyDurationDays = 3;
         familyPostpartumRecoveryDays = 1;
@@ -220,7 +211,7 @@ final class SimuKraftServerConfigDraft {
     void saveToLive() {
         PacketDistributor.sendToServer(new ServerConfigSavePacket(
                 cityChunkPrice, blacklistProtection, logBlacklistSkippedBlocks, claimProtection,
-                populationGrowthIntervalTicks, populationGrowthMaxPerInterval, populationGrowthTimesPerWeek, npcNameStyle,
+                npcNameStyle,
                 familyPregnancyDurationDays, familyPostpartumRecoveryDays, familyMarriageChancePerDay, familyPregnancyChancePerDay,
                 medicalLowHealthThreshold, medicalHealIntervalTicks, medicalHealAmount, medicalDiseaseChancePerDay, medicalDiseaseTreatmentTicks,
                 farmAreaRadius, farmWorkIntervalTicks, farmActionsPerCycle,

@@ -62,7 +62,7 @@ public record RtsOpenTargetPacket(BlockPos pos) implements CustomPacketPayload {
 
     /** openFor: 校验目标类型并为当前 RTS 目标建立远程菜单会话。 */
     private static void openFor(ServerLevel level, ServerPlayer player, BlockPos pos) {
-        if (pos == null || !level.isAreaLoaded(pos, 1)) {
+        if (pos == null || !hasTargetChunk(level, pos)) {
             return;
         }
         BlockState state = level.getBlockState(pos);
@@ -155,6 +155,11 @@ public record RtsOpenTargetPacket(BlockPos pos) implements CustomPacketPayload {
 
     /** isBuildingControlBox: 验证控制箱区块已经加载且仍与建筑记录一致。 */
     private static boolean isBuildingControlBox(ServerLevel level, BlockPos pos) {
-        return level.isAreaLoaded(pos, 1) && isBuildingControlBox(level.getBlockState(pos));
+        return hasTargetChunk(level, pos) && isBuildingControlBox(level.getBlockState(pos));
+    }
+
+    /** hasTargetChunk: 仅要求目标容器所在区块可读取，避免边界处因相邻区块未加载而拒绝远程打开。 */
+    private static boolean hasTargetChunk(ServerLevel level, BlockPos pos) {
+        return level != null && pos != null && level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4);
     }
 }

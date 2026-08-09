@@ -138,12 +138,6 @@ public final class SimuKraftServerConfigScreen {
         page.addChild(SimuKraftConfigWidgets.section(Component.translatable("gui.simukraft.config.section.economy")));
         page.addChild(SimuKraftConfigWidgets.row(Component.translatable("gui.simukraft.config.city_chunk_price"),
                 SimuKraftConfigWidgets.doubleField(draft.cityChunkPrice, 0.0D, 1_000_000.0D, value -> draft.cityChunkPrice = value)));
-        page.addChild(SimuKraftConfigWidgets.row(Component.translatable("gui.simukraft.config.population_interval"),
-                SimuKraftConfigWidgets.intField(draft.populationGrowthIntervalTicks, 20, 2_400_000, value -> draft.populationGrowthIntervalTicks = value)));
-        page.addChild(SimuKraftConfigWidgets.row(Component.translatable("gui.simukraft.config.population_max"),
-                SimuKraftConfigWidgets.intField(draft.populationGrowthMaxPerInterval, 0, 100, value -> draft.populationGrowthMaxPerInterval = value)));
-        page.addChild(SimuKraftConfigWidgets.row(Component.translatable("gui.simukraft.config.population_times_per_week"),
-                SimuKraftConfigWidgets.intField(draft.populationGrowthTimesPerWeek, 1, 7, value -> draft.populationGrowthTimesPerWeek = value)));
         page.addChild(SimuKraftConfigWidgets.section(Component.translatable("gui.simukraft.config.section.farming")));
         page.addChild(SimuKraftConfigWidgets.row(Component.translatable("config.simukraft.farming.areaRadius"),
                 SimuKraftConfigWidgets.intField(draft.farmAreaRadius, 1, 16, value -> draft.farmAreaRadius = value)));

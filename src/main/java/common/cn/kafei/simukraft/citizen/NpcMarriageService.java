@@ -13,7 +13,6 @@ import net.minecraft.util.RandomSource;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
-import common.cn.kafei.simukraft.city.poi.CityPoiType;
 
 import java.util.*;
 
@@ -101,7 +100,7 @@ public final class NpcMarriageService {
     /** tryMoveInToExistingHome: 若一方已独占足够大的房子，把另一方迁入，返回是否成功。 */
     private static boolean tryMoveInToExistingHome(ServerLevel level, CitizenManager manager,
             CitizenData husband, CitizenData wife) {
-        int needed = 4; // 新婚无子女预期床位
+        int needed = 2; // 夫妻各占一张床即可共同居住
         if (tryMoveIn(level, manager, husband, wife, needed)) return true;
         if (tryMoveIn(level, manager, wife, husband, needed)) return true;
         return false;
@@ -118,19 +117,11 @@ public final class NpcMarriageService {
                 .filter(c -> !c.dead() && c.homeId() != null)
                 .map(CitizenData::homeId)
                 .collect(java.util.stream.Collectors.toSet());
-        // 收集空床，同时验证总床位数满足需求
-        List<UUID> vacantBeds = building.poiInstances().stream()
-                .filter(i -> i.poiType() == CityPoiType.RESIDENTIAL)
-                .map(i -> poiManager.getPoiAt(i.worldPos()))
-                .filter(p -> p != null && p.active() && !occupied.contains(p.poiId()))
-                .map(p -> p.poiId())
+        List<UUID> household = CitizenHousingService.householdOf(building, poiManager, owner.homeId());
+        List<UUID> vacantBeds = household.stream()
+                .filter(poiId -> !occupied.contains(poiId))
                 .toList();
-        long totalBeds = building.poiInstances().stream()
-                .filter(i -> i.poiType() == CityPoiType.RESIDENTIAL)
-                .map(i -> poiManager.getPoiAt(i.worldPos()))
-                .filter(p -> p != null && p.active())
-                .count();
-        if (totalBeds < needed || vacantBeds.isEmpty()) return false;
+        if (household.size() < needed || vacantBeds.isEmpty()) return false;
         UUID vacantBed = vacantBeds.get(0);
         if (vacantBed == null) return false;
         CitizenService.setHome(level, guest.uuid(), vacantBed);
@@ -152,15 +143,11 @@ public final class NpcMarriageService {
         PlacedBuildingRecord building = PlacedBuildingService.findByPoi(level, citizen.homeId());
         if (building == null) return false;
         CityPoiManager poiManager = CityPoiManager.get(level);
-        Set<UUID> buildingPoiIds = building.poiInstances().stream()
-                .filter(i -> i.poiType() == CityPoiType.RESIDENTIAL)
-                .map(i -> poiManager.getPoiAt(i.worldPos()))
-                .filter(p -> p != null && p.active())
-                .map(p -> p.poiId())
-                .collect(java.util.stream.Collectors.toSet());
+        Set<UUID> householdPoiIds = new java.util.HashSet<>(
+                CitizenHousingService.householdOf(building, poiManager, citizen.homeId()));
         return manager.allCitizens().stream()
                 .filter(c -> !c.dead() && c.homeId() != null && parentIds.contains(c.uuid()))
-                .anyMatch(c -> buildingPoiIds.contains(c.homeId()));
+                .anyMatch(c -> householdPoiIds.contains(c.homeId()));
     }
 
 }

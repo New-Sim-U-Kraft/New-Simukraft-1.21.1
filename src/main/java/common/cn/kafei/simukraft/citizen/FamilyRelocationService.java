@@ -6,7 +6,6 @@ import common.cn.kafei.simukraft.citizen.family.FamilyData;
 import common.cn.kafei.simukraft.city.group.CityGroupMessageService;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import net.minecraft.network.chat.Component;
-import common.cn.kafei.simukraft.city.poi.CityPoiType;
 import net.minecraft.server.level.ServerLevel;
 
 import java.util.*;
@@ -40,23 +39,29 @@ public final class FamilyRelocationService {
 
         // 遍历同城建筑，找倾向分更高且空余足够的目标
         PlacedBuildingRecord bestBuilding = null;
+        List<UUID> bestHousehold = List.of();
         double bestScore = forceNew ? -1.0 : currentScore;
 
         for (PlacedBuildingRecord building : PlacedBuildingService.getBuildings(level)) {
             if (!family.cityId().equals(building.cityId())) continue;
             if (building.equals(currentBuilding)) continue;
-            int vacant = HabitationIndexCalculator.countVacantResidential(building, poiManager, occupiedPoiIds);
-            if (vacant < expectedBeds) continue;
             double score = HabitationIndexCalculator.preferenceScore(level, building, poiManager, occupiedPoiIds, expectedBeds);
-            if (score > bestScore) {
-                bestScore = score;
-                bestBuilding = building;
+            for (List<UUID> household : CitizenHousingService.householdResidentialPoiGroups(building, poiManager)) {
+                long vacantBeds = household.stream().filter(poiId -> !occupiedPoiIds.contains(poiId)).count();
+                if (vacantBeds < expectedBeds) {
+                    continue;
+                }
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestBuilding = building;
+                    bestHousehold = household;
+                }
             }
         }
 
-        if (bestBuilding == null) return false;
+        if (bestBuilding == null || bestHousehold.isEmpty()) return false;
 
-        relocateFamily(level, citizenManager, poiManager, family, bestBuilding, occupiedPoiIds, expectedBeds);
+        relocateFamily(level, citizenManager, family, bestBuilding, bestHousehold, occupiedPoiIds);
         return true;
     }
 
@@ -70,10 +75,8 @@ public final class FamilyRelocationService {
                 && manager.getCitizen(family.wifeId()).map(c -> !c.dead()).orElse(false);
         int adults = (hasHusband ? 1 : 0) + (hasWife ? 1 : 0);
 
-        if (adults <= 1 && children == 0) return 1;         // 单身
-        if (children == 0) return 4;                        // 已婚无子女，预期 4
-        if (children == 1) return 4;                        // 1个孩子，预期 4
-        return adults + children + 1;                       // 2+个孩子：实际人数+1
+        if (adults <= 1 && children == 0) return 1;
+        return adults + children + 1;
     }
 
     private static Set<UUID> buildOccupiedSet(CitizenManager manager) {
@@ -117,16 +120,11 @@ public final class FamilyRelocationService {
     }
 
     private static void relocateFamily(ServerLevel level, CitizenManager manager,
-            CityPoiManager poiManager, FamilyData family,
-            PlacedBuildingRecord targetBuilding, Set<UUID> occupiedPoiIds, int neededBeds) {
-        // 收集目标建筑的空余 RESIDENTIAL POI
-        List<UUID> vacantPoiIds = new ArrayList<>();
-        for (var instance : targetBuilding.poiInstances()) {
-            if (instance.poiType() != CityPoiType.RESIDENTIAL) continue;
-            var poi = poiManager.getPoiAt(instance.worldPos());
-            if (poi == null || !poi.active()) continue;
-            if (!occupiedPoiIds.contains(poi.poiId())) vacantPoiIds.add(poi.poiId());
-        }
+            FamilyData family,
+            PlacedBuildingRecord targetBuilding, List<UUID> targetHousehold, Set<UUID> occupiedPoiIds) {
+        List<UUID> vacantPoiIds = targetHousehold.stream()
+                .filter(poiId -> !occupiedPoiIds.contains(poiId))
+                .toList();
 
         // 家庭成员列表（排除已死亡）
         List<UUID> members = new ArrayList<>();

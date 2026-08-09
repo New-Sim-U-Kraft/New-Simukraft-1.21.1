@@ -1,10 +1,19 @@
 package common.cn.kafei.simukraft.network.rts;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.CompoundContainer;
+import net.minecraft.world.Container;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,11 +69,70 @@ public final class RtsRemoteMenuAccess {
         return true;
     }
 
+    /** keepsChestOpen: 判断箱子是否仍由 RTS 远程菜单持有，避免原版按距离错误重置开盖计数。 */
+    public static boolean keepsChestOpen(ServerLevel level, ChestBlockEntity chest) {
+        if (level == null || chest == null) {
+            return false;
+        }
+        for (var entry : TARGETS.entrySet()) {
+            RemoteTarget target = entry.getValue();
+            if (!target.inDimension(level) || target.menuId() == NO_MENU) {
+                continue;
+            }
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
+            if (player == null || player.level() != level || player.containerMenu.containerId != target.menuId()
+                    || !(player.containerMenu instanceof ChestMenu chestMenu)) {
+                continue;
+            }
+            Container container = chestMenu.getContainer();
+            if (container == chest || container instanceof CompoundContainer compound && compound.contains(chest)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** syncChestClose: 向远程操作者同步箱子合盖事件，补足非跟踪区块的客户端动画。 */
+    private static void syncChestClose(ServerPlayer player, AbstractContainerMenu menu) {
+        if (!keepsMenuOpen(player, menu)) {
+            return;
+        }
+        RemoteTarget target = TARGETS.get(player.getUUID());
+        if (target == null) {
+            return;
+        }
+        BlockState state = player.level().getBlockState(target.pos());
+        if (!(state.getBlock() instanceof ChestBlock)) {
+            return;
+        }
+        sendChestCloseEvent(player, target.pos(), state);
+        if (state.hasProperty(ChestBlock.TYPE) && state.getValue(ChestBlock.TYPE) != ChestType.SINGLE) {
+            BlockPos connectedPos = target.pos().relative(ChestBlock.getConnectedDirection(state));
+            BlockState connectedState = player.level().getBlockState(connectedPos);
+            if (connectedState.getBlock() == state.getBlock()) {
+                sendChestCloseEvent(player, connectedPos, connectedState);
+            }
+        }
+    }
+
+    /** finishMenu: 在远程箱子菜单关闭后同步合盖并回收会话。 */
+    public static void finishMenu(ServerPlayer player, AbstractContainerMenu menu) {
+        if (keepsMenuOpen(player, menu)) {
+            syncChestClose(player, menu);
+            TARGETS.remove(player.getUUID());
+        }
+    }
+
     /** clear: 玩家断开时释放会话，避免静态缓存积累。 */
     public static void clear(ServerPlayer player) {
         if (player != null) {
             TARGETS.remove(player.getUUID());
         }
+    }
+
+    /** sendChestCloseEvent: 仅向当前远程操作者发送原版箱子合盖事件。 */
+    private static void sendChestCloseEvent(ServerPlayer player, BlockPos pos, BlockState state) {
+        player.connection.send(new ClientboundBlockEventPacket(pos, state.getBlock(), 1, 0));
     }
 
     private record RemoteTarget(ResourceKey<Level> dimension, BlockPos pos, int menuId) {

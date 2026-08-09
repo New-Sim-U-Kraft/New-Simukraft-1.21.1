@@ -327,6 +327,14 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
 
     /** confirmPreview: 校验领地后确认当前预览建筑的位置。 */
     private void confirmPreview() {
+        if (rtsPreviewMode && !BuildingPreviewManager.isRtsSurfaceReady()) {
+            ClientInfoToast.show(
+                    Component.translatable("toast.simukraft.title"),
+                    Component.translatable("message.simukraft.rts.surface_loading"),
+                    "warning"
+            );
+            return;
+        }
         if (ServerConfig.claimProtectionEnabled() && !BuildingBoundsRenderer.isEntireBuildingInCityTerritory()) {
             if (this.minecraft != null && this.minecraft.player != null) {
                 ClientInfoToast.show(

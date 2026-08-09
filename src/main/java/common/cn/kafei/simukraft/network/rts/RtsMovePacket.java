@@ -13,9 +13,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** RTS 移动请求：客户端只提交源位置和目标位置，服务端重新校验所有状态。 */
+/** RTS 移动请求：客户端提交源、目标位置与高度微调，服务端重新校验最终落点。 */
 @SuppressWarnings("null")
-public record RtsMovePacket(BlockPos source, BlockPos destination) implements CustomPacketPayload {
+public record RtsMovePacket(BlockPos source, BlockPos destination, int manualVerticalOffset) implements CustomPacketPayload {
     public static final Type<RtsMovePacket> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "rts_move"));
     public static final StreamCodec<RegistryFriendlyByteBuf, RtsMovePacket> STREAM_CODEC =
@@ -26,15 +26,16 @@ public record RtsMovePacket(BlockPos source, BlockPos destination) implements Cu
         return TYPE;
     }
 
-    /** encode: 编码移动源和目标位置。 */
+    /** encode: 编码移动源、目标位置和高度微调。 */
     private static void encode(RegistryFriendlyByteBuf buffer, RtsMovePacket packet) {
         buffer.writeBlockPos(packet.source());
         buffer.writeBlockPos(packet.destination());
+        buffer.writeVarInt(packet.manualVerticalOffset());
     }
 
-    /** decode: 解码移动源和目标位置。 */
+    /** decode: 解码移动源、目标位置和高度微调。 */
     private static RtsMovePacket decode(RegistryFriendlyByteBuf buffer) {
-        return new RtsMovePacket(buffer.readBlockPos(), buffer.readBlockPos());
+        return new RtsMovePacket(buffer.readBlockPos(), buffer.readBlockPos(), buffer.readVarInt());
     }
 
     /** handle: 在服务端主线程执行移动并反馈结果。 */
@@ -43,7 +44,8 @@ public record RtsMovePacket(BlockPos source, BlockPos destination) implements Cu
             return;
         }
         context.enqueueWork(() -> {
-            PlacedBuildingMoveService.MoveStatus status = PlacedBuildingMoveService.move(level, player, packet.source(), packet.destination());
+            PlacedBuildingMoveService.MoveStatus status = PlacedBuildingMoveService.move(
+                    level, player, packet.source(), packet.destination(), packet.manualVerticalOffset());
             switch (status) {
                 case SUCCESS_BLOCK -> InfoToastService.success(player, Component.translatable("message.simukraft.rts.block_moved"));
                 case SUCCESS_BUILDING -> {
@@ -52,6 +54,7 @@ public record RtsMovePacket(BlockPos source, BlockPos destination) implements Cu
                 }
                 case TOO_FAR -> InfoToastService.warning(player, Component.translatable("message.simukraft.rts.too_far"));
                 case NO_PERMISSION -> InfoToastService.warning(player, Component.translatable("message.simukraft.no_permission"));
+                case OUTSIDE_CITY -> InfoToastService.warning(player, Component.translatable("message.simukraft.construction.outside_city"));
                 case INVALID -> InfoToastService.warning(player, Component.translatable("message.simukraft.rts.move_invalid"));
             }
         });
