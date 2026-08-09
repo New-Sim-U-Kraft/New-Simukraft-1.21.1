@@ -311,7 +311,9 @@ public class CitizenEntity extends PathfinderMob {
         public void jump() {
             net.minecraft.core.BlockPos pos = citizen.blockPosition();
             VoxelShape shape = citizen.level().getBlockState(pos).getCollisionShape(citizen.level(), pos);
-            if (citizen.pathJumpRequested || !clearsCurrentBlockCollision(citizen.getBoundingBox(), pos, shape)) {
+            // FloatGoal 依赖该跳跃维持水中浮力；陆地仍仅允许路径跳跃或碰撞跳跃。
+            if (citizen.pathJumpRequested || citizen.isInWater()
+                    || !clearsCurrentBlockCollision(citizen.getBoundingBox(), pos, shape)) {
                 super.jump();
             }
         }
