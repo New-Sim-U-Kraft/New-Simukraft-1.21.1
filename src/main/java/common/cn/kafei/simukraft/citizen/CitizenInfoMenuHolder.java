@@ -6,6 +6,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.network.citizen.info.CitizenInfoResponsePacket;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteCitizenAccess;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
 /** 为 NPC 信息界面提供服务端真实槽位与客户端 LDLib 布局。 */
@@ -57,7 +59,8 @@ public final class CitizenInfoMenuHolder implements IContainerUIHolder {
         if (player == null || player.level().isClientSide()) {
             return true;
         }
-        return owner != null && owner.isAlive() && !owner.isRemoved()
-                && owner.level() == player.level() && player.distanceToSqr(owner) <= 64.0D;
+        return owner != null && owner.isAlive() && !owner.isRemoved() && owner.level() == player.level()
+                && (player.distanceToSqr(owner) <= 64.0D
+                || player instanceof ServerPlayer serverPlayer && RtsRemoteCitizenAccess.hasInfoAccess(serverPlayer, citizenId()));
     }
 }

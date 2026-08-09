@@ -13,6 +13,7 @@ import client.cn.kafei.simukraft.client.mineraldrilling.MineralDrillingUiFactory
 import client.cn.kafei.simukraft.client.network.ClientboundNetworkHandlerImpl;
 import client.cn.kafei.simukraft.client.path.NpcPathDebugRenderer;
 import client.cn.kafei.simukraft.client.rts.RtsHandRenderer;
+import client.cn.kafei.simukraft.client.rts.RtsCitizenSelectionRenderer;
 import client.cn.kafei.simukraft.client.rts.RtsMovePreviewRenderer;
 import client.cn.kafei.simukraft.client.rts.RtsSelectionManager;
 import client.cn.kafei.simukraft.client.renderer.CitizenRenderer;
@@ -58,6 +59,7 @@ public final class ClientModBusSetup {
         NeoForge.EVENT_BUS.addListener(TwoPointSelectionRenderer::onRender);
         NeoForge.EVENT_BUS.addListener(NpcPathDebugRenderer::onRender);
         NeoForge.EVENT_BUS.addListener(RtsMovePreviewRenderer::onRender);
+        NeoForge.EVENT_BUS.addListener(RtsCitizenSelectionRenderer::onRender);
         NeoForge.EVENT_BUS.addListener(RtsHandRenderer::onRenderHand);
         NeoForge.EVENT_BUS.addListener(RtsHandRenderer::onRenderGuiLayer);
         NeoForge.EVENT_BUS.addListener(RtsSelectionManager::onMouseButton);

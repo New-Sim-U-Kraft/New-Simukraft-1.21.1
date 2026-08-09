@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.mixin;
 
 import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteCitizenAccess;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -18,7 +19,8 @@ public abstract class MixinServerPlayer {
     @Redirect(method = "tick", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/inventory/AbstractContainerMenu;stillValid(Lnet/minecraft/world/entity/player/Player;)Z"))
     private boolean simukraft$keepRtsRemoteMenuOpen(AbstractContainerMenu menu, Player player) {
-        return player instanceof ServerPlayer serverPlayer && RtsRemoteMenuAccess.keepsMenuOpen(serverPlayer, menu)
+        return player instanceof ServerPlayer serverPlayer && (RtsRemoteMenuAccess.keepsMenuOpen(serverPlayer, menu)
+                || RtsRemoteCitizenAccess.keepsMenuOpen(serverPlayer, menu))
                 || menu.stillValid(player);
     }
 
@@ -27,5 +29,6 @@ public abstract class MixinServerPlayer {
     private void simukraft$finishRtsRemoteMenu(CallbackInfo callback) {
         ServerPlayer player = (ServerPlayer) (Object) this;
         RtsRemoteMenuAccess.finishMenu(player, player.containerMenu);
+        RtsRemoteCitizenAccess.finishMenu(player, player.containerMenu);
     }
 }

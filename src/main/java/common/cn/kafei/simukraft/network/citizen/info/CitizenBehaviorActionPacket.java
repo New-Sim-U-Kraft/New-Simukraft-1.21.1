@@ -5,6 +5,7 @@ import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.citizen.CitizenInfoMenuHolder;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.path.CitizenNavigationService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteCitizenAccess;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -55,7 +56,8 @@ public record CitizenBehaviorActionPacket(UUID citizenId, Action action) impleme
         }
         CitizenEntity citizen = holder.owner();
         if (citizen == null || !citizen.isAlive() || citizen.level() != level
-                || player.distanceToSqr(citizen) > 64.0D) {
+                || (player.distanceToSqr(citizen) > 64.0D
+                && !RtsRemoteCitizenAccess.hasInfoAccess(player, packet.citizenId()))) {
             return;
         }
         if (packet.action() == Action.TOGGLE_STAY) {

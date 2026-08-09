@@ -5,6 +5,7 @@ import common.cn.kafei.simukraft.commercial.CommercialControlBoxService;
 import common.cn.kafei.simukraft.commercial.CommercialTradeAccessValidator;
 import common.cn.kafei.simukraft.commercial.CommercialTradeService;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteCitizenAccess;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -51,7 +52,8 @@ public record CommercialTradePacket(BlockPos pos, UUID workerId, String offerId,
     public static void handle(CommercialTradePacket packet, IPayloadContext context) {
         if (context.player() instanceof ServerPlayer player && player.level() instanceof ServerLevel level) {
             if (!CommercialTradeAccessValidator.isValidWorker(level, packet.pos(), packet.workerId())
-                    || !CommercialTradeAccessValidator.isTradeReachable(level, player, packet.pos(), packet.workerId())) {
+                    || (!CommercialTradeAccessValidator.isTradeReachable(level, player, packet.pos(), packet.workerId())
+                    && !RtsRemoteCitizenAccess.hasTradeAccess(player, packet.pos(), packet.workerId()))) {
                 InfoToastService.warning(player, Component.translatable("message.simukraft.commercial_control_box.too_far"));
                 return;
             }

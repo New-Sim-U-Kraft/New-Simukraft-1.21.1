@@ -7,7 +7,9 @@ import client.cn.kafei.simukraft.client.input.SimuKraftKeyMappings;
 import client.cn.kafei.simukraft.client.toast.ClientInfoToast;
 import client.cn.kafei.simukraft.mixin.MixinGameRenderer;
 import common.cn.kafei.simukraft.config.ServerConfig;
+import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.network.rts.RtsBuildingBoundsRequestPacket;
+import common.cn.kafei.simukraft.network.rts.RtsCitizenActionPacket;
 import common.cn.kafei.simukraft.network.rts.RtsDemolishPacket;
 import common.cn.kafei.simukraft.network.rts.RtsMovePacket;
 import common.cn.kafei.simukraft.network.rts.RtsOpenTargetPacket;
@@ -19,9 +21,12 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
@@ -29,6 +34,10 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.UUID;
 
 /** RTS 鼠标目标状态：只负责光标射线、选择状态和鼠标捕获状态。 */
 @SuppressWarnings("null")
@@ -39,11 +48,18 @@ public final class RtsSelectionManager {
     private static volatile BlockPos targetPos;
     private static volatile BlockPos targetPlacementPos;
     private static volatile BlockPos selectedPos;
+    private static volatile UUID targetCitizenId;
+    private static volatile Component targetCitizenName = Component.empty();
+    private static volatile BlockPos citizenMoveTarget;
+    private static final Set<UUID> selectedCitizenIds = new LinkedHashSet<>();
     private static long lastLeftClickNanos;
     private static BlockPos lastLeftClickPos;
+    private static long lastCitizenClickNanos;
+    private static UUID lastCitizenClickId;
     private static boolean leftPressed;
     private static boolean moveHoldCompleted;
     private static BlockPos pressedPos;
+    private static UUID pressedCitizenId;
     private static long leftPressedAtNanos;
 
     private RtsSelectionManager() {
@@ -62,8 +78,11 @@ public final class RtsSelectionManager {
         targetPos = null;
         targetPlacementPos = null;
         selectedPos = null;
+        setTargetCitizen(null);
+        clearCitizenSelection();
         lastLeftClickPos = null;
         lastLeftClickNanos = 0L;
+        clearCitizenDoubleClick();
         clearMoveState();
         BuildingBoundsRenderer.setRtsTarget(null);
         BuildingBoundsRenderer.setRtsSelection(null);
@@ -116,8 +135,11 @@ public final class RtsSelectionManager {
         }
         active = true;
         selectedPos = null;
+        setTargetCitizen(null);
+        clearCitizenSelection();
         lastLeftClickPos = null;
         lastLeftClickNanos = 0L;
+        clearCitizenDoubleClick();
         clearMoveState();
         PacketDistributor.sendToServer(new RtsBuildingBoundsRequestPacket());
         FreeCameraManager.activateRts();
@@ -133,8 +155,11 @@ public final class RtsSelectionManager {
         targetPos = null;
         targetPlacementPos = null;
         selectedPos = null;
+        setTargetCitizen(null);
+        clearCitizenSelection();
         lastLeftClickPos = null;
         lastLeftClickNanos = 0L;
+        clearCitizenDoubleClick();
         clearMoveState();
         FreeCameraManager.deactivate();
         BuildingBoundsRenderer.setRtsTarget(null);
@@ -152,6 +177,9 @@ public final class RtsSelectionManager {
         targetPos = null;
         targetPlacementPos = null;
         selectedPos = null;
+        setTargetCitizen(null);
+        clearCitizenSelection();
+        clearCitizenDoubleClick();
         clearMoveState();
         FreeCameraManager.deactivate();
         BuildingBoundsRenderer.setRtsTarget(null);
@@ -180,6 +208,7 @@ public final class RtsSelectionManager {
         }
         if (minecraft.screen != null) {
             setTarget(null);
+            setTargetCitizen(null);
             return;
         }
         updateTarget(minecraft);
@@ -220,8 +249,17 @@ public final class RtsSelectionManager {
             }
             boolean cancelledMovePreview = RtsMovePreviewManager.isActive();
             clearMoveState();
+            if (cancelledMovePreview) {
+                return;
+            }
+            if (targetCitizenId != null) {
+                selectCitizen(targetCitizenId, false);
+                RtsCitizenContextMenuScreen.open(targetCitizenId, targetCitizenName);
+                return;
+            }
             if (!cancelledMovePreview && targetPos != null) {
                 selectedPos = targetPos.immutable();
+                clearCitizenSelection();
                 BuildingBoundsRenderer.setRtsSelection(selectedPos);
                 RtsContextMenuScreen.open(targetPos);
             }
@@ -308,6 +346,17 @@ public final class RtsSelectionManager {
         }
     }
 
+    /** beginCitizenMove: 让右键菜单中的市民进入下一次左键指定落点的状态。 */
+    public static void beginCitizenMove(UUID citizenId) {
+        if (!active || citizenId == null) {
+            return;
+        }
+        clearMoveState();
+        selectedPos = null;
+        BuildingBoundsRenderer.setRtsSelection(null);
+        selectCitizen(citizenId, false);
+    }
+
     /** renderHoldProgress: 在系统光标旁绘制长按移动的圆形进度。 */
     public static void renderHoldProgress(GuiGraphics graphics) {
         if (!active || !leftPressed || moveHoldCompleted || pressedPos == null || Minecraft.getInstance().screen != null) {
@@ -344,15 +393,38 @@ public final class RtsSelectionManager {
         return selectedPos;
     }
 
+    /** hasCitizenSelection: 返回当前是否有可供 RTS 市民标记渲染的选择。 */
+    static boolean hasCitizenSelection() {
+        return !selectedCitizenIds.isEmpty();
+    }
+
+    /** isCitizenSelected: 判断指定市民是否属于当前 RTS 多选集合。 */
+    static boolean isCitizenSelected(UUID citizenId) {
+        return citizenId != null && selectedCitizenIds.contains(citizenId);
+    }
+
+    /** citizenMoveTarget: 返回最近一次 RTS 市民移动命令的地表目标。 */
+    static BlockPos citizenMoveTarget() {
+        return citizenMoveTarget;
+    }
+
     private static void updateTarget(Minecraft minecraft) {
-        BlockHitResult hit = rayTraceCursor(minecraft);
+        CursorRay ray = cursorRay(minecraft);
+        BlockHitResult hit = rayTraceCursor(minecraft, ray);
+        CitizenEntity citizen = rayTraceCitizen(minecraft, ray, hit);
+        if (citizen != null) {
+            setTargetCitizen(citizen);
+            setTarget(null, surfacePlacementPos(minecraft, hit));
+            return;
+        }
+        setTargetCitizen(null);
         if (hit == null || hit.getType() != HitResult.Type.BLOCK) {
             setTarget(null);
             return;
         }
         BlockState state = minecraft.level.getBlockState(hit.getBlockPos());
         setTarget(ClientConfig.isRtsTargetBlockEnabled(state) ? hit.getBlockPos() : null,
-                ClientConfig.isRtsTargetBlockEnabled(state) ? surfacePlacementPos(minecraft, hit) : null);
+                surfacePlacementPos(minecraft, hit));
     }
 
     /** surfacePlacementPos: 将射线命中转换为同列最高可阻挡地表的上方落点。 */
@@ -367,8 +439,22 @@ public final class RtsSelectionManager {
 
     /** rayTraceCursor: 将系统光标转换为与当前投影一致的世界射线。 */
     private static BlockHitResult rayTraceCursor(Minecraft minecraft) {
+        return rayTraceCursor(minecraft, cursorRay(minecraft));
+    }
+
+    /** rayTraceCursor: 使用已经计算好的光标射线查找最先命中的方块。 */
+    private static BlockHitResult rayTraceCursor(Minecraft minecraft, CursorRay ray) {
+        if (!(minecraft.level instanceof ClientLevel level) || ray == null) {
+            return null;
+        }
+        return level.clip(new ClipContext(ray.from(), ray.to(), ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE,
+                minecraft.player));
+    }
+
+    /** cursorRay: 将系统光标转换为与当前透视或正交投影一致的世界射线。 */
+    private static CursorRay cursorRay(Minecraft minecraft) {
         Camera camera = minecraft.gameRenderer.getMainCamera();
-        if (!camera.isInitialized() || !(minecraft.level instanceof ClientLevel level)) {
+        if (!camera.isInitialized() || !(minecraft.level instanceof ClientLevel)) {
             return null;
         }
         int screenWidth = minecraft.getWindow().getScreenWidth();
@@ -389,7 +475,7 @@ public final class RtsSelectionManager {
             double offsetY = (0.5D - mouseY / screenHeight) * FreeCameraManager.rtsZoom();
             Vec3 from = camera.getPosition().add(right.scale(offsetX)).add(up.scale(offsetY));
             Vec3 to = from.add(forward.scale(MAX_RAY_DISTANCE));
-            return level.clip(new ClipContext(from, to, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, minecraft.player));
+            return new CursorRay(from, to);
         }
         float rayScale = cursorFovScale(minecraft);
         float planeX = (float) (mouseX / screenWidth * 2.0D - 1.0D) * rayScale;
@@ -397,7 +483,26 @@ public final class RtsSelectionManager {
         Vec3 direction = nearPlane.getPointOnPlane(planeX, planeY).normalize();
         Vec3 from = camera.getPosition();
         Vec3 to = from.add(direction.scale(MAX_RAY_DISTANCE));
-        return level.clip(new ClipContext(from, to, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, minecraft.player));
+        return new CursorRay(from, to);
+    }
+
+    /** rayTraceCitizen: 命中市民且其命中点在方块命中点之前时才返回，避免隔墙选中。 */
+    private static CitizenEntity rayTraceCitizen(Minecraft minecraft, CursorRay ray, BlockHitResult blockHit) {
+        if (ray == null || minecraft.player == null || !(minecraft.level instanceof ClientLevel)) {
+            return null;
+        }
+        AABB searchBox = new AABB(ray.from(), ray.to()).inflate(1.0D);
+        EntityHitResult hit = ProjectileUtil.getEntityHitResult(minecraft.player, ray.from(), ray.to(), searchBox,
+                entity -> entity instanceof CitizenEntity citizen && citizen.isAlive() && !citizen.isRemoved(),
+                MAX_RAY_DISTANCE * MAX_RAY_DISTANCE);
+        if (hit == null || !(hit.getEntity() instanceof CitizenEntity citizen)) {
+            return null;
+        }
+        if (blockHit != null && blockHit.getType() == HitResult.Type.BLOCK
+                && blockHit.getLocation().distanceToSqr(ray.from()) <= hit.getLocation().distanceToSqr(ray.from())) {
+            return null;
+        }
+        return citizen;
     }
 
     private static void setTarget(BlockPos newTarget) {
@@ -432,6 +537,12 @@ public final class RtsSelectionManager {
         BuildingBoundsRenderer.setRtsTarget(immutable);
     }
 
+    /** setTargetCitizen: 同步当前光标命中的市民，命中市民时不显示方块预选框。 */
+    private static void setTargetCitizen(CitizenEntity citizen) {
+        targetCitizenId = citizen == null ? null : citizen.getUUID();
+        targetCitizenName = citizen == null ? Component.empty() : citizen.getDisplayName().copy();
+    }
+
     private static void handleLeftPress() {
         if (RtsMovePreviewManager.isActive()) {
             if (targetPlacementPos == null) {
@@ -459,6 +570,14 @@ public final class RtsSelectionManager {
             clearMoveState();
             return;
         }
+        if (targetCitizenId != null) {
+            pressedCitizenId = targetCitizenId;
+            return;
+        }
+        if (!selectedCitizenIds.isEmpty() && targetPlacementPos != null) {
+            sendCitizenMove(targetPlacementPos);
+            return;
+        }
         pressedPos = targetPos == null ? null : targetPos.immutable();
         leftPressedAtNanos = System.nanoTime();
         leftPressed = pressedPos != null;
@@ -481,6 +600,12 @@ public final class RtsSelectionManager {
     }
 
     private static void finishLeftPress() {
+        if (pressedCitizenId != null) {
+            UUID citizenId = pressedCitizenId;
+            pressedCitizenId = null;
+            finishCitizenClick(citizenId);
+            return;
+        }
         if (!leftPressed) {
             return;
         }
@@ -495,6 +620,7 @@ public final class RtsSelectionManager {
             return;
         }
         selectedPos = clicked;
+        clearCitizenSelection();
         BuildingBoundsRenderer.setRtsSelection(selectedPos);
         long now = System.nanoTime();
         if (clicked.equals(lastLeftClickPos) && now - lastLeftClickNanos <= 350_000_000L) {
@@ -524,6 +650,7 @@ public final class RtsSelectionManager {
 
     private static void clearMoveState() {
         clearHoldState();
+        pressedCitizenId = null;
         RtsMovePreviewManager.clear();
     }
 
@@ -532,6 +659,76 @@ public final class RtsSelectionManager {
         moveHoldCompleted = false;
         pressedPos = null;
         leftPressedAtNanos = 0L;
+    }
+
+    /** finishCitizenClick: 处理单选、反选、多选，以及同一市民的双击打开操作。 */
+    private static void finishCitizenClick(UUID citizenId) {
+        if (citizenId == null) {
+            return;
+        }
+        if (isControlDown()) {
+            selectCitizen(citizenId, true);
+            clearCitizenDoubleClick();
+            return;
+        }
+        long now = System.nanoTime();
+        if (citizenId.equals(lastCitizenClickId) && now - lastCitizenClickNanos <= 350_000_000L) {
+            PacketDistributor.sendToServer(new RtsCitizenActionPacket(
+                    isShiftDown() ? RtsCitizenActionPacket.Action.OPEN_SHOP : RtsCitizenActionPacket.Action.OPEN_INFO,
+                    java.util.List.of(citizenId), BlockPos.ZERO));
+            clearCitizenDoubleClick();
+            return;
+        }
+        if (selectedCitizenIds.remove(citizenId)) {
+            citizenMoveTarget = null;
+            clearCitizenDoubleClick();
+            return;
+        }
+        selectCitizen(citizenId, false);
+        lastCitizenClickId = citizenId;
+        lastCitizenClickNanos = now;
+    }
+
+    /** selectCitizen: 普通点击替换选择，Ctrl 点击切换市民是否加入选择集合。 */
+    private static void selectCitizen(UUID citizenId, boolean toggleMembership) {
+        if (citizenId == null) {
+            return;
+        }
+        if (toggleMembership) {
+            if (!selectedCitizenIds.remove(citizenId)) {
+                selectedCitizenIds.add(citizenId);
+            }
+        } else {
+            selectedCitizenIds.clear();
+            selectedCitizenIds.add(citizenId);
+        }
+        citizenMoveTarget = null;
+        clearCitizenDoubleClick();
+        selectedPos = null;
+        BuildingBoundsRenderer.setRtsSelection(null);
+    }
+
+    /** clearCitizenSelection: 退出 RTS 或切换回方块选择时释放市民选择集合。 */
+    private static void clearCitizenSelection() {
+        selectedCitizenIds.clear();
+        citizenMoveTarget = null;
+        clearCitizenDoubleClick();
+    }
+
+    /** clearCitizenDoubleClick: 重置市民双击计时，防止切换目标后误触发打开。 */
+    private static void clearCitizenDoubleClick() {
+        lastCitizenClickId = null;
+        lastCitizenClickNanos = 0L;
+    }
+
+    /** sendCitizenMove: 将当前全部已选市民移动至光标命中的地表位置。 */
+    private static void sendCitizenMove(BlockPos destination) {
+        if (destination != null && !selectedCitizenIds.isEmpty()) {
+            citizenMoveTarget = destination.immutable();
+            clearCitizenDoubleClick();
+            PacketDistributor.sendToServer(new RtsCitizenActionPacket(RtsCitizenActionPacket.Action.MOVE,
+                    java.util.List.copyOf(selectedCitizenIds), destination));
+        }
     }
 
     private static boolean isAltDown() {
@@ -545,5 +742,16 @@ public final class RtsSelectionManager {
         long window = Minecraft.getInstance().getWindow().getWindow();
         return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS
                 || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
+    }
+
+    /** isShiftDown: 判断 Shift 是否按下以选择市民的商店打开动作。 */
+    private static boolean isShiftDown() {
+        long window = Minecraft.getInstance().getWindow().getWindow();
+        return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
+                || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
+    }
+
+    /** CursorRay: 保存已按当前投影换算的光标世界射线端点。 */
+    private record CursorRay(Vec3 from, Vec3 to) {
     }
 }

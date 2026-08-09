@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import common.cn.kafei.simukraft.network.commercial.CommercialTradeOpenResponsePacket;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteCitizenAccess;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -37,7 +38,8 @@ public final class CommercialTradeMenuHolder implements IContainerUIHolder {
             return false;
         }
         if (player instanceof ServerPlayer serverPlayer && serverPlayer.level() instanceof ServerLevel level) {
-            return CommercialTradeAccessValidator.canUseTradeMenu(level, serverPlayer, packet.boxPos(), packet.workerId());
+            return CommercialTradeAccessValidator.canUseTradeMenu(level, serverPlayer, packet.boxPos(), packet.workerId())
+                    || RtsRemoteCitizenAccess.hasTradeAccess(serverPlayer, packet.boxPos(), packet.workerId());
         }
         return false;
     }

@@ -69,6 +69,7 @@ import common.cn.kafei.simukraft.registry.ModRecipeSerializers;
 import common.cn.kafei.simukraft.registry.ModSoundEvents;
 import common.cn.kafei.simukraft.event.PlayerWelcomeService;
 import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteCitizenAccess;
 import common.cn.kafei.simukraft.storage.SimuSqliteStorage;
 import common.cn.kafei.simukraft.virtualvein.VirtualVeinService;
 import net.neoforged.bus.api.IEventBus;
@@ -167,6 +168,7 @@ public final class SimuKraft {
     private void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
             RtsRemoteMenuAccess.clear(player);
+            RtsRemoteCitizenAccess.clear(player);
         }
     }
 
