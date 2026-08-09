@@ -11,6 +11,7 @@ import common.cn.kafei.simukraft.farmland.FarmlandBoxService;
 import common.cn.kafei.simukraft.industrial.IndustrialConstants;
 import common.cn.kafei.simukraft.industrial.IndustrialControlBoxService;
 import common.cn.kafei.simukraft.job.CitizenEmploymentService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.logistics.LogisticsConstants;
 import common.cn.kafei.simukraft.logistics.LogisticsControlBoxService;
 import common.cn.kafei.simukraft.medical.MedicalControlBoxService;
@@ -46,7 +47,7 @@ final class NpcHireAccessValidator {
             InfoToastService.warning(player, Component.translatable("message.simukraft.hire_npc.invalid_source"));
             return null;
         }
-        if (!player.blockPosition().closerThan(sourcePos, 16.0D)) {
+        if (!player.blockPosition().closerThan(sourcePos, 16.0D) && !RtsRemoteMenuAccess.hasAccess(player, sourcePos)) {
             InfoToastService.warning(player, Component.translatable(tooFarMessage(normalizedSource)));
             return null;
         }

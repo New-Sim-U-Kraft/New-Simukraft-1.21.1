@@ -10,7 +10,6 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 public class BuffFoodItem extends Item {
-
     public BuffFoodItem(Properties properties) {
         super(properties);
     }

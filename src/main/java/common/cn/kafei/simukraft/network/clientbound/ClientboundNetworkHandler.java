@@ -26,6 +26,7 @@ import common.cn.kafei.simukraft.network.npc.state.EmploymentStateResponsePacket
 import common.cn.kafei.simukraft.network.path.NpcPathDebugSyncPacket;
 import common.cn.kafei.simukraft.network.planner.PlannerMaterialScanResponsePacket;
 import common.cn.kafei.simukraft.network.toast.InfoToastPacket;
+import common.cn.kafei.simukraft.network.rts.RtsBuildingBoundsSyncPacket;
 
 /**
  * ClientboundNetworkHandler: 客户端网络响应处理抽象，避免 common 网络包直接依赖客户端实现。
@@ -136,5 +137,9 @@ public interface ClientboundNetworkHandler {
 
     /** handleGeologicalSurveyHint: 处理地质锤准星提示。 */
     default void handleGeologicalSurveyHint(GeologicalSurveyHintPacket packet) {
+    }
+
+    /** handleRtsBuildingBoundsSync: 更新 RTS 客户端建筑边界快照。 */
+    default void handleRtsBuildingBoundsSync(RtsBuildingBoundsSyncPacket packet) {
     }
 }

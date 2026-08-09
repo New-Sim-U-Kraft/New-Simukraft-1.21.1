@@ -68,6 +68,7 @@ import common.cn.kafei.simukraft.registry.ModMenuTypes;
 import common.cn.kafei.simukraft.registry.ModRecipeSerializers;
 import common.cn.kafei.simukraft.registry.ModSoundEvents;
 import common.cn.kafei.simukraft.event.PlayerWelcomeService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.storage.SimuSqliteStorage;
 import common.cn.kafei.simukraft.virtualvein.VirtualVeinService;
 import net.neoforged.bus.api.IEventBus;
@@ -118,6 +119,7 @@ public final class SimuKraft {
         NeoForge.EVENT_BUS.register(CityPlacementRestrictionHandler.class);
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
+        NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedOut);
         NeoForge.EVENT_BUS.addListener(this::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(this::onBlockBreak);
         NeoForge.EVENT_BUS.addListener(this::onBlockPlace);
@@ -158,6 +160,13 @@ public final class SimuKraft {
         if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
             PlayerWelcomeService.handleLogin(player);
             CityChunkSyncService.syncToPlayer(player);
+        }
+    }
+
+    /** onPlayerLoggedOut: 清理 RTS 远程菜单会话。 */
+    private void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
+            RtsRemoteMenuAccess.clear(player);
         }
     }
 

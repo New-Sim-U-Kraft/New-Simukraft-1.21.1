@@ -4,6 +4,7 @@ import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.building.PlacedBuildingDemolitionService;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.building.controlbox.ResidentialControlBoxService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.city.CityData;
 import common.cn.kafei.simukraft.city.CityManager;
 import common.cn.kafei.simukraft.city.CityPermissionLevel;
@@ -45,7 +46,7 @@ public record ResidentialControlBoxDemolishPacket(BlockPos pos) implements Custo
     }
 
     private static void handleFor(ServerLevel level, ServerPlayer player, BlockPos pos) {
-        if (!player.blockPosition().closerThan(pos, 8.0D)) {
+        if (!player.blockPosition().closerThan(pos, 8.0D) && !RtsRemoteMenuAccess.hasAccess(player, pos)) {
             InfoToastService.warning(player, Component.translatable("message.simukraft.residential_control_box.too_far"));
             return;
         }

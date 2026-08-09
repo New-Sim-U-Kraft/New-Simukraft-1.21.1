@@ -12,6 +12,9 @@ import client.cn.kafei.simukraft.client.logistics.LogisticsWarehouseGridScreen;
 import client.cn.kafei.simukraft.client.mineraldrilling.MineralDrillingUiFactory;
 import client.cn.kafei.simukraft.client.network.ClientboundNetworkHandlerImpl;
 import client.cn.kafei.simukraft.client.path.NpcPathDebugRenderer;
+import client.cn.kafei.simukraft.client.rts.RtsHandRenderer;
+import client.cn.kafei.simukraft.client.rts.RtsMovePreviewRenderer;
+import client.cn.kafei.simukraft.client.rts.RtsSelectionManager;
 import client.cn.kafei.simukraft.client.renderer.CitizenRenderer;
 import client.cn.kafei.simukraft.client.selection.TwoPointSelectionRenderer;
 import common.cn.kafei.simukraft.SimuKraft;
@@ -54,6 +57,11 @@ public final class ClientModBusSetup {
         NeoForge.EVENT_BUS.addListener(BuildingBoundsRenderer::onRender);
         NeoForge.EVENT_BUS.addListener(TwoPointSelectionRenderer::onRender);
         NeoForge.EVENT_BUS.addListener(NpcPathDebugRenderer::onRender);
+        NeoForge.EVENT_BUS.addListener(RtsMovePreviewRenderer::onRender);
+        NeoForge.EVENT_BUS.addListener(RtsHandRenderer::onRenderHand);
+        NeoForge.EVENT_BUS.addListener(RtsHandRenderer::onRenderGuiLayer);
+        NeoForge.EVENT_BUS.addListener(RtsSelectionManager::onMouseButton);
+        NeoForge.EVENT_BUS.addListener(RtsSelectionManager::onMouseScrolling);
         NeoForge.EVENT_BUS.register(new ConfigButtonHandler());
         ModLoadingContext.get().getActiveContainer().registerExtensionPoint(IConfigScreenFactory.class,
                 (container, parent) -> SimuKraftConfigScreen.createRoot(parent));

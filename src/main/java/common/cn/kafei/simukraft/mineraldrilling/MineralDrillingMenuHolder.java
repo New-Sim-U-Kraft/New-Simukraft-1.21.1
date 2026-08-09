@@ -3,6 +3,7 @@ package common.cn.kafei.simukraft.mineraldrilling;
 import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import common.cn.kafei.simukraft.SimuKraft;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -69,7 +70,8 @@ public final class MineralDrillingMenuHolder implements IContainerUIHolder {
         return serverLevel != null
                 && player.level() == serverLevel
                 && MineralDrillingControlBoxService.isControlBox(serverLevel, boxPos())
-                && player.distanceToSqr(boxPos().getCenter()) <= 64.0D;
+                && (player.distanceToSqr(boxPos().getCenter()) <= 64.0D
+                || player instanceof ServerPlayer serverPlayer && RtsRemoteMenuAccess.hasAccess(serverPlayer, boxPos()));
     }
 
     Component buildingText() {

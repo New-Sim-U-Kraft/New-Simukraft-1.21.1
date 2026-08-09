@@ -5,6 +5,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import client.cn.kafei.simukraft.client.freecamera.FreeCameraManager;
 import client.cn.kafei.simukraft.client.freecamera.FreeCameraScreen;
 import client.cn.kafei.simukraft.client.input.SimuKraftKeyMappings;
+import client.cn.kafei.simukraft.client.rts.RtsSelectionManager;
 import client.cn.kafei.simukraft.client.toast.ClientInfoToast;
 import client.cn.kafei.simukraft.client.ui.SimuKraftUiTheme;
 import client.cn.kafei.simukraft.client.ui.SlidingInfoPanel;
@@ -32,6 +33,7 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
     private final BuildingCacheService.BuildingMeta building;
     private final BlockPos buildBoxPos;
     private final BuildingStructure structure;
+    private final boolean rtsPreviewMode;
 
     private static boolean sPanelVisible = true; // Tab 隐藏状态持久化
 
@@ -39,6 +41,7 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
     private final int bedCount;
     private final int doorCount;
     private boolean replaceWithAir = false;
+    private boolean rtsPreviewSession;
 
     public BuildingPreviewScreen(Screen parent, BuildingCacheService.BuildingMeta building, BlockPos buildBoxPos, BuildingStructure structure) {
         super(Component.translatable("gui.building_preview.title"));
@@ -46,6 +49,7 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
         this.building = building;
         this.buildBoxPos = buildBoxPos;
         this.structure = structure;
+        this.rtsPreviewMode = RtsSelectionManager.isActive();
         this.bedCount = (int) structure.blocks().stream()
                 .filter(b -> b.state().getBlock() instanceof BedBlock
                         && b.state().getValue(BedBlock.PART) == BedPart.HEAD)
@@ -59,7 +63,8 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
     @Override
     protected void init() {
         super.init();
-        BlockPos previewOrigin = buildBoxPos.offset(1, 0, 1);
+        BlockPos rtsPlacement = rtsPreviewMode ? RtsSelectionManager.cursorPlacementPos() : null;
+        BlockPos previewOrigin = rtsPlacement != null ? rtsPlacement : buildBoxPos.offset(1, 0, 1);
         BuildingPreviewManager.startPreview(structure, previewOrigin);
         if (!BuildingPreviewManager.isPreviewActive()) {
             if (this.minecraft != null) {
@@ -70,21 +75,31 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
         if (this.minecraft != null && this.minecraft.player != null) {
             BuildingBoundsRenderer.setPreviewPlayerId(this.minecraft.player.getUUID());
         }
-        FreeCameraManager.activate();
+        if (rtsPreviewMode) {
+            if (!FreeCameraManager.isActive()) {
+                FreeCameraManager.activateRts();
+            }
+            RtsSelectionManager.beginPreviewSession();
+            BuildingPreviewManager.beginRtsPreview(rtsPlacement);
+            rtsPreviewSession = true;
+            releasePreviewMouse();
+        } else {
+            FreeCameraManager.activate();
+        }
     }
 
     @Override
     public void removed() {
         super.removed();
         // Screen 被任何原因关闭时（含死亡）均需清理预览状态
-        BuildingPreviewManager.clearPreview();
-        FreeCameraManager.deactivate();
-        BuildingBoundsRenderer.setPreviewPlayerId(null);
-        releasePreviewMouse();
+        clearPreviewState();
     }
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        if (rtsPreviewMode) {
+            return;
+        }
         int sw = this.width, sh = this.height;
         // beginRender 必须先调用以初始化 panel.font，panel 从 y=18 绘制不影响标题栏
         panel.beginRender(g, font, sw, sh, 18);
@@ -209,7 +224,10 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
             return true;
         }
         if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.PREVIEW_TOGGLE_HUD, keyCode, scanCode)) {
-            panel.toggle(); sPanelVisible = panel.isVisible();
+            if (!rtsPreviewMode) {
+                panel.toggle();
+                sPanelVisible = panel.isVisible();
+            }
             return true;
         }
         if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.PREVIEW_CANCEL, keyCode, scanCode)) {
@@ -217,27 +235,27 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
             return true;
         }
         if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.PREVIEW_MOVE_FORWARD, keyCode, scanCode)) {
-            BuildingPreviewManager.movePreviewRelativeToCamera(0, 1);
+            movePreviewRelativeToCamera(0, 1);
             return true;
         }
         if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.PREVIEW_MOVE_BACKWARD, keyCode, scanCode)) {
-            BuildingPreviewManager.movePreviewRelativeToCamera(0, -1);
+            movePreviewRelativeToCamera(0, -1);
             return true;
         }
         if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.PREVIEW_MOVE_LEFT, keyCode, scanCode)) {
-            BuildingPreviewManager.movePreviewRelativeToCamera(-1, 0);
+            movePreviewRelativeToCamera(-1, 0);
             return true;
         }
         if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.PREVIEW_MOVE_RIGHT, keyCode, scanCode)) {
-            BuildingPreviewManager.movePreviewRelativeToCamera(1, 0);
+            movePreviewRelativeToCamera(1, 0);
             return true;
         }
         if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.PREVIEW_MOVE_UP, keyCode, scanCode)) {
-            BuildingPreviewManager.movePreviewVertical(1);
+            movePreviewVertical(1);
             return true;
         }
         if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.PREVIEW_MOVE_DOWN, keyCode, scanCode)) {
-            BuildingPreviewManager.movePreviewVertical(-1);
+            movePreviewVertical(-1);
             return true;
         }
         if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.PREVIEW_ROTATE, keyCode, scanCode)) {
@@ -245,28 +263,86 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
             return true;
         }
         if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.PREVIEW_CONFIRM, keyCode, scanCode)) {
-            if (ServerConfig.claimProtectionEnabled() && !BuildingBoundsRenderer.isEntireBuildingInCityTerritory()) {
-                if (this.minecraft != null && this.minecraft.player != null) {
-                    ClientInfoToast.show(
-                            Component.translatable("toast.simukraft.title"),
-                            Component.translatable("message.simukraft.construction.outside_city"),
-                            "warning"
-                    );
-                }
-                return true;
-            }
-            startConstruction();
+            confirmPreview();
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
+    /** tick: RTS 预览中按每帧光标落点更新已抓取建筑的位置。 */
+    @Override
+    public void tick() {
+        super.tick();
+        if (rtsPreviewMode) {
+            BuildingPreviewManager.updateRtsPreview(RtsSelectionManager.cursorPlacementPos());
+        }
+    }
+
+    /** mouseClicked: RTS 预览中左键确认建造，右键取消当前抓取预览。 */
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (!rtsPreviewMode) {
+            return super.mouseClicked(mouseX, mouseY, button);
+        }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            confirmPreview();
+            return true;
+        }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+            if (RtsSelectionManager.isCameraRotationActive()) {
+                return true;
+            }
+            exitPreview();
+            return true;
+        }
+        return true;
+    }
+
+    /** mouseScrolled: 在 RTS 建筑预览中将 Alt 滚轮交给俯视相机缩放。 */
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (rtsPreviewMode && RtsSelectionManager.handleRtsCameraScroll(verticalAmount)) {
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
+    /** movePreviewRelativeToCamera: 按当前模式移动预览建筑的手动偏移。 */
+    private void movePreviewRelativeToCamera(int right, int forward) {
+        if (rtsPreviewMode) {
+            BuildingPreviewManager.moveRtsPreviewRelativeToCamera(right, forward);
+        } else {
+            BuildingPreviewManager.movePreviewRelativeToCamera(right, forward);
+        }
+    }
+
+    /** movePreviewVertical: 按当前模式调整预览建筑的高度偏移。 */
+    private void movePreviewVertical(int dy) {
+        if (rtsPreviewMode) {
+            BuildingPreviewManager.moveRtsPreviewVertical(dy);
+        } else {
+            BuildingPreviewManager.movePreviewVertical(dy);
+        }
+    }
+
+    /** confirmPreview: 校验领地后确认当前预览建筑的位置。 */
+    private void confirmPreview() {
+        if (ServerConfig.claimProtectionEnabled() && !BuildingBoundsRenderer.isEntireBuildingInCityTerritory()) {
+            if (this.minecraft != null && this.minecraft.player != null) {
+                ClientInfoToast.show(
+                        Component.translatable("toast.simukraft.title"),
+                        Component.translatable("message.simukraft.construction.outside_city"),
+                        "warning"
+                );
+            }
+            return;
+        }
+        startConstruction();
+    }
+
     private void exitPreview() {
         var minecraft = this.minecraft;
-        BuildingPreviewManager.clearPreview();
-        FreeCameraManager.deactivate();
-        BuildingBoundsRenderer.setPreviewPlayerId(null);
-        releasePreviewMouse();
+        clearPreviewState();
         if (minecraft != null) {
             minecraft.setScreen(parent);
         }
@@ -278,11 +354,22 @@ public final class BuildingPreviewScreen extends Screen implements FreeCameraScr
             return;
         }
         PacketDistributor.sendToServer(new BuildBoxStartConstructionPacket(buildBoxPos, building.category(), stripExtension(building.metaFileName()), BuildingPreviewManager.getPreviewOrigin(), BuildingPreviewManager.getRotationDegrees(), replaceWithAir));
+        clearPreviewState();
+        minecraft.setScreen(null);
+    }
+
+    /** clearPreviewState: 清理建筑预览，RTS 中保留已启用的俯视相机。 */
+    private void clearPreviewState() {
         BuildingPreviewManager.clearPreview();
-        FreeCameraManager.deactivate();
+        if (rtsPreviewSession) {
+            RtsSelectionManager.endPreviewSession();
+            rtsPreviewSession = false;
+        }
+        if (!rtsPreviewMode) {
+            FreeCameraManager.deactivate();
+        }
         BuildingBoundsRenderer.setPreviewPlayerId(null);
         releasePreviewMouse();
-        minecraft.setScreen(null);
     }
 
     @Override

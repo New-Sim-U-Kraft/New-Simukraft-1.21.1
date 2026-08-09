@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.network.city.core;
 
 import common.cn.kafei.simukraft.city.CityService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.registry.ModItems;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import net.minecraft.core.BlockPos;
@@ -26,7 +27,8 @@ public final class CityCoreAccessValidator {
 
     // 判断玩家是否能访问指定城市核心，用于地图、成员和区块购买等后续请求。
     public static boolean canAccess(ServerLevel level, ServerPlayer player, BlockPos pos) {
-        return isNear(player, pos) || hasPortableAccess(level, player, pos);
+        return isNear(player, pos) || hasPortableAccess(level, player, pos)
+                || RtsRemoteMenuAccess.hasAccess(player, pos);
     }
 
     private static boolean isNear(ServerPlayer player, BlockPos pos) {

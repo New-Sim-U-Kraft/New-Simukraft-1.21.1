@@ -4,7 +4,9 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "MixinMilkBucketItem",
-    "MixinLivingEntityDimensions"
+    "MixinLivingEntityDimensions",
+    "MixinServerGamePacketListenerImpl",
+    "MixinServerPlayer"
   ],
   "injectors": {
     "defaultRequire": 1

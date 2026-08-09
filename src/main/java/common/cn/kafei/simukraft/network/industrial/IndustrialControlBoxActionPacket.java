@@ -4,6 +4,7 @@ import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.building.BuildingIntegrityService;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.industrial.IndustrialControlBoxService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -41,7 +42,8 @@ public record IndustrialControlBoxActionPacket(BlockPos pos, Action action, Stri
 
     public static void handle(IndustrialControlBoxActionPacket packet, IPayloadContext context) {
         if (context.player() instanceof ServerPlayer player && player.level() instanceof ServerLevel level) {
-            if (!player.blockPosition().closerThan(packet.pos(), 16.0D)) {
+            if (!player.blockPosition().closerThan(packet.pos(), 16.0D)
+                    && !RtsRemoteMenuAccess.hasAccess(player, packet.pos())) {
                 InfoToastService.warning(player, Component.translatable("message.simukraft.industrial_control_box.too_far"));
                 return;
             }

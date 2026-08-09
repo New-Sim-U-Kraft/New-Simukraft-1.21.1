@@ -22,6 +22,7 @@ import common.cn.kafei.simukraft.economy.FinanceLedgerService;
 import common.cn.kafei.simukraft.job.CitizenEmploymentService;
 import common.cn.kafei.simukraft.job.CityJobType;
 import common.cn.kafei.simukraft.network.hud.HudSyncService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -69,7 +70,8 @@ public record BuildBoxStartConstructionPacket(BlockPos buildBoxPos,
         if (!(context.player() instanceof ServerPlayer player) || !(player.level() instanceof ServerLevel level)) {
             return;
         }
-        if (!player.blockPosition().closerThan(packet.buildBoxPos(), 24.0D)) {
+        if (!player.blockPosition().closerThan(packet.buildBoxPos(), 24.0D)
+                && !RtsRemoteMenuAccess.hasAccess(player, packet.buildBoxPos())) {
             InfoToastService.warning(player, Component.translatable("message.simukraft.build_box.too_far"));
             return;
         }

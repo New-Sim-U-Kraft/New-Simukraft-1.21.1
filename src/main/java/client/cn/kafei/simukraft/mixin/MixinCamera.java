@@ -21,14 +21,14 @@ public abstract class MixinCamera {
     protected abstract void setPosition(Vec3 position);
 
     @Shadow
-    protected abstract void setRotation(float yRot, float xRot);
+    protected abstract void setRotation(float yRot, float xRot, float roll);
 
-    @Inject(method = "setup", at = @At("HEAD"), cancellable = true)
+    /** simukraft$setup: 完成原版相机初始化后覆盖为独立 RTS 相机姿态。 */
+    @Inject(method = "setup", at = @At("TAIL"))
     private void simukraft$setup(BlockGetter level, Entity entity, boolean detached, boolean mirrored, float partialTick, CallbackInfo callbackInfo) {
         if (FreeCameraManager.isActive() && entity instanceof LocalPlayer) {
-            callbackInfo.cancel();
             setPosition(FreeCameraManager.getPosition());
-            setRotation(FreeCameraManager.getYaw(), FreeCameraManager.getPitch());
+            setRotation(FreeCameraManager.getYaw(), FreeCameraManager.getPitch(), 0.0F);
         }
     }
 }

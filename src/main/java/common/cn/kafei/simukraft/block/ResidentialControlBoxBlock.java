@@ -1,5 +1,6 @@
 package common.cn.kafei.simukraft.block;
 
+import common.cn.kafei.simukraft.building.PlacedBuildingMoveService;
 import common.cn.kafei.simukraft.building.controlbox.ResidentialControlBoxService;
 import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxOpenRequestPacket;
 import net.minecraft.core.BlockPos;
@@ -23,7 +24,8 @@ public final class ResidentialControlBoxBlock extends Block {
 
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
-        if (!level.isClientSide() && !state.is(newState.getBlock()) && level instanceof ServerLevel serverLevel) {
+        if (!level.isClientSide() && !state.is(newState.getBlock()) && level instanceof ServerLevel serverLevel
+                && !PlacedBuildingMoveService.isMovingBuildingBlock(serverLevel, pos)) {
             ResidentialControlBoxService.onRemoved(serverLevel, pos);
         }
         super.onRemove(state, level, pos, newState, movedByPiston);

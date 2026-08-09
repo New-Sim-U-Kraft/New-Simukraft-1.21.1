@@ -7,6 +7,7 @@ import common.cn.kafei.simukraft.city.CityData;
 import common.cn.kafei.simukraft.city.CityManager;
 import common.cn.kafei.simukraft.city.CityPermissionLevel;
 import common.cn.kafei.simukraft.industrial.IndustrialControlBoxService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -44,7 +45,7 @@ public record IndustrialControlBoxDemolishPacket(BlockPos pos) implements Custom
     }
 
     private static void handleFor(ServerLevel level, ServerPlayer player, BlockPos pos) {
-        if (!player.blockPosition().closerThan(pos, 8.0D)) {
+        if (!player.blockPosition().closerThan(pos, 8.0D) && !RtsRemoteMenuAccess.hasAccess(player, pos)) {
             InfoToastService.warning(player, Component.translatable("message.simukraft.industrial_control_box.too_far"));
             return;
         }

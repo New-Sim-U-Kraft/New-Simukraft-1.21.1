@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft.network.farmland;
 
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.farmland.FarmlandBoxService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -40,7 +41,7 @@ public record FarmlandBoxOpenRequestPacket(BlockPos pos) implements CustomPacket
     }
 
     public static void openFor(ServerLevel level, ServerPlayer player, BlockPos pos) {
-        if (!player.blockPosition().closerThan(pos, 8.0D)) {
+        if (!player.blockPosition().closerThan(pos, 8.0D) && !RtsRemoteMenuAccess.hasAccess(player, pos)) {
             InfoToastService.warning(player, Component.translatable("message.simukraft.farmland_box.too_far"));
             return;
         }

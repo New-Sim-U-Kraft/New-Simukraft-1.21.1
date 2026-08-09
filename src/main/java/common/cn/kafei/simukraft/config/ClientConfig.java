@@ -1,13 +1,18 @@
 package common.cn.kafei.simukraft.config;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.Locale;
 
+@SuppressWarnings("null")
 public final class ClientConfig {
     public static final String DEFAULT_HUD_ANCHOR = "TOP_RIGHT";
     public static final int DEFAULT_HUD_POS_X = -5;
     public static final int DEFAULT_HUD_POS_Y = 5;
+    public static final int DEFAULT_RTS_MOVE_HOLD_SECONDS = 1;
 
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.BooleanValue HUD_ENABLED;
@@ -15,6 +20,10 @@ public final class ClientConfig {
     public static final ModConfigSpec.IntValue HUD_POS_X;
     public static final ModConfigSpec.IntValue HUD_POS_Y;
     public static final ModConfigSpec.BooleanValue PATH_DEBUG_REQUEST_ON_TOGGLE;
+    public static final ModConfigSpec.BooleanValue RTS_TARGET_SIMUKRAFT_BLOCKS;
+    public static final ModConfigSpec.BooleanValue RTS_TARGET_VANILLA_BLOCKS;
+    public static final ModConfigSpec.BooleanValue RTS_TARGET_OTHER_MOD_BLOCKS;
+    public static final ModConfigSpec.IntValue RTS_MOVE_HOLD_SECONDS;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -41,6 +50,24 @@ public final class ClientConfig {
                 .comment("Whether Alt+P requests latest NPC paths from the server when path debug is shown.")
                 .translation("config.simukraft.client.pathDebug.requestOnToggle")
                 .define("requestOnToggle", true);
+        builder.pop();
+        builder.push("rts");
+        RTS_TARGET_SIMUKRAFT_BLOCKS = builder
+                .comment("Allow the RTS cursor to target Sim-U-Kraft blocks.")
+                .translation("config.simukraft.client.rts.targetSimukraftBlocks")
+                .define("targetSimukraftBlocks", true);
+        RTS_TARGET_VANILLA_BLOCKS = builder
+                .comment("Allow the RTS cursor to target vanilla Minecraft blocks.")
+                .translation("config.simukraft.client.rts.targetVanillaBlocks")
+                .define("targetVanillaBlocks", true);
+        RTS_TARGET_OTHER_MOD_BLOCKS = builder
+                .comment("Allow the RTS cursor to target blocks from other mods.")
+                .translation("config.simukraft.client.rts.targetOtherModBlocks")
+                .define("targetOtherModBlocks", true);
+        RTS_MOVE_HOLD_SECONDS = builder
+                .comment("Seconds required to hold the left mouse button before RTS movement starts.")
+                .translation("config.simukraft.client.rts.moveHoldSeconds")
+                .defineInRange("moveHoldSeconds", DEFAULT_RTS_MOVE_HOLD_SECONDS, 1, 10);
         builder.pop();
         SPEC = builder.build();
     }
@@ -72,6 +99,26 @@ public final class ClientConfig {
     /** pathDebugRequestOnToggle: 判断显示寻路调试时是否请求服务端刷新。 */
     public static boolean pathDebugRequestOnToggle() {
         return PATH_DEBUG_REQUEST_ON_TOGGLE.get();
+    }
+
+    /** isRtsTargetBlockEnabled: 按命名空间判断 RTS 光标是否允许命中方块。 */
+    public static boolean isRtsTargetBlockEnabled(BlockState state) {
+        if (state == null) {
+            return false;
+        }
+        ResourceLocation key = BuiltInRegistries.BLOCK.getKey(state.getBlock());
+        if ("simukraft".equals(key.getNamespace())) {
+            return RTS_TARGET_SIMUKRAFT_BLOCKS.get();
+        }
+        if ("minecraft".equals(key.getNamespace())) {
+            return RTS_TARGET_VANILLA_BLOCKS.get();
+        }
+        return RTS_TARGET_OTHER_MOD_BLOCKS.get();
+    }
+
+    /** rtsMoveHoldSeconds: 返回 RTS 长按移动所需秒数。 */
+    public static int rtsMoveHoldSeconds() {
+        return Math.max(1, Math.min(10, RTS_MOVE_HOLD_SECONDS.get()));
     }
 
     /** resetHudDefaults: 重置 HUD 位置到默认值。 */

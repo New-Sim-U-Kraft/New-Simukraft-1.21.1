@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft.network.commercial;
 
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.commercial.CommercialControlBoxService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -44,7 +45,7 @@ public record CommercialControlBoxOpenRequestPacket(BlockPos pos) implements Cus
 
     /** openFor: 校验距离和方块后向玩家发送商业控制箱视图。 */
     public static void openFor(ServerLevel level, ServerPlayer player, BlockPos pos) {
-        if (!player.blockPosition().closerThan(pos, 16.0D)) {
+        if (!player.blockPosition().closerThan(pos, 16.0D) && !RtsRemoteMenuAccess.hasAccess(player, pos)) {
             InfoToastService.warning(player, Component.translatable("message.simukraft.commercial_control_box.too_far"));
             return;
         }

@@ -9,6 +9,7 @@ import common.cn.kafei.simukraft.city.CityManager;
 import common.cn.kafei.simukraft.city.CityPermissionLevel;
 import common.cn.kafei.simukraft.job.CitizenEmploymentService;
 import common.cn.kafei.simukraft.medical.MedicalControlBoxService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -46,7 +47,7 @@ public record MedicalControlBoxDemolishPacket(BlockPos pos) implements CustomPac
     }
 
     private static void handleFor(ServerLevel level, ServerPlayer player, BlockPos pos) {
-        if (!player.blockPosition().closerThan(pos, 8.0D)) {
+        if (!player.blockPosition().closerThan(pos, 8.0D) && !RtsRemoteMenuAccess.hasAccess(player, pos)) {
             InfoToastService.warning(player, Component.translatable("message.simukraft.medical_control_box.too_far"));
             return;
         }

@@ -45,6 +45,20 @@ public final class BuildingPreviewRenderer {
         }
         loggedOnce = false;
 
+        renderPreviewMesh(mesh, event);
+    }
+
+    /** renderPreviewMesh: 按世界渲染阶段绘制一个已构建的预览网格。 */
+    public static void renderPreviewMesh(PreviewMesh mesh, RenderLevelStageEvent event) {
+        if (mesh == null || mesh.isEmpty()
+                || (!isPreviewRenderStage(event.getStage()) && event.getStage() != RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES)) {
+            return;
+        }
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) {
+            return;
+        }
+
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES) {
             PreviewSpecialBlockRenderer.render(mesh.entityBlocks(), event.getPoseStack(), minecraft.renderBuffers().bufferSource(), event.getCamera().getPosition());
             minecraft.renderBuffers().bufferSource().endBatch();

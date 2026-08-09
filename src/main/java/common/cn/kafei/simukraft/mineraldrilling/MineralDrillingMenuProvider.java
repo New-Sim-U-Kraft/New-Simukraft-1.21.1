@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft.mineraldrilling;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import common.cn.kafei.simukraft.SimuKraft;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.registry.ModMenuTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -32,7 +33,7 @@ public final class MineralDrillingMenuProvider implements MenuProvider {
     public static boolean open(ServerLevel level, ServerPlayer player, BlockPos boxPos) {
         if (level == null || player == null || boxPos == null
                 || player.level() != level
-                || player.distanceToSqr(boxPos.getCenter()) > 64.0D
+                || (player.distanceToSqr(boxPos.getCenter()) > 64.0D && !RtsRemoteMenuAccess.hasAccess(player, boxPos))
                 || !MineralDrillingControlBoxService.isControlBox(level, boxPos)) {
             return false;
         }

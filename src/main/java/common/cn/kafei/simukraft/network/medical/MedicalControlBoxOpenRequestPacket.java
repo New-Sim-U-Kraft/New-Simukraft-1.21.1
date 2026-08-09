@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft.network.medical;
 
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.medical.MedicalControlBoxService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -45,7 +46,7 @@ public record MedicalControlBoxOpenRequestPacket(BlockPos pos) implements Custom
 
     /** openFor：校验距离和方块后发送只读视图。 */
     public static void openFor(ServerLevel level, ServerPlayer player, BlockPos pos) {
-        if (!player.blockPosition().closerThan(pos, 16.0D)) {
+        if (!player.blockPosition().closerThan(pos, 16.0D) && !RtsRemoteMenuAccess.hasAccess(player, pos)) {
             InfoToastService.warning(player, Component.translatable("message.simukraft.medical_control_box.too_far"));
             return;
         }

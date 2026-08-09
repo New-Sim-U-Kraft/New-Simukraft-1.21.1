@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft.network.logistics;
 
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.logistics.LogisticsControlBoxService;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.logistics.LogisticsDirection;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
@@ -128,7 +129,7 @@ public record LogisticsBoxActionPacket(BlockPos boxPos,
             return;
         }
         BlockPos pos = packet.boxPos();
-        if (!player.blockPosition().closerThan(pos, 16.0D)) {
+        if (!player.blockPosition().closerThan(pos, 16.0D) && !RtsRemoteMenuAccess.hasAccess(player, pos)) {
             InfoToastService.warning(player, Component.translatable("message.simukraft.logistics.too_far"));
             return;
         }

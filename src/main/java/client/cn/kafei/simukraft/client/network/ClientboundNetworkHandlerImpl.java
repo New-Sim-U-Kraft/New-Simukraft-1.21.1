@@ -49,6 +49,7 @@ import common.cn.kafei.simukraft.network.npc.state.EmploymentStateResponsePacket
 import common.cn.kafei.simukraft.network.path.NpcPathDebugSyncPacket;
 import common.cn.kafei.simukraft.network.planner.PlannerMaterialScanResponsePacket;
 import common.cn.kafei.simukraft.network.toast.InfoToastPacket;
+import common.cn.kafei.simukraft.network.rts.RtsBuildingBoundsSyncPacket;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -69,6 +70,21 @@ public final class ClientboundNetworkHandlerImpl implements ClientboundNetworkHa
     @Override
     public void handleBuildingCacheReload(BuildingCacheReloadPacket packet) {
         BuildingCacheService.reload();
+    }
+
+    @Override
+    public void handleRtsBuildingBoundsSync(RtsBuildingBoundsSyncPacket packet) {
+        BuildingBoundsRenderer.setRtsBuildingBounds(packet.entries().stream()
+                .map(entry -> new BuildingBoundsRenderer.RtsBuildingBounds(
+                        new net.minecraft.world.phys.AABB(
+                                Math.min(entry.min().getX(), entry.max().getX()),
+                                Math.min(entry.min().getY(), entry.max().getY()),
+                                Math.min(entry.min().getZ(), entry.max().getZ()),
+                                Math.max(entry.min().getX(), entry.max().getX()) + 1.0D,
+                                Math.max(entry.min().getY(), entry.max().getY()) + 1.0D,
+                                Math.max(entry.min().getZ(), entry.max().getZ()) + 1.0D),
+                        entry.displayName()))
+                .toList());
     }
 
     @Override

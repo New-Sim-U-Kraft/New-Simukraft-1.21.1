@@ -5,9 +5,17 @@
   "client": [
     "MixinCamera",
     "MixinEntity",
+    "MixinFrustum",
+    "MixinGameRenderer",
+    "MixinGameRendererProjection",
     "MixinKeyboardHandler",
+    "MixinLevelRenderer",
     "MixinLdlibTextField",
     "MixinMouseHandler",
+    "MixinSectionOcclusionGraph",
+    "sodium.MixinSodiumDefaultChunkRenderer",
+    "sodium.MixinSodiumRenderSectionManager",
+    "sodium.MixinSodiumViewport",
     "xaero.MixinWorldMapSession"
   ],
   "injectors": {

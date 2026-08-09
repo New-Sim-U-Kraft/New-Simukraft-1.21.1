@@ -26,6 +26,7 @@ import common.cn.kafei.simukraft.network.npc.state.EmploymentStateResponsePacket
 import common.cn.kafei.simukraft.network.path.NpcPathDebugSyncPacket;
 import common.cn.kafei.simukraft.network.planner.PlannerMaterialScanResponsePacket;
 import common.cn.kafei.simukraft.network.toast.InfoToastPacket;
+import common.cn.kafei.simukraft.network.rts.RtsBuildingBoundsSyncPacket;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
@@ -177,5 +178,10 @@ public final class ClientboundNetworkBridge {
     /** handleGeologicalSurveyHint: 转发地质锤准星提示。 */
     public static void handleGeologicalSurveyHint(GeologicalSurveyHintPacket packet) {
         HANDLER.get().handleGeologicalSurveyHint(packet);
+    }
+
+    /** handleRtsBuildingBoundsSync: 分发 RTS 建筑边界同步。 */
+    public static void handleRtsBuildingBoundsSync(RtsBuildingBoundsSyncPacket packet) {
+        HANDLER.get().handleRtsBuildingBoundsSync(packet);
     }
 }

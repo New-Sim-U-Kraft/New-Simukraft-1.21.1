@@ -6,6 +6,7 @@ import client.cn.kafei.simukraft.client.buildbox.PlannerOperationScreenOpener;
 import client.cn.kafei.simukraft.client.freecamera.FreeCameraManager;
 import client.cn.kafei.simukraft.client.freecamera.FreeCameraScreen;
 import client.cn.kafei.simukraft.client.input.SimuKraftKeyMappings;
+import client.cn.kafei.simukraft.client.rts.RtsSelectionManager;
 import client.cn.kafei.simukraft.client.toast.ClientInfoToast;
 import client.cn.kafei.simukraft.client.ui.SimuKraftUiTheme;
 import client.cn.kafei.simukraft.client.ui.SlidingInfoPanel;
@@ -40,9 +41,11 @@ public final class TwoPointSelectionScreen extends Screen implements FreeCameraS
     private final BlockPos ownerPos;
     @Nullable private final PlanOperation operation;
     @Nullable private final LogisticsBoxActionPacket.Action logisticsAction;
+    private final boolean rtsPreviewMode;
 
     private static boolean sPanelVisible = true;
     private final SlidingInfoPanel panel = new SlidingInfoPanel();
+    private boolean rtsPreviewSession;
 
     private TwoPointSelectionScreen(TwoPointSelectionManager.SelectionMode mode, BlockPos ownerPos,
                                     @Nullable PlanOperation operation,
@@ -52,6 +55,7 @@ public final class TwoPointSelectionScreen extends Screen implements FreeCameraS
         this.ownerPos       = ownerPos.immutable();
         this.operation      = operation;
         this.logisticsAction = logisticsAction;
+        this.rtsPreviewMode = RtsSelectionManager.isActive();
         panel.setVisible(sPanelVisible);
     }
 
@@ -83,7 +87,16 @@ public final class TwoPointSelectionScreen extends Screen implements FreeCameraS
     protected void init() {
         super.init();
         TwoPointSelectionManager.start(mode, ownerPos, operation);
-        FreeCameraManager.activate();
+        if (rtsPreviewMode) {
+            if (!FreeCameraManager.isActive()) {
+                FreeCameraManager.activateRts();
+            }
+            RtsSelectionManager.beginPreviewSession();
+            rtsPreviewSession = true;
+            releaseSelectionMouse();
+        } else {
+            FreeCameraManager.activate();
+        }
     }
 
     @Override
@@ -93,6 +106,9 @@ public final class TwoPointSelectionScreen extends Screen implements FreeCameraS
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        if (rtsPreviewMode) {
+            return;
+        }
         int sw = this.width, sh = this.height;
         panel.beginRender(g, font, sw, sh, 18);
         // ── 顶部标题条 ──
@@ -162,7 +178,11 @@ public final class TwoPointSelectionScreen extends Screen implements FreeCameraS
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_TAB) {
-            panel.toggle(); sPanelVisible = panel.isVisible(); return true;
+            if (!rtsPreviewMode) {
+                panel.toggle();
+                sPanelVisible = panel.isVisible();
+            }
+            return true;
         }
         if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.SELECTION_POINT_1, keyCode, scanCode)) {
             setPoint(true); return true;
@@ -181,6 +201,9 @@ public final class TwoPointSelectionScreen extends Screen implements FreeCameraS
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (rtsPreviewMode && button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && RtsSelectionManager.isCameraRotationActive()) {
+            return true;
+        }
         if (SimuKraftKeyMappings.matchesMouse(SimuKraftKeyMappings.SELECTION_POINT_1, button)) {
             setPoint(true); return true;
         }
@@ -190,17 +213,27 @@ public final class TwoPointSelectionScreen extends Screen implements FreeCameraS
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
+    /** mouseScrolled: 在 RTS 两点选择中将 Alt 滚轮交给俯视相机缩放。 */
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (rtsPreviewMode && RtsSelectionManager.handleRtsCameraScroll(verticalAmount)) {
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
     @Override
     public boolean isPauseScreen() { return false; }
 
     @Override
     public void removed() {
         super.removed();
-        FreeCameraManager.deactivate();
         TwoPointSelectionManager.clear();
-        if (this.minecraft != null && this.minecraft.mouseHandler.isMouseGrabbed()) {
-            this.minecraft.mouseHandler.releaseMouse();
+        endPreviewSession();
+        if (!rtsPreviewMode) {
+            FreeCameraManager.deactivate();
         }
+        releaseSelectionMouse();
     }
 
     private Component modeTitle() {
@@ -229,6 +262,9 @@ public final class TwoPointSelectionScreen extends Screen implements FreeCameraS
 
     @Nullable
     private BlockPos raycastBlock() {
+        if (rtsPreviewMode) {
+            return RtsSelectionManager.cursorTargetPos();
+        }
         if (this.minecraft == null || this.minecraft.level == null || this.minecraft.player == null) return null;
         Vec3 cameraPos = FreeCameraManager.getPosition();
         double yawRad   = Math.toRadians(FreeCameraManager.getYaw());
@@ -285,10 +321,11 @@ public final class TwoPointSelectionScreen extends Screen implements FreeCameraS
     private void closeSelection(@Nullable Runnable next) {
         Minecraft minecraft = this.minecraft;
         TwoPointSelectionManager.clear();
-        FreeCameraManager.deactivate();
-        if (minecraft != null && minecraft.mouseHandler.isMouseGrabbed()) {
-            minecraft.mouseHandler.releaseMouse();
+        endPreviewSession();
+        if (!rtsPreviewMode) {
+            FreeCameraManager.deactivate();
         }
+        releaseSelectionMouse();
         if (minecraft != null) {
             minecraft.setScreen(null);
             if (next != null) minecraft.execute(next);
@@ -299,5 +336,20 @@ public final class TwoPointSelectionScreen extends Screen implements FreeCameraS
         return pos == null
             ? Component.translatable(key + ".empty")
             : Component.translatable(key + ".set", pos.getX(), pos.getY(), pos.getZ());
+    }
+
+    /** endPreviewSession: 结束两点选区的 RTS 预览状态并恢复建筑边界。 */
+    private void endPreviewSession() {
+        if (rtsPreviewSession) {
+            RtsSelectionManager.endPreviewSession();
+            rtsPreviewSession = false;
+        }
+    }
+
+    /** releaseSelectionMouse: RTS 选区中保持系统光标可见。 */
+    private void releaseSelectionMouse() {
+        if (this.minecraft != null && this.minecraft.mouseHandler.isMouseGrabbed()) {
+            this.minecraft.mouseHandler.releaseMouse();
+        }
     }
 }

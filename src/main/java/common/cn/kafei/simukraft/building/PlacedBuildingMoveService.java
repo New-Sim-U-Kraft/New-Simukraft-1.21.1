@@ -1,0 +1,308 @@
+package common.cn.kafei.simukraft.building;
+
+import common.cn.kafei.simukraft.citizen.CitizenHousingService;
+import common.cn.kafei.simukraft.city.CityData;
+import common.cn.kafei.simukraft.city.CityManager;
+import common.cn.kafei.simukraft.city.CityPermissionLevel;
+import common.cn.kafei.simukraft.city.poi.CityPoiData;
+import common.cn.kafei.simukraft.city.poi.CityPoiManager;
+import common.cn.kafei.simukraft.protection.NpcBlockProtectionPolicy;
+import common.cn.kafei.simukraft.registry.ModBlocks;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/** 已登记建筑和普通方块的 RTS 移动事务。所有方法只在服务端主线程调用。 */
+@SuppressWarnings("null")
+public final class PlacedBuildingMoveService {
+    private static final double MAX_DISTANCE = 128.0D;
+    private static final int MAX_MOVED_BLOCKS = 32768;
+    private static final int MOVE_BLOCK_UPDATE_FLAGS = Block.UPDATE_CLIENTS
+            | Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_SUPPRESS_DROPS;
+    private static final ThreadLocal<MoveContext> ACTIVE_BUILDING_MOVE = new ThreadLocal<>();
+
+    private PlacedBuildingMoveService() {
+    }
+
+    /** move: 按源位置和目标位置移动单方块或整座已登记建筑。 */
+    public static MoveStatus move(ServerLevel level, ServerPlayer player, BlockPos source, BlockPos destination) {
+        if (level == null || player == null || source == null || destination == null) {
+            return MoveStatus.INVALID;
+        }
+        BlockPos sourcePos = source.immutable();
+        BlockPos destinationPos = destination.immutable();
+        if (!player.blockPosition().closerThan(sourcePos, MAX_DISTANCE)
+                || !player.blockPosition().closerThan(destinationPos, MAX_DISTANCE)) {
+            return MoveStatus.TOO_FAR;
+        }
+        if (level.getBlockState(sourcePos).is(ModBlocks.CITY_CORE.get())) {
+            return MoveStatus.INVALID;
+        }
+        PlacedBuildingRecord building = PlacedBuildingService.findByContainedPos(level, sourcePos);
+        if (building != null) {
+            if (!canManageBuilding(level, player, building)) {
+                return MoveStatus.NO_PERMISSION;
+            }
+            return moveBuilding(level, building, sourcePos, destinationPos);
+        }
+        return moveBlock(level, player, sourcePos, destinationPos);
+    }
+
+    /** moveBlock: 搬运普通方块并覆盖目标方块，不产生掉落物。 */
+    private static MoveStatus moveBlock(ServerLevel level, ServerPlayer player, BlockPos source, BlockPos destination) {
+        if (source.equals(destination) || !level.isAreaLoaded(source, 1) || !level.isAreaLoaded(destination, 1)
+                || !player.mayInteract(level, source) || !player.mayInteract(level, destination)) {
+            return MoveStatus.INVALID;
+        }
+        BlockState state = level.getBlockState(source);
+        if (state.isAir()) {
+            return MoveStatus.INVALID;
+        }
+        if (NpcBlockProtectionPolicy.isProtected(state)) {
+            NpcBlockProtectionPolicy.logSkipped("rts", level, source, state);
+            return MoveStatus.INVALID;
+        }
+        BlockState destinationState = level.getBlockState(destination);
+        if (NpcBlockProtectionPolicy.isProtected(destinationState)) {
+            NpcBlockProtectionPolicy.logSkipped("rts", level, destination, destinationState);
+            return MoveStatus.INVALID;
+        }
+        CompoundTag blockEntityData = copyBlockEntityData(level.getBlockEntity(source), level);
+        clearBlockWithoutDrops(level, source, Block.UPDATE_ALL);
+        clearBlockWithoutDrops(level, destination, Block.UPDATE_ALL);
+        BlockState placedState = BuildingBlockPlacementService.refreshedPlacementState(level, destination,
+                singleChestState(state));
+        level.setBlock(destination, placedState, 3);
+        BuildingBlockPlacementService.applyBlockEntityData(level, destination, blockEntityData);
+        return MoveStatus.SUCCESS_BLOCK;
+    }
+
+    /** moveBuilding: 校验整座建筑的边界和加载状态后覆盖迁移方块与 POI。 */
+    private static synchronized MoveStatus moveBuilding(ServerLevel level, PlacedBuildingRecord building,
+                                                         BlockPos source, BlockPos destination) {
+        BlockPos delta = destination.subtract(source);
+        if (delta.equals(BlockPos.ZERO) || building.blocks() == null || building.blocks().isEmpty()
+                || building.blocks().size() > MAX_MOVED_BLOCKS) {
+            return MoveStatus.INVALID;
+        }
+        List<MoveBlock> blocks = new ArrayList<>(building.blocks().size());
+        java.util.Set<BlockPos> oldPositions = ConcurrentHashMap.newKeySet();
+        for (BuildingBlockData recorded : building.blocks()) {
+            if (recorded == null || recorded.state() == null || recorded.state().isAir()) {
+                continue;
+            }
+            BlockPos oldPos = resolveWorldPos(building, recorded.relativePos());
+            BlockPos newPos = oldPos.offset(delta);
+            if (oldPos == null || newPos.getY() < level.getMinBuildHeight()
+                    || newPos.getY() >= level.getMaxBuildHeight() || !level.isAreaLoaded(oldPos, 1)
+                    || !level.isAreaLoaded(newPos, 1) || !level.getWorldBorder().isWithinBounds(newPos)) {
+                return MoveStatus.INVALID;
+            }
+            CompoundTag blockEntityData = copyBlockEntityData(level.getBlockEntity(oldPos), level);
+            oldPositions.add(oldPos.immutable());
+            blocks.add(new MoveBlock(oldPos, newPos, recorded.state(),
+                    blockEntityData != null ? blockEntityData : recorded.copyBlockEntityData(), recorded.originalStructurePos()));
+        }
+        if (blocks.isEmpty()) {
+            return MoveStatus.INVALID;
+        }
+        for (MoveBlock block : blocks) {
+            if (oldPositions.contains(block.newPos())) {
+                continue;
+            }
+            if (PlacedBuildingService.isOccupiedByOtherBuilding(level, building.buildingId(), block.newPos())) {
+                return MoveStatus.INVALID;
+            }
+        }
+
+        ACTIVE_BUILDING_MOVE.set(new MoveContext(level, oldPositions));
+        try {
+            ResidentialBedPoiService.removeRecordedBeds(level, building);
+            MedicalBedPoiService.removeRecordedBeds(level, building);
+            blocks.forEach(block -> clearBlockWithoutDrops(level, block.oldPos(), MOVE_BLOCK_UPDATE_FLAGS));
+            blocks.forEach(block -> clearBlockWithoutDrops(level, block.newPos(), MOVE_BLOCK_UPDATE_FLAGS));
+            blocks.forEach(block -> {
+                BlockState movedState = preserveMovedChestPair(block, oldPositions);
+                BlockState refreshed = BuildingBlockPlacementService.refreshedPlacementState(level, block.newPos(), movedState);
+                level.setBlock(block.newPos(), refreshed, MOVE_BLOCK_UPDATE_FLAGS);
+                BuildingBlockPlacementService.applyBlockEntityData(level, block.newPos(), block.blockEntityData());
+            });
+            refreshMovedConnectionStates(level, blocks);
+            List<BuildingBlockData> movedBlocks = blocks.stream()
+                    .map(block -> new BuildingBlockData(block.newPos(), level.getBlockState(block.newPos()),
+                            block.originalStructurePos(), block.blockEntityData()))
+                    .toList();
+            List<BuildingPoiInstance> movedPois = movePoiInstances(level, building, delta);
+            PlacedBuildingRecord moved = new PlacedBuildingRecord(
+                    building.buildingId(), building.cityId(), building.dimensionId(), building.category(),
+                    building.buildingFileName(), building.displayName(), building.amount(), building.structureFileName(),
+                    building.facing(), building.worldOrigin().offset(delta), building.structureAnchor(),
+                    building.minPos().offset(delta), building.maxPos().offset(delta), building.completedAt(), movedBlocks,
+                    building.poiDefinitions(), movedPois, building.unitDefinitions(), building.unitInstances());
+            PlacedBuildingService.register(level, moved);
+            syncMovedPois(level, building, moved);
+            ResidentialBedPoiService.addRecordedBeds(level, moved);
+            MedicalBedPoiService.addRecordedBeds(level, moved);
+            if (building.cityId() != null) {
+                CitizenHousingService.fillVacantHomes(level, building.cityId());
+            }
+        } finally {
+            ACTIVE_BUILDING_MOVE.remove();
+        }
+        return MoveStatus.SUCCESS_BUILDING;
+    }
+
+    /** syncMovedPois: 保留 POI UUID、容量、激活状态并修正其世界坐标。 */
+    private static void syncMovedPois(ServerLevel level, PlacedBuildingRecord oldBuilding, PlacedBuildingRecord movedBuilding) {
+        if (movedBuilding.cityId() == null) {
+            return;
+        }
+        CityPoiManager manager = CityPoiManager.get(level);
+        BlockPos delta = movedBuilding.worldOrigin().subtract(oldBuilding.worldOrigin());
+        for (BuildingPoiInstance movedPoi : movedBuilding.poiInstances()) {
+            CityPoiData registeredPoi = manager.getPoiAt(movedPoi.worldPos().subtract(delta));
+            if (registeredPoi != null && (!movedBuilding.cityId().equals(registeredPoi.cityId())
+                    || movedPoi.poiType() != registeredPoi.type())) {
+                registeredPoi = null;
+            }
+            UUID poiId = registeredPoi != null ? registeredPoi.poiId() : stablePoiId(movedPoi, movedBuilding.dimensionId());
+            boolean active = registeredPoi == null || registeredPoi.active();
+            manager.registerPoi(poiId, movedBuilding.cityId(), movedPoi.worldPos(), movedPoi.poiType(), movedPoi.capacity());
+            if (!active) {
+                manager.deactivatePoi(poiId);
+            }
+        }
+    }
+
+    /** movePoiInstances: 固化真实 UUID，并合并旧记录中同位置的重复 POI。 */
+    private static List<BuildingPoiInstance> movePoiInstances(ServerLevel level, PlacedBuildingRecord building, BlockPos delta) {
+        CityPoiManager manager = building.cityId() != null ? CityPoiManager.get(level) : null;
+        Map<String, BuildingPoiInstance> movedPois = new LinkedHashMap<>();
+        for (BuildingPoiInstance poi : building.poiInstances()) {
+            CityPoiData registeredPoi = manager != null ? manager.getPoiAt(poi.worldPos()) : null;
+            String key = registeredPoi != null && building.cityId().equals(registeredPoi.cityId())
+                    && poi.poiType() == registeredPoi.type()
+                    ? registeredPoi.poiId().toString()
+                    : poi.key();
+            BuildingPoiInstance movedPoi = new BuildingPoiInstance(
+                    key, poi.poiType(), poi.capacity(), poi.worldPos().offset(delta));
+            movedPois.putIfAbsent(movedPoi.poiType().name() + "@" + movedPoi.worldPos().asLong(), movedPoi);
+        }
+        return List.copyOf(movedPois.values());
+    }
+
+    /** canManageBuilding: 复用城市官方权限规则保护整体建筑移动。 */
+    private static boolean canManageBuilding(ServerLevel level, ServerPlayer player, PlacedBuildingRecord building) {
+        if (player.hasPermissions(2)) {
+            return true;
+        }
+        if (building.cityId() == null) {
+            return false;
+        }
+        CityData city = CityManager.get(level).getCity(building.cityId()).orElse(null);
+        return city != null && city.hasPermission(player.getUUID(), CityPermissionLevel.OFFICIAL);
+    }
+
+    /** resolveWorldPos: 兼容旧记录的相对坐标与当前记录的世界坐标。 */
+    private static BlockPos resolveWorldPos(PlacedBuildingRecord building, BlockPos storedPos) {
+        if (storedPos == null) {
+            return BlockPos.ZERO;
+        }
+        if (contains(building.minPos(), building.maxPos(), storedPos)) {
+            return storedPos;
+        }
+        return building.worldOrigin().offset(storedPos);
+    }
+
+    private static boolean contains(BlockPos min, BlockPos max, BlockPos pos) {
+        return pos.getX() >= Math.min(min.getX(), max.getX()) && pos.getX() <= Math.max(min.getX(), max.getX())
+                && pos.getY() >= Math.min(min.getY(), max.getY()) && pos.getY() <= Math.max(min.getY(), max.getY())
+                && pos.getZ() >= Math.min(min.getZ(), max.getZ()) && pos.getZ() <= Math.max(min.getZ(), max.getZ());
+    }
+
+    private static CompoundTag copyBlockEntityData(BlockEntity entity, ServerLevel level) {
+        return entity == null ? null : entity.saveWithoutMetadata(level.registryAccess());
+    }
+
+    /** refreshMovedConnectionStates: 所有方块落位后重算栅栏、墙和铁栅栏的连接状态。 */
+    private static void refreshMovedConnectionStates(ServerLevel level, List<MoveBlock> blocks) {
+        for (MoveBlock block : blocks) {
+            BlockState currentState = level.getBlockState(block.newPos());
+            BlockState refreshedState = BuildingBlockPlacementService.refreshedPlacementState(level, block.newPos(), currentState);
+            if (!currentState.equals(refreshedState)) {
+                level.setBlock(block.newPos(), refreshedState, MOVE_BLOCK_UPDATE_FLAGS);
+            }
+        }
+    }
+
+    /** isMovingBuildingBlock: 判断控制箱移除是否属于 RTS 整体搬迁事务。 */
+    public static boolean isMovingBuildingBlock(ServerLevel level, BlockPos pos) {
+        MoveContext context = ACTIVE_BUILDING_MOVE.get();
+        return context != null && context.level() == level && context.sourcePositions().contains(pos);
+    }
+
+    /** clearBlockWithoutDrops: 先移除方块实体，再替换状态，防止容器 onRemove 抛出库存。 */
+    private static void clearBlockWithoutDrops(ServerLevel level, BlockPos pos, int updateFlags) {
+        level.removeBlockEntity(pos);
+        level.setBlock(pos, Blocks.AIR.defaultBlockState(), updateFlags);
+    }
+
+    /** singleChestState: 单独搬运大箱子半边时规范为独立小箱子。 */
+    private static BlockState singleChestState(BlockState state) {
+        if (state.getBlock() instanceof ChestBlock && state.hasProperty(ChestBlock.TYPE)) {
+            return state.setValue(ChestBlock.TYPE, ChestType.SINGLE);
+        }
+        return state;
+    }
+
+    /** preserveMovedChestPair: 仅在另一半也属于同一搬运事务时保留大箱子连接状态。 */
+    private static BlockState preserveMovedChestPair(MoveBlock block, java.util.Set<BlockPos> oldPositions) {
+        BlockState state = block.state();
+        if (!(state.getBlock() instanceof ChestBlock) || !state.hasProperty(ChestBlock.TYPE)
+                || state.getValue(ChestBlock.TYPE) == ChestType.SINGLE) {
+            return state;
+        }
+        BlockPos partner = block.oldPos().relative(ChestBlock.getConnectedDirection(state));
+        return oldPositions.contains(partner) ? state : singleChestState(state);
+    }
+
+    private static UUID stablePoiId(BuildingPoiInstance poi, String dimensionId) {
+        try {
+            return UUID.fromString(poi.key());
+        } catch (IllegalArgumentException exception) {
+            String scope = dimensionId == null || dimensionId.isBlank() ? "minecraft:overworld" : dimensionId;
+            return UUID.nameUUIDFromBytes((scope + ":" + poi.poiType().name().toLowerCase() + ":" + poi.worldPos().toShortString())
+                    .getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public enum MoveStatus {
+        SUCCESS_BLOCK,
+        SUCCESS_BUILDING,
+        TOO_FAR,
+        NO_PERMISSION,
+        INVALID
+    }
+
+    private record MoveBlock(BlockPos oldPos, BlockPos newPos, BlockState state,
+                             CompoundTag blockEntityData, BlockPos originalStructurePos) {
+    }
+
+    private record MoveContext(ServerLevel level, java.util.Set<BlockPos> sourcePositions) {
+    }
+}

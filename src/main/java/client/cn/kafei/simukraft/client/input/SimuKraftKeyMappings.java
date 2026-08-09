@@ -13,6 +13,10 @@ import org.lwjgl.glfw.GLFW;
 public final class SimuKraftKeyMappings {
     private static final String CATEGORY = "key.categories.simukraft";
 
+    public static final KeyMapping RTS_TOGGLE = key("key.simukraft.rts.toggle", GLFW.GLFW_KEY_F12);
+    public static final KeyMapping RTS_DELETE = key("key.simukraft.rts.delete", GLFW.GLFW_KEY_DELETE);
+    public static final KeyMapping RTS_MINIMAP_TOGGLE = key("key.simukraft.rts.minimap_toggle", GLFW.GLFW_KEY_M);
+
     public static final KeyMapping SELECTION_POINT_1 = mouse("key.simukraft.selection.point1", GLFW.GLFW_MOUSE_BUTTON_LEFT);
     public static final KeyMapping SELECTION_POINT_2 = mouse("key.simukraft.selection.point2", GLFW.GLFW_MOUSE_BUTTON_RIGHT);
     public static final KeyMapping SELECTION_CONFIRM = key("key.simukraft.selection.confirm", GLFW.GLFW_KEY_ENTER);
@@ -33,6 +37,9 @@ public final class SimuKraftKeyMappings {
     }
 
     public static void register(RegisterKeyMappingsEvent event) {
+        event.register(RTS_TOGGLE);
+        event.register(RTS_DELETE);
+        event.register(RTS_MINIMAP_TOGGLE);
         event.register(SELECTION_POINT_1);
         event.register(SELECTION_POINT_2);
         event.register(SELECTION_CONFIRM);

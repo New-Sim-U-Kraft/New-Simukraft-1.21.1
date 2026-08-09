@@ -19,9 +19,9 @@ import java.util.Locale;
 @SuppressWarnings("null")
 public final class SimuKraftClientConfigScreen {
     private static final int WINDOW_WIDTH = 280;
-    private static final int WINDOW_HEIGHT = 240;
+    private static final int WINDOW_HEIGHT = 320;
     private static final int MIN_WINDOW_WIDTH = 220;
-    private static final int MIN_WINDOW_HEIGHT = 220;
+    private static final int MIN_WINDOW_HEIGHT = 260;
     private static final int HEADER_HEIGHT = 36;
 
     private SimuKraftClientConfigScreen() {
@@ -53,8 +53,20 @@ public final class SimuKraftClientConfigScreen {
         body.addChild(SimuKraftConfigWidgets.row(
                 Component.translatable("gui.simukraft.config.client.path_debug_request"),
                 SimuKraftConfigWidgets.switchControl(ClientConfig.PATH_DEBUG_REQUEST_ON_TOGGLE.get(), ClientConfig.PATH_DEBUG_REQUEST_ON_TOGGLE::set)));
-        body.addChild(footer(parent));
-        window.addChild(body);
+        body.addChild(SimuKraftConfigWidgets.row(
+                Component.translatable("gui.simukraft.config.client.rts.target_simukraft_blocks"),
+                SimuKraftConfigWidgets.switchControl(ClientConfig.RTS_TARGET_SIMUKRAFT_BLOCKS.get(), ClientConfig.RTS_TARGET_SIMUKRAFT_BLOCKS::set)));
+        body.addChild(SimuKraftConfigWidgets.row(
+                Component.translatable("gui.simukraft.config.client.rts.target_vanilla_blocks"),
+                SimuKraftConfigWidgets.switchControl(ClientConfig.RTS_TARGET_VANILLA_BLOCKS.get(), ClientConfig.RTS_TARGET_VANILLA_BLOCKS::set)));
+        body.addChild(SimuKraftConfigWidgets.row(
+                Component.translatable("gui.simukraft.config.client.rts.target_other_mod_blocks"),
+                SimuKraftConfigWidgets.switchControl(ClientConfig.RTS_TARGET_OTHER_MOD_BLOCKS.get(), ClientConfig.RTS_TARGET_OTHER_MOD_BLOCKS::set)));
+        body.addChild(SimuKraftConfigWidgets.row(
+                Component.translatable("gui.simukraft.config.client.rts.move_hold_seconds"),
+                SimuKraftConfigWidgets.intField(ClientConfig.RTS_MOVE_HOLD_SECONDS.get(), 1, 10, ClientConfig.RTS_MOVE_HOLD_SECONDS::set)));
+        window.addChild(SimuKraftConfigWidgets.scroller(body));
+        window.addChild(footer(parent));
         return SimuKraftConfigWidgets.screenRoot(window);
     }
 
@@ -103,6 +115,10 @@ public final class SimuKraftClientConfigScreen {
         ClientConfig.HUD_POS_X.set(ClientConfig.DEFAULT_HUD_POS_X);
         ClientConfig.HUD_POS_Y.set(ClientConfig.DEFAULT_HUD_POS_Y);
         ClientConfig.PATH_DEBUG_REQUEST_ON_TOGGLE.set(true);
+        ClientConfig.RTS_TARGET_SIMUKRAFT_BLOCKS.set(true);
+        ClientConfig.RTS_TARGET_VANILLA_BLOCKS.set(true);
+        ClientConfig.RTS_TARGET_OTHER_MOD_BLOCKS.set(true);
+        ClientConfig.RTS_MOVE_HOLD_SECONDS.set(ClientConfig.DEFAULT_RTS_MOVE_HOLD_SECONDS);
         save();
         Minecraft.getInstance().setScreen(create(parent));
     }

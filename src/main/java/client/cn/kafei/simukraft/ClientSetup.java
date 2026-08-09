@@ -12,6 +12,8 @@ import client.cn.kafei.simukraft.client.city.ClientCityMapTerrainCache;
 import client.cn.kafei.simukraft.client.city.map.SimuMapManager;
 import client.cn.kafei.simukraft.client.farmland.FarmlandHoverPreview;
 import client.cn.kafei.simukraft.client.freecamera.FreeCameraManager;
+import client.cn.kafei.simukraft.client.rts.RtsMiniMapRenderer;
+import client.cn.kafei.simukraft.client.rts.RtsSelectionManager;
 import client.cn.kafei.simukraft.client.path.NpcPathDebugRenderer;
 import client.cn.kafei.simukraft.client.selection.TwoPointSelectionManager;
 import common.cn.kafei.simukraft.SimuKraft;
@@ -35,6 +37,8 @@ public final class ClientSetup {
         ClientHUDOverlay.render(event);
         GeologicalSurveyHintOverlay.render(event);
         CityEntryHud.render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(true));
+        RtsMiniMapRenderer.render(event.getGuiGraphics());
+        RtsSelectionManager.renderHoldProgress(event.getGuiGraphics());
     }
 
     @SubscribeEvent
@@ -46,6 +50,7 @@ public final class ClientSetup {
 
     @SubscribeEvent
     public static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        RtsMiniMapRenderer.clear();
         BuildingPreviewManager.clearPreview();
         BuildingBoundsRenderer.clearAll();
         ClientCityChunkCache.getInstance().clearAllWorlds();
@@ -55,6 +60,7 @@ public final class ClientSetup {
         GeologicalSurveyHintOverlay.clear();
         SimuMapManager.shutdownIfPresent();
         FreeCameraManager.deactivate();
+        RtsSelectionManager.clear();
         TwoPointSelectionManager.clear();
         NpcPathDebugRenderer.clear();
         FarmlandHoverPreview.clear();
@@ -67,6 +73,8 @@ public final class ClientSetup {
             SimuMapManager.getInstance().tick();
         }
         CityEntryHud.onClientTick();
+        RtsSelectionManager.onClientTick();
+        RtsMiniMapRenderer.onClientTick();
     }
 
     @SubscribeEvent

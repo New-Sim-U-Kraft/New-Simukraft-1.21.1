@@ -10,6 +10,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import client.cn.kafei.simukraft.client.city.ClientCityChunkCache;
+import client.cn.kafei.simukraft.client.rts.RtsSelectionManager;
 import common.cn.kafei.simukraft.building.BuildingTerritoryValidator;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
@@ -38,6 +39,9 @@ public final class BuildingBoundsRenderer {
     private static final int COLOR_INTRUSION_AIR_EDGE   = 0xCCFFEE00; // 黄色线框边缘
     private static final int COLOR_INTRUSION_BLOCK_EDGE  = 0xCCFF3300; // 红色线框边缘
     private static final int COLOR_SELECTED_BUILDING = 0xAAFFFFFF;
+    private static final int COLOR_RTS_TARGET = 0xEE22DDFF;
+    private static final int COLOR_RTS_SELECTED = 0xEEFFAA22;
+    private static final int COLOR_RTS_MOVE_PREVIEW = 0xEE66FF99;
     private static final int COLOR_RESIDENTIAL_POI = 0xAA00FF66;
     private static final int COLOR_INDUSTRIAL_WORK_POINT = 0xAA33CCFF;
     private static final int COLOR_INDUSTRIAL_MACHINE_POINT = 0xAAFFFF33;
@@ -49,6 +53,10 @@ public final class BuildingBoundsRenderer {
     private static final double POINT_MARKER_Y_OFFSET = 0.56D;
     // 住宅控制盒手动打开的建筑边界，按控制盒位置索引以便再次点击时关闭。
     private static final Map<BlockPos, DisplayedBuildingBounds> DISPLAYED_BUILDING_BOUNDS = new ConcurrentHashMap<>();
+    private static volatile BlockPos rtsTargetPos;
+    private static volatile BlockPos rtsSelectedPos;
+    private static volatile List<RtsBuildingBounds> rtsBuildingBounds = List.of();
+    private static volatile AABB rtsMovePreviewBounds;
     private static UUID previewPlayerId;
     private static long intrusionCacheRevision = Long.MIN_VALUE;
     private static BlockPos intrusionCacheOrigin = BlockPos.ZERO;
@@ -66,6 +74,10 @@ public final class BuildingBoundsRenderer {
     // 清理客户端建筑边界显示状态，避免切换存档后仍渲染旧控制盒边界。
     public static void clearAll() {
         DISPLAYED_BUILDING_BOUNDS.clear();
+        rtsTargetPos = null;
+        rtsSelectedPos = null;
+        rtsBuildingBounds = List.of();
+        rtsMovePreviewBounds = null;
         previewPlayerId = null;
         clearPreviewDetectionCache();
     }
@@ -106,6 +118,61 @@ public final class BuildingBoundsRenderer {
         }
     }
 
+    /** setRtsTarget: 更新 RTS 光标当前命中的方块。 */
+    public static void setRtsTarget(BlockPos targetPos) {
+        rtsTargetPos = targetPos == null ? null : targetPos.immutable();
+    }
+
+    /** setRtsSelection: 更新 RTS 左键选中的方块。 */
+    public static void setRtsSelection(BlockPos selectedPos) {
+        rtsSelectedPos = selectedPos == null ? null : selectedPos.immutable();
+    }
+
+    /** setRtsBuildingBounds: 替换 RTS 建筑边界与名称快照，使用不可变列表避免渲染并发修改。 */
+    public static void setRtsBuildingBounds(List<RtsBuildingBounds> bounds) {
+        rtsBuildingBounds = bounds == null ? List.of() : bounds.stream()
+                .filter(boundsEntry -> boundsEntry != null && boundsEntry.bounds() != null)
+                .toList();
+    }
+
+    /** setRtsMovePreviewBounds: 更新 RTS 抓取预览的整体边界。 */
+    public static void setRtsMovePreviewBounds(AABB bounds) {
+        rtsMovePreviewBounds = bounds;
+    }
+
+    /** knownBuildingBoundsAt: 查找已同步到客户端的建筑边界。 */
+    public static AABB knownBuildingBoundsAt(BlockPos pos) {
+        if (pos == null) {
+            return null;
+        }
+        Vec3 center = Vec3.atCenterOf(pos);
+        for (DisplayedBuildingBounds displayed : DISPLAYED_BUILDING_BOUNDS.values()) {
+            if (displayed.bounds().contains(center)) {
+                return displayed.bounds();
+            }
+        }
+        for (RtsBuildingBounds boundsEntry : rtsBuildingBounds) {
+            if (boundsEntry.bounds().contains(center)) {
+                return boundsEntry.bounds();
+            }
+        }
+        return null;
+    }
+
+    /** knownRtsBuildingNameAt: 查找 RTS 快照中包含指定方块的建筑名称。 */
+    public static String knownRtsBuildingNameAt(BlockPos pos) {
+        if (pos == null) {
+            return "";
+        }
+        Vec3 center = Vec3.atCenterOf(pos);
+        for (RtsBuildingBounds boundsEntry : rtsBuildingBounds) {
+            if (boundsEntry.bounds().contains(center) && !boundsEntry.displayName().isBlank()) {
+                return boundsEntry.displayName();
+            }
+        }
+        return "";
+    }
+
     public static void updateDisplayedBuildingBounds(BlockPos controlBoxPos, boolean hasBuildingBounds, BlockPos boundsMin, BlockPos boundsMax, List<BlockPos> residentialPoiPositions) {
         if (controlBoxPos == null || !isBuildingBoundsVisible(controlBoxPos)) {
             return;
@@ -129,12 +196,43 @@ public final class BuildingBoundsRenderer {
         }
         PoseStack poseStack = event.getPoseStack();
         Vec3 cameraPos = event.getCamera().getPosition();
-        // 预览模式只渲染当前玩家自己的城市边界和侵入提示，避免多人客户端互相干扰。
+        boolean rtsPreview = BuildingPreviewManager.isPreviewActive() && RtsSelectionManager.isActive();
+        // RTS 建筑预览只保留城市边界；普通预览仍显示侵入提示。
         if (BuildingPreviewManager.isPreviewActive() && (previewPlayerId == null || previewPlayerId.equals(minecraft.player.getUUID()))) {
             renderCityBoundary(poseStack, cameraPos, minecraft);
-            renderIntrusions(poseStack, cameraPos, minecraft);
+            if (!rtsPreview) {
+                renderIntrusions(poseStack, cameraPos, minecraft);
+            }
         }
-        renderSelectedBuildingBounds(poseStack, cameraPos);
+        if (!rtsPreview) {
+            renderSelectedBuildingBounds(poseStack, cameraPos);
+            renderRtsTarget(poseStack, cameraPos);
+        }
+    }
+
+    private static void renderRtsTarget(PoseStack poseStack, Vec3 cameraPos) {
+        BlockPos target = rtsTargetPos;
+        AABB targetBuildingBounds = target == null ? null : knownBuildingBoundsAt(target);
+        if (target != null) {
+            AABB targetBounds = targetBuildingBounds == null
+                    ? new AABB(target).inflate(0.002D)
+                    : targetBuildingBounds.inflate(SELECTED_BOUNDS_INFLATE);
+            renderWireBox(poseStack, cameraPos, targetBounds, COLOR_RTS_TARGET, true);
+        }
+        BlockPos selected = rtsSelectedPos;
+        if (selected != null && (target == null || !selected.equals(target))) {
+            AABB selectedBuildingBounds = knownBuildingBoundsAt(selected);
+            if (selectedBuildingBounds == null || !selectedBuildingBounds.equals(targetBuildingBounds)) {
+                AABB selectedBounds = selectedBuildingBounds == null
+                        ? new AABB(selected).inflate(0.006D)
+                        : selectedBuildingBounds.inflate(SELECTED_BOUNDS_INFLATE);
+                renderWireBox(poseStack, cameraPos, selectedBounds, COLOR_RTS_SELECTED, true);
+            }
+        }
+        AABB movePreviewBounds = rtsMovePreviewBounds;
+        if (movePreviewBounds != null) {
+            renderWireBox(poseStack, cameraPos, movePreviewBounds.inflate(SELECTED_BOUNDS_INFLATE), COLOR_RTS_MOVE_PREVIEW, true);
+        }
     }
 
     public static boolean isEntireBuildingInCityTerritory() {
@@ -480,6 +578,13 @@ public final class BuildingBoundsRenderer {
     }
 
     private record DisplayedBuildingBounds(AABB bounds, List<DisplayMarker> markers) {
+    }
+
+    /** RtsBuildingBounds: 客户端 RTS 建筑边界与显示名称快照。 */
+    public record RtsBuildingBounds(AABB bounds, String displayName) {
+        public RtsBuildingBounds {
+            displayName = displayName == null ? "" : displayName;
+        }
     }
 
     private record PreviewIntrusion(BlockPos pos, int color) {

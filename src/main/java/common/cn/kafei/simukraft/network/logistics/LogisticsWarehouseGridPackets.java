@@ -4,6 +4,7 @@ import common.cn.kafei.simukraft.logistics.LogisticsControlBoxService;
 import common.cn.kafei.simukraft.logistics.LogisticsManager;
 import common.cn.kafei.simukraft.logistics.LogisticsWarehouseInventoryService;
 import common.cn.kafei.simukraft.logistics.menu.LogisticsWarehouseGridMenu;
+import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -71,7 +72,7 @@ final class LogisticsWarehouseGridPackets {
         if (level == null || player == null || pos == null) {
             return false;
         }
-        if (!player.blockPosition().closerThan(pos, 16.0D)) {
+        if (!player.blockPosition().closerThan(pos, 16.0D) && !RtsRemoteMenuAccess.hasAccess(player, pos)) {
             InfoToastService.warning(player, Component.translatable("message.simukraft.logistics.too_far"));
             return false;
         }
