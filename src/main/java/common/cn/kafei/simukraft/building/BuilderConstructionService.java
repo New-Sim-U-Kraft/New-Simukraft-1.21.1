@@ -334,7 +334,7 @@ public final class BuilderConstructionService {
         BlockPos minPos = new BlockPos(minX, minY, minZ);
         BlockPos maxPos = new BlockPos(maxX, maxY, maxZ);
         List<BuildingUnitDefinition> unitDefs = resolveUnitDefinitions(task);
-        List<BuildingUnitInstance> unitInsts = buildUnitInstances(unitDefs, poiInstances, task.origin());
+        List<BuildingUnitInstance> unitInsts = buildUnitInstances(unitDefs, poiInstances, task.origin(), task.rotationDegrees());
         if (cityId != null && !unitInsts.isEmpty()) {
             CityPoiManager poiManager = CityPoiManager.get(level);
             for (BuildingUnitInstance unit : unitInsts) {
@@ -868,10 +868,12 @@ public final class BuilderConstructionService {
         return BuildingMetadataReader.readUnitDefinitions(def);
     }
 
-    private static List<BuildingUnitInstance> buildUnitInstances(
+    /** buildUnitInstances：将住宅床位 POI 按原始结构坐标归属到户型单元。 */
+    static List<BuildingUnitInstance> buildUnitInstances(
             List<BuildingUnitDefinition> unitDefs,
             List<BuildingPoiInstance> poiInstances,
-            BlockPos anchor) {
+            BlockPos anchor,
+            int rotationDegrees) {
         if (unitDefs.isEmpty()) return List.of();
         java.util.Map<String, List<java.util.UUID>> labelToPoiIds = new java.util.LinkedHashMap<>();
         for (BuildingUnitDefinition def : unitDefs) {
@@ -879,7 +881,10 @@ public final class BuilderConstructionService {
         }
         for (BuildingPoiInstance poi : poiInstances) {
             if (poi.poiType() != common.cn.kafei.simukraft.city.poi.CityPoiType.RESIDENTIAL) continue;
-            BlockPos relative = poi.worldPos().subtract(anchor);
+            BlockPos relative = BuildingTransform.inverseRotatePosition(
+                    poi.worldPos().subtract(anchor),
+                    rotationDegrees
+            );
             for (BuildingUnitDefinition def : unitDefs) {
                 if (def.contains(relative)) {
                     labelToPoiIds.get(def.label()).add(stablePoiId(poi));

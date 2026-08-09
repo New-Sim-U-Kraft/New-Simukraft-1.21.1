@@ -28,6 +28,11 @@ public final class BuildingTransform {
         return new BlockPos(x, y, z);
     }
 
+    /** inverseRotatePosition：将已旋转的结构坐标还原为原始结构坐标。 */
+    public static BlockPos inverseRotatePosition(BlockPos pos, int rotationDegrees) {
+        return rotatePosition(pos, -rotationDegrees);
+    }
+
     public static Vec3 rotatePosition(Vec3 pos, int rotationDegrees) {
         return switch (normalizedSteps(rotationDegrees)) {
             case 1 -> new Vec3(1.0D - pos.z, pos.y, pos.x);
