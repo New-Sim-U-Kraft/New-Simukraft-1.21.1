@@ -43,9 +43,20 @@ public class MixinSodiumViewport {
     @Unique
     private CameraTransform simukraft$focusTransform;
 
-    /** simukraft$keepRtsSectionsVisible: RTS 激活时跳过 Sodium 的视锥区段过滤。 */
-    @Inject(method = "isBoxVisible", at = @At("HEAD"), cancellable = true)
-    private void simukraft$keepRtsSectionsVisible(
+    /** simukraft$keepRtsSectionsVisibleThreeCoordinates: 兼容仅传入区段坐标的视锥过滤。 */
+    @Inject(method = "isBoxVisible(III)Z", at = @At("HEAD"), cancellable = true, require = 0)
+    private void simukraft$keepRtsSectionsVisibleThreeCoordinates(
+            int x,
+            int y,
+            int z,
+            CallbackInfoReturnable<Boolean> callbackInfo
+    ) {
+        simukraft$keepRtsSectionsVisible(callbackInfo);
+    }
+
+    /** simukraft$keepRtsSectionsVisibleWithBounds: 兼容同时传入边界尺寸的视锥过滤。 */
+    @Inject(method = "isBoxVisible(IIIFFF)Z", at = @At("HEAD"), cancellable = true, require = 0)
+    private void simukraft$keepRtsSectionsVisibleWithBounds(
             int x,
             int y,
             int z,
@@ -54,6 +65,12 @@ public class MixinSodiumViewport {
             float sizeZ,
             CallbackInfoReturnable<Boolean> callbackInfo
     ) {
+        simukraft$keepRtsSectionsVisible(callbackInfo);
+    }
+
+    /** simukraft$keepRtsSectionsVisible: RTS 激活时统一跳过 Sodium 的视锥区段过滤。 */
+    @Unique
+    private static void simukraft$keepRtsSectionsVisible(CallbackInfoReturnable<Boolean> callbackInfo) {
         if (FreeCameraManager.isRtsActive()) {
             callbackInfo.setReturnValue(true);
         }
