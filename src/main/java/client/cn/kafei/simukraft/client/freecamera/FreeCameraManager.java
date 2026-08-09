@@ -23,7 +23,7 @@ public final class FreeCameraManager {
     private static final float RTS_INITIAL_PITCH = 45.0F;
     private static final double RTS_MIN_ZOOM = 10.0D;
     private static final double RTS_DEFAULT_ZOOM = 30.0D;
-    private static final double RTS_MAX_ZOOM = 90.0D;
+    private static final double RTS_MAX_ZOOM = 150.0D;
     private static final double RTS_ZOOM_STEP = 1.0D;
     private static final double RTS_CAMERA_DISTANCE = RTS_CAMERA_HEIGHT
             / Math.sin(Math.toRadians(RTS_INITIAL_PITCH));
