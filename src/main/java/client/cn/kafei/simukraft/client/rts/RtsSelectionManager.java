@@ -325,6 +325,8 @@ public final class RtsSelectionManager {
             RtsMovePreviewManager.moveVertical(1);
         } else if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.PREVIEW_MOVE_DOWN, keyCode, scanCode)) {
             RtsMovePreviewManager.moveVertical(-1);
+        } else if (SimuKraftKeyMappings.matches(SimuKraftKeyMappings.PREVIEW_ROTATE, keyCode, scanCode)) {
+            RtsMovePreviewManager.rotatePreview();
         } else {
             return false;
         }
@@ -565,7 +567,7 @@ public final class RtsSelectionManager {
                 return;
             }
             sendMove(RtsMovePreviewManager.sourcePos(), RtsMovePreviewManager.destinationPos(),
-                    RtsMovePreviewManager.manualVerticalOffset());
+                    RtsMovePreviewManager.manualVerticalOffset(), RtsMovePreviewManager.rotationDegrees());
             clearMoveState();
             return;
         }
@@ -632,9 +634,11 @@ public final class RtsSelectionManager {
         lastLeftClickNanos = now;
     }
 
-    private static void sendMove(BlockPos source, BlockPos destination, int manualVerticalOffset) {
-        if (source != null && destination != null && !source.equals(destination)) {
-            PacketDistributor.sendToServer(new RtsMovePacket(source, destination, manualVerticalOffset));
+    private static void sendMove(BlockPos source, BlockPos destination, int manualVerticalOffset, int rotationDegrees) {
+        if (source != null && destination != null && (!source.equals(destination) || rotationDegrees != 0)) {
+            BlockPos focus = BlockPos.containing(FreeCameraManager.rtsFocus());
+            PacketDistributor.sendToServer(new RtsMovePacket(source, destination, manualVerticalOffset, rotationDegrees,
+                    focus.getX() >> 4, focus.getZ() >> 4));
         }
     }
 

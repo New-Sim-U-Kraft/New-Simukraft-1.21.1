@@ -57,7 +57,17 @@ public final class PlacedBuildingMoveService {
     /** move: 按源位置和目标位置移动单方块或整座已登记建筑，并保留客户端高度微调。 */
     public static MoveStatus move(ServerLevel level, ServerPlayer player, BlockPos source, BlockPos destination,
                                   int manualVerticalOffset) {
+        return move(level, player, source, destination, manualVerticalOffset, 0);
+    }
+
+    /** move: 按抓取点旋转并移动单方块或整座已登记建筑。 */
+    public static MoveStatus move(ServerLevel level, ServerPlayer player, BlockPos source, BlockPos destination,
+                                  int manualVerticalOffset, int rotationDegrees) {
         if (level == null || player == null || source == null || destination == null) {
+            return MoveStatus.INVALID;
+        }
+        int normalizedRotation = normalizeRotation(rotationDegrees);
+        if (normalizedRotation < 0) {
             return MoveStatus.INVALID;
         }
         BlockPos sourcePos = source.immutable();
@@ -74,14 +84,15 @@ public final class PlacedBuildingMoveService {
             if (!canManageBuilding(level, player, building)) {
                 return MoveStatus.NO_PERMISSION;
             }
-            return moveBuilding(level, building, sourcePos, destinationPos, manualVerticalOffset);
+            return moveBuilding(level, building, sourcePos, destinationPos, manualVerticalOffset, normalizedRotation);
         }
-        return moveBlock(level, player, sourcePos, destinationPos);
+        return moveBlock(level, player, sourcePos, destinationPos, normalizedRotation);
     }
 
     /** moveBlock: 搬运普通方块并覆盖目标方块，不产生掉落物。 */
-    private static MoveStatus moveBlock(ServerLevel level, ServerPlayer player, BlockPos source, BlockPos destination) {
-        if (source.equals(destination) || !level.isAreaLoaded(source, 1) || !level.isAreaLoaded(destination, 1)
+    private static MoveStatus moveBlock(ServerLevel level, ServerPlayer player, BlockPos source, BlockPos destination,
+                                        int rotationDegrees) {
+        if ((source.equals(destination) && rotationDegrees == 0) || !level.isAreaLoaded(source, 1) || !level.isAreaLoaded(destination, 1)
                 || !player.mayInteract(level, source) || !player.mayInteract(level, destination)) {
             return MoveStatus.INVALID;
         }
@@ -102,7 +113,7 @@ public final class PlacedBuildingMoveService {
         clearBlockWithoutDrops(level, source, Block.UPDATE_ALL);
         clearBlockWithoutDrops(level, destination, Block.UPDATE_ALL);
         BlockState placedState = BuildingBlockPlacementService.refreshedPlacementState(level, destination,
-                singleChestState(state));
+                singleChestState(BuildingTransform.rotateState(state, rotationDegrees)));
         level.setBlock(destination, placedState, 3);
         BuildingBlockPlacementService.applyBlockEntityData(level, destination, blockEntityData);
         return MoveStatus.SUCCESS_BLOCK;
@@ -110,13 +121,15 @@ public final class PlacedBuildingMoveService {
 
     /** moveBuilding: 校验整座建筑的边界和加载状态后覆盖迁移方块与 POI。 */
     private static synchronized MoveStatus moveBuilding(ServerLevel level, PlacedBuildingRecord building,
-                                                         BlockPos source, BlockPos destination, int manualVerticalOffset) {
+                                                         BlockPos source, BlockPos destination, int manualVerticalOffset,
+                                                         int rotationDegrees) {
         if (building.blocks() == null || building.blocks().isEmpty() || building.blocks().size() > MAX_MOVED_BLOCKS) {
             return MoveStatus.INVALID;
         }
-        BlockPos snappedDestination = snapBuildingDestination(level, building, source, destination, manualVerticalOffset);
-        BlockPos delta = snappedDestination.subtract(source);
-        if (delta.equals(BlockPos.ZERO)) {
+        BlockPos snappedDestination = snapBuildingDestination(level, building, source, destination,
+                manualVerticalOffset, rotationDegrees);
+        PositionTransform transform = new PositionTransform(source, snappedDestination, rotationDegrees);
+        if (source.equals(snappedDestination) && rotationDegrees == 0) {
             return MoveStatus.INVALID;
         }
         List<MoveBlock> blocks = new ArrayList<>(building.blocks().size());
@@ -126,7 +139,7 @@ public final class PlacedBuildingMoveService {
                 continue;
             }
             BlockPos oldPos = resolveWorldPos(building, recorded.relativePos());
-            BlockPos newPos = oldPos.offset(delta);
+            BlockPos newPos = transform.apply(oldPos);
             if (oldPos == null || newPos.getY() < level.getMinBuildHeight()
                     || newPos.getY() >= level.getMaxBuildHeight() || !level.isAreaLoaded(oldPos, 1)
                     || !level.isAreaLoaded(newPos, 1) || !level.getWorldBorder().isWithinBounds(newPos)) {
@@ -135,12 +148,17 @@ public final class PlacedBuildingMoveService {
             CompoundTag blockEntityData = copyBlockEntityData(level.getBlockEntity(oldPos), level);
             oldPositions.add(oldPos.immutable());
             blocks.add(new MoveBlock(oldPos, newPos, recorded.state(),
+                    BuildingTransform.rotateState(recorded.state(), rotationDegrees),
                     blockEntityData != null ? blockEntityData : recorded.copyBlockEntityData(), recorded.originalStructurePos()));
         }
         if (blocks.isEmpty()) {
             return MoveStatus.INVALID;
         }
-        if (ServerConfig.claimProtectionEnabled() && !destinationBoundsInCity(level, building, delta)) {
+        BuildingBounds destinationBounds = boundsOf(blocks);
+        if (destinationBounds == null) {
+            return MoveStatus.INVALID;
+        }
+        if (ServerConfig.claimProtectionEnabled() && !destinationBoundsInCity(level, building, destinationBounds)) {
             return MoveStatus.OUTSIDE_CITY;
         }
         Map<BlockPos, CityPoiData> residentialPois = snapshotResidentialPois(level, building);
@@ -170,17 +188,21 @@ public final class PlacedBuildingMoveService {
                     .map(block -> new BuildingBlockData(block.newPos(), level.getBlockState(block.newPos()),
                             block.originalStructurePos(), block.blockEntityData()))
                     .toList();
-            List<BuildingPoiInstance> movedPois = movePoiInstances(level, building, delta, residentialPois);
+            List<BuildingPoiInstance> movedPois = movePoiInstances(level, building, transform, residentialPois);
+            BlockPos movedOrigin = building.worldOrigin() == null ? snappedDestination : transform.apply(building.worldOrigin());
+            int totalRotation = BuildingTransform.rotationDegreesFromFacing(building.facing()) + rotationDegrees;
             PlacedBuildingRecord moved = new PlacedBuildingRecord(
                     building.buildingId(), building.cityId(), building.dimensionId(), building.category(),
                     building.buildingFileName(), building.displayName(), building.amount(), building.structureFileName(),
-                    building.facing(), building.worldOrigin().offset(delta), building.structureAnchor(),
-                    building.minPos().offset(delta), building.maxPos().offset(delta), building.completedAt(), movedBlocks,
+                    BuildingTransform.directionFromRotation(totalRotation).getSerializedName(), movedOrigin, building.structureAnchor(),
+                    destinationBounds.min(), destinationBounds.max(), building.completedAt(), movedBlocks,
                     building.poiDefinitions(), movedPois, building.unitDefinitions(), building.unitInstances());
+            syncMovedPois(level, moved, transform);
+            moved = rebuildMovedUnitInstances(level, moved);
             PlacedBuildingService.register(level, moved);
-            syncMovedPois(level, building, moved);
+            syncMovedUnitAssignments(level, moved);
             CitizenHomeRestService.invalidateMovedHomes(level,
-                    remapResidentialHomes(level, building.cityId(), residentialPois, delta));
+                    remapResidentialHomes(level, building.cityId(), residentialPois, transform));
             ResidentialBedPoiService.addRecordedBeds(level, moved);
             MedicalBedPoiService.addRecordedBeds(level, moved);
             if (building.cityId() != null) {
@@ -193,14 +215,14 @@ public final class PlacedBuildingMoveService {
     }
 
     /** syncMovedPois: 保留 POI UUID、容量、激活状态并修正其世界坐标。 */
-    private static void syncMovedPois(ServerLevel level, PlacedBuildingRecord oldBuilding, PlacedBuildingRecord movedBuilding) {
+    private static void syncMovedPois(ServerLevel level, PlacedBuildingRecord movedBuilding,
+                                      PositionTransform transform) {
         if (movedBuilding.cityId() == null) {
             return;
         }
         CityPoiManager manager = CityPoiManager.get(level);
-        BlockPos delta = movedBuilding.worldOrigin().subtract(oldBuilding.worldOrigin());
         for (BuildingPoiInstance movedPoi : movedBuilding.poiInstances()) {
-            CityPoiData registeredPoi = manager.getPoiAt(movedPoi.worldPos().subtract(delta));
+            CityPoiData registeredPoi = manager.getPoiAt(transform.invert(movedPoi.worldPos()));
             if (registeredPoi != null && (!movedBuilding.cityId().equals(registeredPoi.cityId())
                     || movedPoi.poiType() != registeredPoi.type())) {
                 registeredPoi = null;
@@ -215,7 +237,7 @@ public final class PlacedBuildingMoveService {
     }
 
     /** movePoiInstances: 固化真实 UUID，并合并旧记录中同位置的重复 POI。 */
-    private static List<BuildingPoiInstance> movePoiInstances(ServerLevel level, PlacedBuildingRecord building, BlockPos delta,
+    private static List<BuildingPoiInstance> movePoiInstances(ServerLevel level, PlacedBuildingRecord building, PositionTransform transform,
                                                                Map<BlockPos, CityPoiData> residentialPois) {
         CityPoiManager manager = building.cityId() != null ? CityPoiManager.get(level) : null;
         Map<String, BuildingPoiInstance> movedPois = new LinkedHashMap<>();
@@ -228,11 +250,11 @@ public final class PlacedBuildingMoveService {
                     ? registeredPoi.poiId().toString()
                     : poi.key();
             BuildingPoiInstance movedPoi = new BuildingPoiInstance(
-                    key, poi.poiType(), poi.capacity(), poi.worldPos().offset(delta));
+                    key, poi.poiType(), poi.capacity(), transform.apply(poi.worldPos()));
             movedPois.putIfAbsent(movedPoi.poiType().name() + "@" + movedPoi.worldPos().asLong(), movedPoi);
         }
         residentialPois.forEach((oldPos, poi) -> {
-            BlockPos movedPos = oldPos.offset(delta);
+            BlockPos movedPos = transform.apply(oldPos);
             String key = poi.poiId().toString();
             movedPois.putIfAbsent(CityPoiType.RESIDENTIAL.name() + "@" + movedPos.asLong(),
                     new BuildingPoiInstance(key, CityPoiType.RESIDENTIAL, poi.capacity(), movedPos));
@@ -268,7 +290,7 @@ public final class PlacedBuildingMoveService {
 
     /** remapResidentialHomes：按床位搬迁后的坐标修复住宅 POI 和居民 homeId。 */
     private static Set<UUID> remapResidentialHomes(ServerLevel level, UUID cityId,
-                                                    Map<BlockPos, CityPoiData> oldPois, BlockPos delta) {
+                                                    Map<BlockPos, CityPoiData> oldPois, PositionTransform transform) {
         if (level == null || cityId == null || oldPois.isEmpty()) {
             return Set.of();
         }
@@ -276,7 +298,7 @@ public final class PlacedBuildingMoveService {
         Map<UUID, UUID> remap = new LinkedHashMap<>();
         Set<UUID> movedHomePoiIds = new LinkedHashSet<>();
         oldPois.forEach((oldPos, oldPoi) -> {
-            BlockPos newPos = oldPos.offset(delta);
+            BlockPos newPos = transform.apply(oldPos);
             CityPoiData movedPoi = poiManager.getPoiAt(newPos);
             if (movedPoi == null || movedPoi.type() != CityPoiType.RESIDENTIAL
                     || !cityId.equals(movedPoi.cityId())) {
@@ -310,11 +332,12 @@ public final class PlacedBuildingMoveService {
 
     /** snapBuildingDestination: 用建筑实际方块脚印的最高地表重新计算控制方块目标高度。 */
     private static BlockPos snapBuildingDestination(ServerLevel level, PlacedBuildingRecord building,
-                                                    BlockPos source, BlockPos destination, int manualVerticalOffset) {
-        if (source.getX() == destination.getX() && source.getZ() == destination.getZ()) {
+                                                    BlockPos source, BlockPos destination, int manualVerticalOffset,
+                                                    int rotationDegrees) {
+        if (source.getX() == destination.getX() && source.getZ() == destination.getZ() && rotationDegrees == 0) {
             return destination;
         }
-        BuildingFootprint footprint = resolveBuildingFootprint(building);
+        BuildingFootprint footprint = resolveBuildingFootprint(building, source, rotationDegrees);
         if (footprint == null) {
             return destination;
         }
@@ -323,13 +346,11 @@ public final class PlacedBuildingMoveService {
         if (width <= 0L || length <= 0L || width * length > MAX_SURFACE_SCAN_COLUMNS) {
             return destination;
         }
-        int horizontalOffsetX = destination.getX() - source.getX();
-        int horizontalOffsetZ = destination.getZ() - source.getZ();
         int highestSurfaceY = level.getMinBuildHeight();
-        for (int sourceX = footprint.minX(); sourceX <= footprint.maxX(); sourceX++) {
-            int targetX = sourceX + horizontalOffsetX;
-            for (int sourceZ = footprint.minZ(); sourceZ <= footprint.maxZ(); sourceZ++) {
-                int targetZ = sourceZ + horizontalOffsetZ;
+        for (int relativeX = footprint.minX(); relativeX <= footprint.maxX(); relativeX++) {
+            int targetX = destination.getX() + relativeX;
+            for (int relativeZ = footprint.minZ(); relativeZ <= footprint.maxZ(); relativeZ++) {
+                int targetZ = destination.getZ() + relativeZ;
                 if (!level.hasChunk(SectionPos.blockToSectionCoord(targetX), SectionPos.blockToSectionCoord(targetZ))) {
                     return destination;
                 }
@@ -337,12 +358,13 @@ public final class PlacedBuildingMoveService {
                         level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, targetX, targetZ));
             }
         }
-        int snappedY = source.getY() + highestSurfaceY - footprint.minY() + manualVerticalOffset;
+        int snappedY = highestSurfaceY - footprint.minY() + manualVerticalOffset;
         return new BlockPos(destination.getX(), snappedY, destination.getZ());
     }
 
     /** resolveBuildingFootprint: 从登记的非空气方块计算真实横向脚印和最低高度。 */
-    private static BuildingFootprint resolveBuildingFootprint(PlacedBuildingRecord building) {
+    private static BuildingFootprint resolveBuildingFootprint(PlacedBuildingRecord building, BlockPos source,
+                                                              int rotationDegrees) {
         int minX = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE;
         int minY = Integer.MAX_VALUE;
@@ -352,7 +374,8 @@ public final class PlacedBuildingMoveService {
             if (recorded == null || recorded.state() == null || recorded.state().isAir()) {
                 continue;
             }
-            BlockPos pos = resolveWorldPos(building, recorded.relativePos());
+            BlockPos pos = BuildingTransform.rotatePosition(
+                    resolveWorldPos(building, recorded.relativePos()).subtract(source), rotationDegrees);
             minX = Math.min(minX, pos.getX());
             maxX = Math.max(maxX, pos.getX());
             minY = Math.min(minY, pos.getY());
@@ -379,13 +402,13 @@ public final class PlacedBuildingMoveService {
                 && pos.getZ() >= Math.min(min.getZ(), max.getZ()) && pos.getZ() <= Math.max(min.getZ(), max.getZ());
     }
 
-    /** destinationBoundsInCity：校验建筑搬迁后的完整边界均位于所属城市领地。 */
-    private static boolean destinationBoundsInCity(ServerLevel level, PlacedBuildingRecord building, BlockPos delta) {
+    /** destinationBoundsInCity：校验建筑旋转和搬迁后的完整边界均位于所属城市领地。 */
+    private static boolean destinationBoundsInCity(ServerLevel level, PlacedBuildingRecord building, BuildingBounds bounds) {
         if (building.cityId() == null) {
             return false;
         }
-        BlockPos min = building.minPos().offset(delta);
-        BlockPos max = building.maxPos().offset(delta);
+        BlockPos min = bounds.min();
+        BlockPos max = bounds.max();
         return BuildingTerritoryValidator.boundsInChunks(
                 Math.min(min.getX(), max.getX()), Math.max(min.getX(), max.getX()),
                 Math.min(min.getZ(), max.getZ()), Math.max(min.getZ(), max.getZ()),
@@ -406,6 +429,36 @@ public final class PlacedBuildingMoveService {
                 level.setBlock(block.newPos(), refreshedState, MOVE_BLOCK_UPDATE_FLAGS);
             }
         }
+    }
+
+    /** syncMovedUnitAssignments: 重新写入旋转后住宅 POI 的单元归属，防止运行时缓存残留。 */
+    private static void syncMovedUnitAssignments(ServerLevel level, PlacedBuildingRecord building) {
+        if (level == null || building == null || building.unitInstances().isEmpty()) {
+            return;
+        }
+        CityPoiManager poiManager = CityPoiManager.get(level);
+        for (BuildingUnitInstance unit : building.unitInstances()) {
+            for (UUID poiId : unit.poiIds()) {
+                poiManager.updatePoiUnitId(poiId, unit.unitId());
+            }
+        }
+    }
+
+    /** rebuildMovedUnitInstances: 依据旋转后的 POI、原点和朝向重建住宅单元归属。 */
+    private static PlacedBuildingRecord rebuildMovedUnitInstances(ServerLevel level, PlacedBuildingRecord building) {
+        List<BuildingUnitInstance> unitInstances = BuildingUnitResolver.resolveUnitInstances(building, CityPoiManager.get(level));
+        if (unitInstances.isEmpty() && !building.unitInstances().isEmpty()) {
+            return building;
+        }
+        if (unitInstances.equals(building.unitInstances())) {
+            return building;
+        }
+        return new PlacedBuildingRecord(
+                building.buildingId(), building.cityId(), building.dimensionId(), building.category(),
+                building.buildingFileName(), building.displayName(), building.amount(), building.structureFileName(),
+                building.facing(), building.worldOrigin(), building.structureAnchor(), building.minPos(), building.maxPos(),
+                building.completedAt(), building.blocks(), building.poiDefinitions(), building.poiInstances(),
+                building.unitDefinitions(), unitInstances);
     }
 
     /** isMovingBuildingBlock: 判断控制箱移除是否属于 RTS 整体搬迁事务。 */
@@ -430,13 +483,45 @@ public final class PlacedBuildingMoveService {
 
     /** preserveMovedChestPair: 仅在另一半也属于同一搬运事务时保留大箱子连接状态。 */
     private static BlockState preserveMovedChestPair(MoveBlock block, java.util.Set<BlockPos> oldPositions) {
-        BlockState state = block.state();
-        if (!(state.getBlock() instanceof ChestBlock) || !state.hasProperty(ChestBlock.TYPE)
-                || state.getValue(ChestBlock.TYPE) == ChestType.SINGLE) {
-            return state;
+        BlockState originalState = block.originalState();
+        BlockState movedState = block.movedState();
+        if (!(originalState.getBlock() instanceof ChestBlock) || !originalState.hasProperty(ChestBlock.TYPE)
+                || originalState.getValue(ChestBlock.TYPE) == ChestType.SINGLE) {
+            return movedState;
         }
-        BlockPos partner = block.oldPos().relative(ChestBlock.getConnectedDirection(state));
-        return oldPositions.contains(partner) ? state : singleChestState(state);
+        BlockPos partner = block.oldPos().relative(ChestBlock.getConnectedDirection(originalState));
+        return oldPositions.contains(partner) ? movedState : singleChestState(movedState);
+    }
+
+    /** boundsOf: 计算旋转后实际方块的世界边界，用于领地校验和建筑登记。 */
+    private static BuildingBounds boundsOf(List<MoveBlock> blocks) {
+        if (blocks == null || blocks.isEmpty()) {
+            return null;
+        }
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (MoveBlock block : blocks) {
+            BlockPos pos = block.newPos();
+            minX = Math.min(minX, pos.getX());
+            minY = Math.min(minY, pos.getY());
+            minZ = Math.min(minZ, pos.getZ());
+            maxX = Math.max(maxX, pos.getX());
+            maxY = Math.max(maxY, pos.getY());
+            maxZ = Math.max(maxZ, pos.getZ());
+        }
+        return new BuildingBounds(new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ));
+    }
+
+    /** normalizeRotation: 仅接受四分之一圈旋转，拒绝客户端伪造的任意角度。 */
+    private static int normalizeRotation(int rotationDegrees) {
+        if (Math.floorMod(rotationDegrees, 90) != 0) {
+            return -1;
+        }
+        return Math.floorMod(rotationDegrees, 360);
     }
 
     private static UUID stablePoiId(BuildingPoiInstance poi, String dimensionId) {
@@ -453,6 +538,9 @@ public final class PlacedBuildingMoveService {
     private record BuildingFootprint(int minX, int maxX, int minY, int minZ, int maxZ) {
     }
 
+    private record BuildingBounds(BlockPos min, BlockPos max) {
+    }
+
     public enum MoveStatus {
         SUCCESS_BLOCK,
         SUCCESS_BUILDING,
@@ -462,8 +550,19 @@ public final class PlacedBuildingMoveService {
         INVALID
     }
 
-    private record MoveBlock(BlockPos oldPos, BlockPos newPos, BlockState state,
-                             CompoundTag blockEntityData, BlockPos originalStructurePos) {
+    private record MoveBlock(BlockPos oldPos, BlockPos newPos, BlockState originalState, BlockState movedState,
+                              CompoundTag blockEntityData, BlockPos originalStructurePos) {
+    }
+
+    /** PositionTransform: 以抓取方块为轴，把旧坐标映射到旋转后的目标坐标。 */
+    private record PositionTransform(BlockPos source, BlockPos destination, int rotationDegrees) {
+        private BlockPos apply(BlockPos oldPos) {
+            return destination.offset(BuildingTransform.rotatePosition(oldPos.subtract(source), rotationDegrees));
+        }
+
+        private BlockPos invert(BlockPos movedPos) {
+            return source.offset(BuildingTransform.inverseRotatePosition(movedPos.subtract(destination), rotationDegrees));
+        }
     }
 
     private record MoveContext(ServerLevel level, java.util.Set<BlockPos> sourcePositions) {

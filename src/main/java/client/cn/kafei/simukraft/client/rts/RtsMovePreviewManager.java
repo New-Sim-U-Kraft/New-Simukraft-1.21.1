@@ -6,6 +6,7 @@ import client.cn.kafei.simukraft.client.buildbox.PreviewMesh;
 import client.cn.kafei.simukraft.client.buildbox.PreviewMeshBuilder;
 import client.cn.kafei.simukraft.client.city.ClientCityChunkCache;
 import client.cn.kafei.simukraft.client.freecamera.FreeCameraManager;
+import common.cn.kafei.simukraft.building.BuildingTransform;
 import common.cn.kafei.simukraft.building.BuildingTerritoryValidator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -26,6 +27,7 @@ public final class RtsMovePreviewManager {
     private static final int MAX_CAPTURED_BLOCKS = 32768;
     private static final long MAX_CAPTURE_VOLUME = 262144L;
     private static PreviewMesh mesh = PreviewMesh.EMPTY;
+    private static List<PreviewBlockData> capturedBlocks = List.of();
     private static BlockPos sourcePos;
     private static BlockPos referencePlacementPos;
     private static BlockPos currentPlacementPos;
@@ -35,6 +37,7 @@ public final class RtsMovePreviewManager {
     private static int sourceBottomY;
     private static boolean surfaceReady;
     private static boolean active;
+    private static int rotationDegrees;
     private static final RtsSurfaceHeightResolver.SurfaceHeightCache SURFACE_HEIGHT_CACHE =
             new RtsSurfaceHeightResolver.SurfaceHeightCache();
 
@@ -54,20 +57,18 @@ public final class RtsMovePreviewManager {
         if (blocks.isEmpty()) {
             return false;
         }
-        mesh = PreviewMeshBuilder.build(blocks);
-        if (mesh.isEmpty()) {
-            return false;
-        }
         sourcePos = immutableSource;
         referencePlacementPos = referencePlacement == null ? immutableSource : referencePlacement.immutable();
         currentPlacementPos = referencePlacementPos;
         manualOffset = BlockPos.ZERO;
         destinationPos = immutableSource;
-        sourceBounds = knownBounds == null ? new AABB(immutableSource) : knownBounds;
-        sourceBottomY = blocks.stream().mapToInt(block -> block.pos().getY()).min().orElse(immutableSource.getY());
+        capturedBlocks = List.copyOf(blocks);
+        rotationDegrees = 0;
         active = true;
-        BuildingBoundsRenderer.setRtsMovePreviewBounds(sourceBounds);
-        moveTo(destinationForCurrentPlacement());
+        if (!rebuildRotatedPreview()) {
+            clear();
+            return false;
+        }
         return true;
     }
 
@@ -94,6 +95,16 @@ public final class RtsMovePreviewManager {
     /** moveVertical: 按建筑预览的高度键规则垂直平移预览。 */
     public static void moveVertical(int dy) {
         moveRelative(0, dy, 0);
+    }
+
+    /** rotatePreview: 围绕抓取方块顺时针旋转预览，并重建旋转后的方块网格。 */
+    public static void rotatePreview() {
+        if (!active) {
+            return;
+        }
+        rotationDegrees = Math.floorMod(rotationDegrees + 90, 360);
+        SURFACE_HEIGHT_CACHE.clear();
+        rebuildRotatedPreview();
     }
 
     private static void moveRelative(int dx, int dy, int dz) {
@@ -124,16 +135,13 @@ public final class RtsMovePreviewManager {
     }
 
     private static void moveTo(BlockPos nextDestination) {
-        if (nextDestination.equals(destinationPos)) {
+        if (nextDestination == null || nextDestination.equals(destinationPos)) {
             return;
         }
         BlockPos delta = nextDestination.subtract(destinationPos);
         mesh.offsetOrigin(delta.getX(), delta.getY(), delta.getZ());
         destinationPos = nextDestination.immutable();
-        BuildingBoundsRenderer.setRtsMovePreviewBounds(sourceBounds.move(
-                destinationPos.getX() - sourcePos.getX(),
-                destinationPos.getY() - sourcePos.getY(),
-                destinationPos.getZ() - sourcePos.getZ()));
+        updatePreviewBounds();
     }
 
     /** isActive: 返回是否已经抓取目标并显示移动预览。 */
@@ -154,6 +162,11 @@ public final class RtsMovePreviewManager {
     /** manualVerticalOffset: 返回预览高度键产生的纵向微调值，供服务端最终贴地时保留。 */
     public static int manualVerticalOffset() {
         return manualOffset.getY();
+    }
+
+    /** rotationDegrees: 返回本次抓取预览相对原建筑的顺时针旋转角度。 */
+    public static int rotationDegrees() {
+        return rotationDegrees;
     }
 
     /** isSurfaceReady：返回当前预览投影是否已获得完整的地表高度。 */
@@ -187,6 +200,7 @@ public final class RtsMovePreviewManager {
             mesh.close();
         }
         mesh = PreviewMesh.EMPTY;
+        capturedBlocks = List.of();
         sourcePos = null;
         referencePlacementPos = null;
         currentPlacementPos = null;
@@ -195,6 +209,7 @@ public final class RtsMovePreviewManager {
         sourceBounds = null;
         sourceBottomY = 0;
         surfaceReady = false;
+        rotationDegrees = 0;
         SURFACE_HEIGHT_CACHE.clear();
         active = false;
         BuildingBoundsRenderer.setRtsMovePreviewBounds(null);
@@ -237,6 +252,73 @@ public final class RtsMovePreviewManager {
         }
         BlockState state = level.getBlockState(source);
         return state.isAir() ? List.of() : List.of(new PreviewBlockData(source, state, 15728880));
+    }
+
+    /** rebuildRotatedPreview: 基于抓取快照重建旋转状态，保证预览不累积旋转误差。 */
+    private static boolean rebuildRotatedPreview() {
+        if (sourcePos == null || currentPlacementPos == null || capturedBlocks.isEmpty()) {
+            return false;
+        }
+        List<PreviewBlockData> rotatedBlocks = capturedBlocks.stream()
+                .map(block -> new PreviewBlockData(
+                        sourcePos.offset(BuildingTransform.rotatePosition(block.pos().subtract(sourcePos), rotationDegrees)),
+                        BuildingTransform.rotateState(block.state(), rotationDegrees),
+                        block.packedLight(),
+                        block.copyBlockEntityData()))
+                .toList();
+        sourceBounds = boundsOf(rotatedBlocks);
+        sourceBottomY = rotatedBlocks.stream().mapToInt(block -> block.pos().getY()).min().orElse(sourcePos.getY());
+        if (sourceBounds == null) {
+            return false;
+        }
+        BlockPos nextDestination = destinationForCurrentPlacement();
+        PreviewMesh replacement = PreviewMeshBuilder.build(rotatedBlocks);
+        if (replacement.isEmpty()) {
+            replacement.close();
+            return false;
+        }
+        if (mesh != PreviewMesh.EMPTY) {
+            mesh.close();
+        }
+        mesh = replacement;
+        destinationPos = sourcePos;
+        moveTo(nextDestination);
+        updatePreviewBounds();
+        return true;
+    }
+
+    /** boundsOf: 计算非空气预览方块的闭合渲染边界。 */
+    private static AABB boundsOf(List<PreviewBlockData> blocks) {
+        if (blocks.isEmpty()) {
+            return null;
+        }
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (PreviewBlockData block : blocks) {
+            BlockPos pos = block.pos();
+            minX = Math.min(minX, pos.getX());
+            minY = Math.min(minY, pos.getY());
+            minZ = Math.min(minZ, pos.getZ());
+            maxX = Math.max(maxX, pos.getX());
+            maxY = Math.max(maxY, pos.getY());
+            maxZ = Math.max(maxZ, pos.getZ());
+        }
+        return new AABB(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1);
+    }
+
+    /** updatePreviewBounds: 将旋转后的源边界平移至当前预览落点。 */
+    private static void updatePreviewBounds() {
+        if (sourceBounds == null || sourcePos == null || destinationPos == null) {
+            return;
+        }
+        BuildingBoundsRenderer.setRtsMovePreviewBounds(sourceBounds.move(
+                destinationPos.getX() - sourcePos.getX(),
+                destinationPos.getY() - sourcePos.getY(),
+                destinationPos.getZ() - sourcePos.getZ()));
     }
 
     private static long volume(AABB bounds) {

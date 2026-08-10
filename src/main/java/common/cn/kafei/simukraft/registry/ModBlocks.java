@@ -10,6 +10,7 @@ import common.cn.kafei.simukraft.block.LogisticsServerBoxBlock;
 import common.cn.kafei.simukraft.block.MedicalControlBoxBlock;
 import common.cn.kafei.simukraft.block.MineralDrillingControlBoxBlock;
 import common.cn.kafei.simukraft.block.MilkLiquidBlock;
+import common.cn.kafei.simukraft.block.IndustrialHousingTrapdoorBlock;
 import common.cn.kafei.simukraft.block.ResidentialControlBoxBlock;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -42,6 +43,8 @@ public final class ModBlocks {
     public static final DeferredBlock<Block> INDUSTRIAL_HOUSING = registerBlock("industrial_housing", ModBlocks::industrialHousing);
     public static final DeferredBlock<Block> INDUSTRIAL_HOUSING_SLAB = registerBlock("industrial_housing_slab", ModBlocks::industrialHousingSlab);
     public static final DeferredBlock<Block> INDUSTRIAL_HOUSING_STAIRS = registerBlock("industrial_housing_stairs", ModBlocks::industrialHousingStairs);
+    /** INDUSTRIAL_HOUSING_TRAPDOOR: 黄色铁质栈道，仅水平上/下置，不可打开 */
+    public static final DeferredBlock<Block> INDUSTRIAL_HOUSING_TRAPDOOR = registerBlock("industrial_housing_trapdoor", ModBlocks::industrialHousingTrapdoor);
     public static final DeferredBlock<Block> MINERAL_DRILLING_CONTROL_BOX = registerBlock("mineral_drilling_control_box", MineralDrillingControlBoxBlock::new);
     public static final DeferredBlock<Block> LOGISTICS_CLIENT_BOX = registerBlock("logistics_client_box", LogisticsClientBoxBlock::new);
     public static final DeferredBlock<Block> LOGISTICS_SERVER_BOX = registerBlock("logistics_server_box", LogisticsServerBoxBlock::new);
@@ -94,6 +97,16 @@ public final class ModBlocks {
     /** industrialHousingStairs: 创建与工业外壳属性一致的楼梯。 */
     private static Block industrialHousingStairs() {
         return new StairBlock(Blocks.IRON_BLOCK.defaultBlockState(), industrialHousingProperties());
+    }
+
+    /** industrialHousingTrapdoor: 黄色铁质栈道，noOcclusion 允许透明孔洞渲染。 */
+    private static Block industrialHousingTrapdoor() {
+        return new IndustrialHousingTrapdoorBlock(
+            industrialHousingProperties()
+                .noOcclusion()
+                .isViewBlocking((s, b, p) -> false)
+                .isSuffocating((s, b, p) -> false)
+        );
     }
 
     private static Block lightBlock() {

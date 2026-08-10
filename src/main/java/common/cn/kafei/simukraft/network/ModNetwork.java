@@ -88,7 +88,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 @SuppressWarnings("null")
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "28";
+    private static final String NETWORK_VERSION = "30";
 
     private ModNetwork() {
     }

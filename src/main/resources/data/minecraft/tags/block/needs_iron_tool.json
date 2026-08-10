@@ -3,6 +3,7 @@
   "values": [
     "simukraft:industrial_housing",
     "simukraft:industrial_housing_stairs",
-    "simukraft:industrial_housing_slab"
+    "simukraft:industrial_housing_slab",
+    "simukraft:industrial_housing_trapdoor"
   ]
 }

@@ -35,10 +35,9 @@ public final class RtsChunkViewService {
             return;
         }
         MixinChunkMapAccessor chunkMap = chunkMap(level);
-        if (chunkMap == null) {
-            return;
-        }
-        int viewDistance = chunkMap.simukraft$getPlayerViewDistance(player);
+        int viewDistance = chunkMap != null
+                ? chunkMap.simukraft$getPlayerViewDistance(player)
+                : level.getServer().getPlayerList().getViewDistance();
         long gameTime = level.getGameTime();
         RtsView nextView = new RtsView(level.getServer(), level.dimension(), focus, viewDistance, gameTime);
         RtsView previousView = VIEWS.get(player.getUUID());
@@ -53,7 +52,9 @@ public final class RtsChunkViewService {
         VIEWS.put(player.getUUID(), nextView);
         releaseTicket(player.getUUID(), previousView);
         level.getChunkSource().addRegionTicket(RTS_VIEW_TICKET, focus, viewDistance, player.getUUID());
-        refreshTracking(chunkMap, player);
+        if (chunkMap != null) {
+            refreshTracking(chunkMap, player);
+        }
     }
 
     /** deactivate: 移除摄像机票据并立即让客户端区块缓存中心回到玩家本体。 */
@@ -124,8 +125,8 @@ public final class RtsChunkViewService {
         if (view == null) {
             return player.blockPosition().closerThan(target, vanillaDistance);
         }
-        return ChunkTrackingView.isWithinDistance(view.focus().x, view.focus().z,
-                target.getX() >> 4, target.getZ() >> 4, view.viewDistance(), false);
+        return ChunkTrackingView.isWithinDistance(view.focus().x, view.focus().z, view.viewDistance(),
+                target.getX() >> 4, target.getZ() >> 4, false);
     }
 
     /** viewCenter: 返回当前 RTS 焦点用于边界快照；非 RTS 状态回退到玩家所在区块。 */

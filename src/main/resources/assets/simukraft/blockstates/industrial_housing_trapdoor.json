@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "half=bottom": { "model": "simukraft:block/industrial_housing_trapdoor_bottom" },
+    "half=top":    { "model": "simukraft:block/industrial_housing_trapdoor_top" }
+  }
+}
