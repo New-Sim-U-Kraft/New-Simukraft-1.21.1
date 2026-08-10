@@ -1,6 +1,5 @@
 package client.cn.kafei.simukraft.client.config;
 
-import client.cn.kafei.simukraft.client.ClientHUDConfig;
 import client.cn.kafei.simukraft.client.ClientHUDOverlay;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -12,9 +11,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
 
 @SuppressWarnings("null")
 public final class SimuKraftClientConfigScreen {
@@ -41,15 +37,7 @@ public final class SimuKraftClientConfigScreen {
         body.addChild(SimuKraftConfigWidgets.row(
                 Component.translatable("gui.simukraft.config.client.hud_enabled"),
                 SimuKraftConfigWidgets.switchControl(ClientConfig.HUD_ENABLED.get(), ClientConfig.HUD_ENABLED::set)));
-        body.addChild(SimuKraftConfigWidgets.row(
-                Component.translatable("gui.simukraft.config.client.hud_anchor"),
-                SimuKraftConfigWidgets.selector(anchorValues(), ClientHUDConfig.getAnchor(), SimuKraftClientConfigScreen::anchorText, ClientHUDConfig::setAnchor)));
-        body.addChild(SimuKraftConfigWidgets.row(
-                Component.translatable("gui.simukraft.config.client.hud_pos_x"),
-                SimuKraftConfigWidgets.intField(ClientConfig.HUD_POS_X.get(), -4096, 4096, ClientConfig.HUD_POS_X::set)));
-        body.addChild(SimuKraftConfigWidgets.row(
-                Component.translatable("gui.simukraft.config.client.hud_pos_y"),
-                SimuKraftConfigWidgets.intField(ClientConfig.HUD_POS_Y.get(), -4096, 4096, ClientConfig.HUD_POS_Y::set)));
+        body.addChild(openHudEditorRow());
         body.addChild(SimuKraftConfigWidgets.row(
                 Component.translatable("gui.simukraft.config.client.path_debug_request"),
                 SimuKraftConfigWidgets.switchControl(ClientConfig.PATH_DEBUG_REQUEST_ON_TOGGLE.get(), ClientConfig.PATH_DEBUG_REQUEST_ON_TOGGLE::set)));
@@ -93,13 +81,17 @@ public final class SimuKraftClientConfigScreen {
         });
     }
 
-    private static List<ClientHUDConfig.Anchor> anchorValues() {
-        return Arrays.asList(ClientHUDConfig.Anchor.values());
-    }
-
-    private static Component anchorText(ClientHUDConfig.Anchor anchor) {
-        String name = anchor == null ? ClientConfig.DEFAULT_HUD_ANCHOR : anchor.name();
-        return Component.translatable("gui.simukraft.config.hud_anchor." + name.toLowerCase(Locale.ROOT));
+    /** openHudEditorRow: 提供单一按钮入口，打开旧版拖拽式 HUD 编辑器。 */
+    private static UIElement openHudEditorRow() {
+        return SimuKraftConfigWidgets.row(
+                Component.translatable("gui.simukraft.config.client.hud_position"),
+                SimuKraftConfigWidgets.button(Component.translatable("gui.simukraft.config.open"),
+                        () -> Minecraft.getInstance().setScreen(new HUDPositionEditorScreen(Minecraft.getInstance().screen)), true)
+                        .layout(layout -> {
+                            layout.width(96);
+                            layout.height(24);
+                            layout.flexShrink(0);
+                        }));
     }
 
     /** save: 保存客户端配置并清理 HUD 缓存。 */

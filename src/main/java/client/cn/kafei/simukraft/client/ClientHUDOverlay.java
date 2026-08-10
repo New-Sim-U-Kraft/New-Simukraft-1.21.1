@@ -105,6 +105,22 @@ public final class ClientHUDOverlay {
         return cachedDisplayText;
     }
 
+    /** getCurrentDisplayText: 为 HUD 拖拽编辑器提供与实际 HUD 一致的预览文本。 */
+    public static String getCurrentDisplayText() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.font == null) {
+            return "";
+        }
+        return getOrBuildDisplayText(minecraft.font,
+                ClientSimukraftData.getCurrentDay(),
+                ClientSimukraftData.getCurrentPopulation(),
+                ClientSimukraftData.getCurrentCityName(),
+                ClientSimukraftData.getCurrentCityFunds(),
+                ClientSimukraftData.getCurrentCityPopulation(),
+                ClientSimukraftData.getPermissionLevel(),
+                ClientSimukraftData.isCreativeMode());
+    }
+
     // permissionPrefix: 按真实城市权限生成 HUD 前缀。
     private static String permissionPrefix(CityPermissionLevel permissionLevel) {
         CityPermissionLevel safeLevel = permissionLevel != null ? permissionLevel : CityPermissionLevel.CITIZEN;
