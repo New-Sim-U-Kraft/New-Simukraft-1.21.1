@@ -16,14 +16,18 @@ import client.cn.kafei.simukraft.client.rts.RtsMiniMapRenderer;
 import client.cn.kafei.simukraft.client.rts.RtsSelectionManager;
 import client.cn.kafei.simukraft.client.path.NpcPathDebugRenderer;
 import client.cn.kafei.simukraft.client.selection.TwoPointSelectionManager;
+import client.cn.kafei.simukraft.client.toast.ClientInfoToast;
 import common.cn.kafei.simukraft.SimuKraft;
+import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.event.level.ChunkEvent;
 
 @OnlyIn(Dist.CLIENT)
@@ -32,13 +36,22 @@ public final class ClientSetup {
     private ClientSetup() {
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRenderGuiPost(RenderGuiEvent.Post event) {
         ClientHUDOverlay.render(event);
         GeologicalSurveyHintOverlay.render(event);
         CityEntryHud.render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(true));
         RtsMiniMapRenderer.render(event.getGuiGraphics());
         RtsSelectionManager.renderHoldProgress(event.getGuiGraphics());
+        if (Minecraft.getInstance().screen == null) {
+            ClientInfoToast.render(event.getGuiGraphics());
+        }
+    }
+
+    /** onScreenRenderPost: 在屏幕控件绘制完成后渲染通知，防止控件遮挡。 */
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onScreenRenderPost(ScreenEvent.Render.Post event) {
+        ClientInfoToast.render(event.getGuiGraphics());
     }
 
     @SubscribeEvent
@@ -50,6 +63,7 @@ public final class ClientSetup {
 
     @SubscribeEvent
     public static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        ClientInfoToast.clear();
         RtsMiniMapRenderer.clear();
         BuildingPreviewManager.clearPreview();
         BuildingBoundsRenderer.clearAll();

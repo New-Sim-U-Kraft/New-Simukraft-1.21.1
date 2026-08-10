@@ -38,6 +38,7 @@ public final class SimuKraftClientConfigScreen {
                 Component.translatable("gui.simukraft.config.client.hud_enabled"),
                 SimuKraftConfigWidgets.switchControl(ClientConfig.HUD_ENABLED.get(), ClientConfig.HUD_ENABLED::set)));
         body.addChild(openHudEditorRow());
+        body.addChild(openToastEditorRow());
         body.addChild(SimuKraftConfigWidgets.row(
                 Component.translatable("gui.simukraft.config.client.path_debug_request"),
                 SimuKraftConfigWidgets.switchControl(ClientConfig.PATH_DEBUG_REQUEST_ON_TOGGLE.get(), ClientConfig.PATH_DEBUG_REQUEST_ON_TOGGLE::set)));
@@ -94,6 +95,21 @@ public final class SimuKraftClientConfigScreen {
                         }));
     }
 
+    /** openToastEditorRow: 打开独立通知弹窗编辑器。 */
+    private static UIElement openToastEditorRow() {
+        return SimuKraftConfigWidgets.row(
+                Component.translatable("gui.simukraft.config.client.toast_position"),
+                SimuKraftConfigWidgets.button(Component.translatable("gui.simukraft.config.open"),
+                        () -> Minecraft.getInstance().setScreen(
+                                new ToastPositionEditorScreen(Minecraft.getInstance().screen)),
+                        true)
+                        .layout(layout -> {
+                            layout.width(96);
+                            layout.height(24);
+                            layout.flexShrink(0);
+                        }));
+    }
+
     /** save: 保存客户端配置并清理 HUD 缓存。 */
     private static void save() {
         ClientConfig.SPEC.save();
@@ -107,6 +123,11 @@ public final class SimuKraftClientConfigScreen {
         ClientConfig.HUD_POS_X.set(ClientConfig.DEFAULT_HUD_POS_X);
         ClientConfig.HUD_POS_Y.set(ClientConfig.DEFAULT_HUD_POS_Y);
         ClientConfig.HUD_MAX_WIDTH.set(ClientConfig.DEFAULT_HUD_MAX_WIDTH);
+        ClientConfig.TOAST_ANCHOR.set(ClientConfig.DEFAULT_TOAST_ANCHOR);
+        ClientConfig.TOAST_POS_X.set(ClientConfig.DEFAULT_TOAST_POS_X);
+        ClientConfig.TOAST_POS_Y.set(ClientConfig.DEFAULT_TOAST_POS_Y);
+        ClientConfig.TOAST_WIDTH.set(ClientConfig.DEFAULT_TOAST_WIDTH);
+        ClientConfig.TOAST_HEIGHT.set(ClientConfig.DEFAULT_TOAST_HEIGHT);
         ClientConfig.PATH_DEBUG_REQUEST_ON_TOGGLE.set(true);
         ClientConfig.RTS_TARGET_SIMUKRAFT_BLOCKS.set(true);
         ClientConfig.RTS_TARGET_VANILLA_BLOCKS.set(true);
