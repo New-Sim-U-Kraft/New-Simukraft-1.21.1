@@ -106,6 +106,7 @@ public final class SimuKraftClientConfigScreen {
         ClientConfig.HUD_ANCHOR.set(ClientConfig.DEFAULT_HUD_ANCHOR);
         ClientConfig.HUD_POS_X.set(ClientConfig.DEFAULT_HUD_POS_X);
         ClientConfig.HUD_POS_Y.set(ClientConfig.DEFAULT_HUD_POS_Y);
+        ClientConfig.HUD_MAX_WIDTH.set(ClientConfig.DEFAULT_HUD_MAX_WIDTH);
         ClientConfig.PATH_DEBUG_REQUEST_ON_TOGGLE.set(true);
         ClientConfig.RTS_TARGET_SIMUKRAFT_BLOCKS.set(true);
         ClientConfig.RTS_TARGET_VANILLA_BLOCKS.set(true);

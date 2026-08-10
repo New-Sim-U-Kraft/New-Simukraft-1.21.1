@@ -12,6 +12,7 @@ public final class ClientConfig {
     public static final String DEFAULT_HUD_ANCHOR = "TOP_RIGHT";
     public static final int DEFAULT_HUD_POS_X = -5;
     public static final int DEFAULT_HUD_POS_Y = 5;
+    public static final int DEFAULT_HUD_MAX_WIDTH = 0;
     public static final int DEFAULT_RTS_MOVE_HOLD_SECONDS = 1;
 
     public static final ModConfigSpec SPEC;
@@ -19,6 +20,7 @@ public final class ClientConfig {
     public static final ModConfigSpec.ConfigValue<String> HUD_ANCHOR;
     public static final ModConfigSpec.IntValue HUD_POS_X;
     public static final ModConfigSpec.IntValue HUD_POS_Y;
+    public static final ModConfigSpec.IntValue HUD_MAX_WIDTH;
     public static final ModConfigSpec.BooleanValue PATH_DEBUG_REQUEST_ON_TOGGLE;
     public static final ModConfigSpec.BooleanValue RTS_TARGET_SIMUKRAFT_BLOCKS;
     public static final ModConfigSpec.BooleanValue RTS_TARGET_VANILLA_BLOCKS;
@@ -44,6 +46,10 @@ public final class ClientConfig {
                 .comment("HUD Y offset from the selected anchor.")
                 .translation("config.simukraft.client.hud.posY")
                 .defineInRange("posY", DEFAULT_HUD_POS_Y, -4096, 4096);
+        HUD_MAX_WIDTH = builder
+                .comment("HUD max line width in pixels. 0 = single line (no wrap).")
+                .translation("config.simukraft.client.hud.maxWidth")
+                .defineInRange("maxWidth", DEFAULT_HUD_MAX_WIDTH, 0, 2048);
         builder.pop();
         builder.push("path_debug");
         PATH_DEBUG_REQUEST_ON_TOGGLE = builder
@@ -121,11 +127,17 @@ public final class ClientConfig {
         return Math.max(1, Math.min(10, RTS_MOVE_HOLD_SECONDS.get()));
     }
 
+    /** hudMaxWidth: 获取 HUD 最大行宽（0=不限制）。 */
+    public static int hudMaxWidth() {
+        return HUD_MAX_WIDTH.get();
+    }
+
     /** resetHudDefaults: 重置 HUD 位置到默认值。 */
     public static void resetHudDefaults() {
         HUD_ANCHOR.set(DEFAULT_HUD_ANCHOR);
         HUD_POS_X.set(DEFAULT_HUD_POS_X);
         HUD_POS_Y.set(DEFAULT_HUD_POS_Y);
+        HUD_MAX_WIDTH.set(DEFAULT_HUD_MAX_WIDTH);
         SPEC.save();
     }
 
