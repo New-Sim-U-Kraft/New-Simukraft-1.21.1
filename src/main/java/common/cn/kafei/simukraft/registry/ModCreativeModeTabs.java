@@ -57,6 +57,8 @@ public final class ModCreativeModeTabs {
                 output.accept(ModBlocks.INDUSTRIAL_HOUSING_STAIRS.get());
                 output.accept(ModBlocks.INDUSTRIAL_HOUSING_SLAB.get());
                 output.accept(ModBlocks.INDUSTRIAL_HOUSING_TRAPDOOR.get());
+                // 金属栏杆
+                output.accept(ModBlocks.METAL_RAILING.get());
                 // 发光方块（彩虹顺序）
                 output.accept(ModBlocks.RED_LIGHT_BLOCK.get());
                 output.accept(ModBlocks.ORANGE_LIGHT_BLOCK.get());

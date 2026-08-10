@@ -1,0 +1,19 @@
+{
+    "variants": {
+        "facing=north": {
+            "model": "simukraft:block/metal_railing"
+        },
+        "facing=east": {
+            "model": "simukraft:block/metal_railing",
+            "y": 90
+        },
+        "facing=south": {
+            "model": "simukraft:block/metal_railing",
+            "y": 180
+        },
+        "facing=west": {
+            "model": "simukraft:block/metal_railing",
+            "y": 270
+        }
+    }
+}
