@@ -31,12 +31,10 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-import java.util.Map;
 import java.util.function.Supplier;
 
 @SuppressWarnings("null")
@@ -135,7 +133,6 @@ public final class ModBlocks {
     }
 
     /** metalRailing: 金属栏杆，属性与铁块一致，需铁镐采集。水平朝向，碰撞箱跟随朝向旋转。 */
-    @SuppressWarnings("deprecation")
     private static Block metalRailing() {
         // 碰撞形状：与模型的6个element精确对应（单位1/16）
         // 朝向NORTH时的形状（默认，模型z轴薄面朝南北）
