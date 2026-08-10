@@ -4,6 +4,8 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "MixinChestBlockEntity",
+    "MixinChunkMap",
+    "MixinChunkMapAccessor",
     "MixinChestMenu",
     "MixinMilkBucketItem",
     "MixinLivingEntityDimensions",

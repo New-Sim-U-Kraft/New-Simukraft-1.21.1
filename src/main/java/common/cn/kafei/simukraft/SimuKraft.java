@@ -70,6 +70,7 @@ import common.cn.kafei.simukraft.registry.ModSoundEvents;
 import common.cn.kafei.simukraft.event.PlayerWelcomeService;
 import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.network.rts.RtsRemoteCitizenAccess;
+import common.cn.kafei.simukraft.network.rts.RtsChunkViewService;
 import common.cn.kafei.simukraft.storage.SimuSqliteStorage;
 import common.cn.kafei.simukraft.virtualvein.VirtualVeinService;
 import net.neoforged.bus.api.IEventBus;
@@ -169,6 +170,7 @@ public final class SimuKraft {
         if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
             RtsRemoteMenuAccess.clear(player);
             RtsRemoteCitizenAccess.clear(player);
+            RtsChunkViewService.clear(player);
         }
     }
 
@@ -329,6 +331,7 @@ public final class SimuKraft {
         WorkMaterialPolicy.clearCache();
         NpcBlockProtectionPolicy.clearCache();
         PlayerWelcomeService.clearServerCaches(event.getServer());
+        RtsChunkViewService.clearServer(event.getServer());
         // shutdown 会再排空一次队列、checkpoint WAL 并关闭连接，之后该服务器实例不会被残留任务重新注册。
         SimuSqliteStorage.shutdown(event.getServer());
         VirtualVeinService.clearServerCache(event.getServer());

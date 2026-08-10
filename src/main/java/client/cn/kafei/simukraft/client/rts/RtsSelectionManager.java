@@ -141,7 +141,6 @@ public final class RtsSelectionManager {
         lastLeftClickNanos = 0L;
         clearCitizenDoubleClick();
         clearMoveState();
-        PacketDistributor.sendToServer(new RtsBuildingBoundsRequestPacket());
         FreeCameraManager.activateRts();
         minecraft.mouseHandler.releaseMouse();
     }

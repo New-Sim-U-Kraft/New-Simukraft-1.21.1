@@ -17,7 +17,7 @@ import java.util.Comparator;
 
 /** RTS 建筑边界请求：仅请求玩家附近的已登记建筑，不修改服务端状态。 */
 public record RtsBuildingBoundsRequestPacket() implements CustomPacketPayload {
-    private static final double MAX_DISTANCE_SQR = 128.0D * 128.0D;
+    private static final double MAX_DISTANCE_SQR = 192.0D * 192.0D;
     @SuppressWarnings("null")
     public static final Type<RtsBuildingBoundsRequestPacket> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "rts_building_bounds_request"));
@@ -76,9 +76,12 @@ public record RtsBuildingBoundsRequestPacket() implements CustomPacketPayload {
         double maxX = Math.max(record.minPos().getX(), record.maxPos().getX()) + 1.0D;
         double maxY = Math.max(record.minPos().getY(), record.maxPos().getY()) + 1.0D;
         double maxZ = Math.max(record.minPos().getZ(), record.maxPos().getZ()) + 1.0D;
-        return player.distanceToSqr(
-                Math.clamp(player.getX(), minX, maxX),
-                Math.clamp(player.getY(), minY, maxY),
-                Math.clamp(player.getZ(), minZ, maxZ));
+        net.minecraft.world.level.ChunkPos center = RtsChunkViewService.viewCenter(player.serverLevel(), player);
+        double centerX = center.getMiddleBlockX();
+        double centerZ = center.getMiddleBlockZ();
+        double deltaX = centerX - Math.clamp(centerX, minX, maxX);
+        double deltaY = player.getY() - Math.clamp(player.getY(), minY, maxY);
+        double deltaZ = centerZ - Math.clamp(centerZ, minZ, maxZ);
+        return deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ;
     }
 }

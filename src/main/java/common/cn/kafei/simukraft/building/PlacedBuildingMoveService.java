@@ -10,6 +10,7 @@ import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
 import common.cn.kafei.simukraft.config.ServerConfig;
+import common.cn.kafei.simukraft.network.rts.RtsChunkViewService;
 import common.cn.kafei.simukraft.protection.NpcBlockProtectionPolicy;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -61,8 +62,8 @@ public final class PlacedBuildingMoveService {
         }
         BlockPos sourcePos = source.immutable();
         BlockPos destinationPos = destination.immutable();
-        if (!player.blockPosition().closerThan(sourcePos, MAX_DISTANCE)
-                || !player.blockPosition().closerThan(destinationPos, MAX_DISTANCE)) {
+        if (!RtsChunkViewService.isTargetReachable(level, player, sourcePos, MAX_DISTANCE)
+                || !RtsChunkViewService.isTargetReachable(level, player, destinationPos, MAX_DISTANCE)) {
             return MoveStatus.TOO_FAR;
         }
         if (level.getBlockState(sourcePos).is(ModBlocks.CITY_CORE.get())) {

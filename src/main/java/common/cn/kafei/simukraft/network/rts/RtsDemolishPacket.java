@@ -54,7 +54,7 @@ public record RtsDemolishPacket(BlockPos pos) implements CustomPacketPayload {
 
     /** demolish: 区分已登记建筑与普通方块并执行拆除。 */
     private static void demolish(ServerLevel level, ServerPlayer player, BlockPos pos) {
-        if (pos == null || !player.blockPosition().closerThan(pos, MAX_DISTANCE)) {
+        if (pos == null || !RtsChunkViewService.isTargetReachable(level, player, pos, MAX_DISTANCE)) {
             InfoToastService.warning(player, Component.translatable("message.simukraft.rts.too_far"));
             return;
         }

@@ -76,6 +76,7 @@ import common.cn.kafei.simukraft.network.path.NpcPathDebugSyncPacket;
 import common.cn.kafei.simukraft.network.rts.RtsBuildingBoundsRequestPacket;
 import common.cn.kafei.simukraft.network.rts.RtsBuildingBoundsSyncPacket;
 import common.cn.kafei.simukraft.network.rts.RtsCitizenActionPacket;
+import common.cn.kafei.simukraft.network.rts.RtsChunkViewPacket;
 import common.cn.kafei.simukraft.network.rts.RtsDemolishPacket;
 import common.cn.kafei.simukraft.network.rts.RtsMovePacket;
 import common.cn.kafei.simukraft.network.rts.RtsOpenTargetPacket;
@@ -87,7 +88,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 @SuppressWarnings("null")
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "27";
+    private static final String NETWORK_VERSION = "28";
 
     private ModNetwork() {
     }
@@ -143,6 +144,7 @@ public final class ModNetwork {
         registrar.playToServer(CreatePlanningTaskPacket.TYPE, CreatePlanningTaskPacket.STREAM_CODEC, CreatePlanningTaskPacket::handle);
         registrar.playToServer(NpcPathDebugRequestPacket.TYPE, NpcPathDebugRequestPacket.STREAM_CODEC, NpcPathDebugRequestPacket::handle);
         registrar.playToServer(RtsBuildingBoundsRequestPacket.TYPE, RtsBuildingBoundsRequestPacket.STREAM_CODEC, RtsBuildingBoundsRequestPacket::handle);
+        registrar.playToServer(RtsChunkViewPacket.TYPE, RtsChunkViewPacket.STREAM_CODEC, RtsChunkViewPacket::handle);
         registrar.playToServer(RtsCitizenActionPacket.TYPE, RtsCitizenActionPacket.STREAM_CODEC, RtsCitizenActionPacket::handle);
         registrar.playToServer(RtsDemolishPacket.TYPE, RtsDemolishPacket.STREAM_CODEC, RtsDemolishPacket::handle);
         registrar.playToServer(RtsMovePacket.TYPE, RtsMovePacket.STREAM_CODEC, RtsMovePacket::handle);

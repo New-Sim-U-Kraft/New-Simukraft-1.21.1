@@ -4,13 +4,17 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.SectionPos;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
+import common.cn.kafei.simukraft.network.rts.RtsChunkViewPacket;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 
@@ -23,7 +27,7 @@ public final class FreeCameraManager {
     private static final float RTS_INITIAL_PITCH = 45.0F;
     private static final double RTS_MIN_ZOOM = 10.0D;
     private static final double RTS_DEFAULT_ZOOM = 30.0D;
-    private static final double RTS_MAX_ZOOM = 150.0D;
+    private static final double RTS_MAX_ZOOM = 220.0D;
     private static final double RTS_ZOOM_STEP = 1.0D;
     private static final double RTS_CAMERA_DISTANCE = RTS_CAMERA_HEIGHT
             / Math.sin(Math.toRadians(RTS_INITIAL_PITCH));
@@ -48,6 +52,9 @@ public final class FreeCameraManager {
     private static volatile boolean movingDown;
     private static volatile boolean sprinting;
     private static volatile boolean rtsEdgePanBlocked;
+    private static int lastRtsViewChunkX = Integer.MIN_VALUE;
+    private static int lastRtsViewChunkZ = Integer.MIN_VALUE;
+    private static net.minecraft.resources.ResourceKey<Level> lastRtsViewDimension;
 
     private FreeCameraManager() {
     }
@@ -84,17 +91,22 @@ public final class FreeCameraManager {
         normalizeYaw();
         updateRtsCameraPosition();
         RtsViewAreaSynchronizer.sync(rtsFocus);
+        syncRtsChunkView();
         CameraMouseLock.setLocked(false);
     }
 
     public static void deactivate() {
         if (rtsMode) {
             RtsViewAreaSynchronizer.restore();
+            if (Minecraft.getInstance().getConnection() != null) {
+                PacketDistributor.sendToServer(new RtsChunkViewPacket(false, 0, 0));
+            }
         }
         active = false;
         rtsMode = false;
         rtsFocus = Vec3.ZERO;
         rtsEdgePanBlocked = false;
+        clearRtsChunkViewSync();
         CameraMouseLock.setLocked(false);
         resetMovementState();
         KeyMapping.setAll();
@@ -127,6 +139,7 @@ public final class FreeCameraManager {
         rtsFocus = new Vec3(x, rtsFocus.y, z);
         updateRtsCameraPosition();
         RtsViewAreaSynchronizer.sync(rtsFocus);
+        syncRtsChunkView();
     }
 
     /** rtsProjectionMatrix: 生成与 RTS 缩放值一致的正交投影矩阵。 */
@@ -256,6 +269,7 @@ public final class FreeCameraManager {
         if (xInput == 0.0D && yInput == 0.0D && zInput == 0.0D) {
             if (rtsMode) {
                 RtsViewAreaSynchronizer.sync(rtsFocus);
+                syncRtsChunkView();
             }
             return;
         }
@@ -277,6 +291,7 @@ public final class FreeCameraManager {
             rtsFocus = rtsFocus.add(moveX * moveDistance, 0.0D, moveZ * moveDistance);
             updateRtsCameraPosition();
             RtsViewAreaSynchronizer.sync(rtsFocus);
+            syncRtsChunkView();
         } else {
             position = position.add(moveX * moveDistance, yInput * moveDistance, moveZ * moveDistance);
         }
@@ -293,6 +308,31 @@ public final class FreeCameraManager {
     /** updateRtsCameraPosition: 保持固定俯角时围绕 RTS 视图中心旋转相机。 */
     private static void updateRtsCameraPosition() {
         position = rtsFocus.subtract(Vec3.directionFromRotation(pitch, yaw).scale(RTS_CAMERA_DISTANCE));
+    }
+
+    /** syncRtsChunkView: 焦点跨区块或维度切换时请求服务端更新摄像机区块视窗。 */
+    private static void syncRtsChunkView() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!isRtsActive() || minecraft.player == null || minecraft.level == null) {
+            return;
+        }
+        int chunkX = SectionPos.blockToSectionCoord(Mth.floor(rtsFocus.x));
+        int chunkZ = SectionPos.blockToSectionCoord(Mth.floor(rtsFocus.z));
+        net.minecraft.resources.ResourceKey<Level> dimension = minecraft.level.dimension();
+        if (chunkX == lastRtsViewChunkX && chunkZ == lastRtsViewChunkZ && dimension.equals(lastRtsViewDimension)) {
+            return;
+        }
+        PacketDistributor.sendToServer(new RtsChunkViewPacket(true, chunkX, chunkZ));
+        lastRtsViewChunkX = chunkX;
+        lastRtsViewChunkZ = chunkZ;
+        lastRtsViewDimension = dimension;
+    }
+
+    /** clearRtsChunkViewSync: 清除客户端发送节流状态，保证下次 RTS 必定同步初始焦点。 */
+    private static void clearRtsChunkViewSync() {
+        lastRtsViewChunkX = Integer.MIN_VALUE;
+        lastRtsViewChunkZ = Integer.MIN_VALUE;
+        lastRtsViewDimension = null;
     }
 
     private static void clearVanillaMovementKeys(Minecraft minecraft) {

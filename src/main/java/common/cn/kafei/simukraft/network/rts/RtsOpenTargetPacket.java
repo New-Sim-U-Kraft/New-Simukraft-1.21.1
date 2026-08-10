@@ -62,7 +62,8 @@ public record RtsOpenTargetPacket(BlockPos pos) implements CustomPacketPayload {
 
     /** openFor: 校验目标类型并为当前 RTS 目标建立远程菜单会话。 */
     private static void openFor(ServerLevel level, ServerPlayer player, BlockPos pos) {
-        if (pos == null || !hasTargetChunk(level, pos)) {
+        if (pos == null || !RtsChunkViewService.isTargetReachable(level, player, pos, 128.0D)
+                || !hasTargetChunk(level, pos)) {
             return;
         }
         BlockState state = level.getBlockState(pos);
