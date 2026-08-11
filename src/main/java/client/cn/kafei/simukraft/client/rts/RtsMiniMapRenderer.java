@@ -117,7 +117,8 @@ public final class RtsMiniMapRenderer {
     }
 
     private static boolean isVisible() {
-        return RtsSelectionManager.isActive() && FreeCameraManager.isRtsActive();
+        return !Minecraft.getInstance().options.hideGui
+                && RtsSelectionManager.isActive() && FreeCameraManager.isRtsActive();
     }
 
     private static void jumpCamera(MapLayout layout, int mouseX, int mouseY) {

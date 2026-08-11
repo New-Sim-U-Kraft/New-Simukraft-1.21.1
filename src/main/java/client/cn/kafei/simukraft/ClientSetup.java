@@ -38,6 +38,9 @@ public final class ClientSetup {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRenderGuiPost(RenderGuiEvent.Post event) {
+        if (Minecraft.getInstance().options.hideGui) {
+            return;
+        }
         ClientHUDOverlay.render(event);
         GeologicalSurveyHintOverlay.render(event);
         CityEntryHud.render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(true));
