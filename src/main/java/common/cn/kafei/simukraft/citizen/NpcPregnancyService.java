@@ -9,6 +9,7 @@ import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.medical.MedicalService;
+import common.cn.kafei.simukraft.entity.CitizenEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 
@@ -40,6 +41,7 @@ public final class NpcPregnancyService {
                     && !stage.translationKey().equals(data.statusLabel())) {
                 data.setStatusLabel(stage.translationKey());
                 manager.saveCitizenNow(data.uuid());
+                syncPregnancyStage(level, manager, data);
             }
         }
     }
@@ -53,6 +55,31 @@ public final class NpcPregnancyService {
         for (FamilyData family : familyManager.getCityFamilies(cityId)) {
             tryPregnancy(family, manager, familyManager, level, random, chance, currentDay);
         }
+    }
+
+    /** forcePregnancy：由管理员命令跳过随机概率，为满足正常分娩条件的妻子开始妊娠。 */
+    public static boolean forcePregnancy(ServerLevel level, CitizenData wife) {
+        if (level == null || wife == null || wife.dead() || wife.child() || wife.pregnant()
+                || !"female".equalsIgnoreCase(wife.gender())) {
+            return false;
+        }
+        FamilyData family = FamilyManager.get(level).getFamilyByCitizen(wife.uuid()).orElse(null);
+        if (family == null || family.status() != FamilyStatus.ACTIVE || !wife.uuid().equals(family.wifeId())) {
+            return false;
+        }
+        CitizenManager manager = CitizenManager.get(level);
+        UUID reservedBedId = findVacantBedForBaby(level, manager, wife);
+        if (reservedBedId == null || !MedicalService.hasMedicalCoverageForCitizen(level, wife)) {
+            return false;
+        }
+
+        wife.setPregnant(true);
+        wife.setPregnantSince(level.getDayTime() / 24000L);
+        wife.setReservedBabyBedPoiId(reservedBedId);
+        wife.setStatusLabel(PregnancyStage.EARLY.translationKey());
+        manager.saveCitizenNow(wife.uuid());
+        syncPregnancyStage(level, manager, wife);
+        return true;
     }
 
     private static void tryPregnancy(FamilyData family, CitizenManager manager,
@@ -86,6 +113,15 @@ public final class NpcPregnancyService {
         wife.setReservedBabyBedPoiId(reservedBedId); // 预约婴儿床位，防止并发抢占
         wife.setStatusLabel("pregnant");
         manager.saveCitizenNow(wife.uuid());
+        syncPregnancyStage(level, manager, wife);
+    }
+
+    /** syncPregnancyStage：孕期状态变化后立即同步实体，避免客户端等待下一次加载。 */
+    private static void syncPregnancyStage(ServerLevel level, CitizenManager manager, CitizenData data) {
+        CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, data.uuid());
+        if (entity != null) {
+            manager.syncEntity(entity);
+        }
     }
 
     /** findVacantBedForBaby：在妻子所在户中找一张未被占用也未被其他孕妇预约的空床。 */

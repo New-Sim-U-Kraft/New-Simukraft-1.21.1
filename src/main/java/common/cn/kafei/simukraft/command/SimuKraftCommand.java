@@ -11,6 +11,8 @@ import common.cn.kafei.simukraft.citizen.CitizenLevelService;
 import common.cn.kafei.simukraft.citizen.CitizenSkillSnapshot;
 import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenManager;
+import common.cn.kafei.simukraft.citizen.NpcPregnancyService;
+import common.cn.kafei.simukraft.citizen.PregnancyStage;
 import common.cn.kafei.simukraft.job.CityJobType;
 import common.cn.kafei.simukraft.citizen.CitizenService;
 import common.cn.kafei.simukraft.citizen.CitizenTeleportService;
@@ -36,6 +38,8 @@ import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingBoxManager;
 import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingDefinitionLoader;
 import common.cn.kafei.simukraft.medical.DiseaseType;
 import common.cn.kafei.simukraft.medical.MedicalDefinitionLoader;
+import common.cn.kafei.simukraft.medical.MedicalService;
+import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.economy.EconomyService;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.network.building.BuildingCacheReloadPacket;
@@ -189,6 +193,33 @@ public final class SimuKraftCommand {
                         .executes(context -> pathStatus(context.getSource())))
                 .then(Commands.literal("clear")
                         .executes(context -> clearPathDebug(context.getSource()))));
+        var pregnancyCommand = Commands.literal("pregnancy");
+        var pregnancyStartCommand = Commands.literal("start");
+        pregnancyStartCommand.then(Commands.argument("citizen", EntityArgument.entity())
+                .executes(context -> startNpcPregnancy(
+                        context.getSource(), EntityArgument.getEntity(context, "citizen"))));
+        pregnancyCommand.then(pregnancyStartCommand);
+
+        var pregnancyProgressCommand = Commands.literal("progress");
+        var pregnancyProgressAddCommand = Commands.literal("add");
+        pregnancyProgressAddCommand.then(Commands.argument("citizen", EntityArgument.entity())
+                .then(Commands.argument("days", IntegerArgumentType.integer(1, 3))
+                        .executes(context -> changeNpcPregnancyProgress(
+                                context.getSource(),
+                                EntityArgument.getEntity(context, "citizen"),
+                                IntegerArgumentType.getInteger(context, "days")))));
+        pregnancyProgressCommand.then(pregnancyProgressAddCommand);
+
+        var pregnancyProgressRemoveCommand = Commands.literal("remove");
+        pregnancyProgressRemoveCommand.then(Commands.argument("citizen", EntityArgument.entity())
+                .then(Commands.argument("days", IntegerArgumentType.integer(1, 3))
+                        .executes(context -> changeNpcPregnancyProgress(
+                                context.getSource(),
+                                EntityArgument.getEntity(context, "citizen"),
+                                -IntegerArgumentType.getInteger(context, "days")))));
+        pregnancyProgressCommand.then(pregnancyProgressRemoveCommand);
+        pregnancyCommand.then(pregnancyProgressCommand);
+
         root.then(Commands.literal("npc")
                 .requires(source -> source.hasPermission(2))
                 .then(Commands.literal("spawn")
@@ -219,6 +250,7 @@ public final class SimuKraftCommand {
                                                         context.getSource(),
                                                         EntityArgument.getEntity(context, "citizen"),
                                                         IntegerArgumentType.getInteger(context, "hunger")))))))
+                .then(pregnancyCommand)
                 .then(Commands.literal("xp")
                         .then(Commands.literal("add")
                                 .then(Commands.argument("citizen", EntityArgument.entity())
@@ -350,6 +382,58 @@ public final class SimuKraftCommand {
         CitizenService.save((ServerLevel) entity.level(), citizen.uuid());
         source.sendSuccess(() -> Component.translatable(
                 "message.simukraft.command.npc_hunger.set", citizen.name(), previousHunger, hunger), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** startNpcPregnancy：为符合家庭、医疗和床位条件的成年女性 NPC 开始妊娠。 */
+    private static int startNpcPregnancy(CommandSourceStack source, Entity entity) {
+        CitizenData citizen = resolveCommandCitizen(source, entity);
+        if (citizen == null) {
+            return 0;
+        }
+        ServerLevel level = (ServerLevel) entity.level();
+        if (!NpcPregnancyService.forcePregnancy(level, citizen)) {
+            source.sendFailure(Component.translatable("message.simukraft.command.npc_pregnancy.start_failed"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.translatable(
+                "message.simukraft.command.npc_pregnancy.started", citizen.name()), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** changeNpcPregnancyProgress：按游戏日增减已怀孕 NPC 的进度并同步外观。 */
+    private static int changeNpcPregnancyProgress(CommandSourceStack source, Entity entity, int deltaDays) {
+        CitizenData citizen = resolveCommandCitizen(source, entity);
+        if (citizen == null) {
+            return 0;
+        }
+        if (!citizen.pregnant()) {
+            source.sendFailure(Component.translatable(
+                    "message.simukraft.command.npc_pregnancy.progress_unavailable", citizen.name()));
+            return 0;
+        }
+
+        ServerLevel level = (ServerLevel) entity.level();
+        int durationDays = ServerConfig.familyPregnancyDurationDays();
+        long currentDay = level.getDayTime() / 24000L;
+        int maximumProgressDays = (int) Math.min(
+                Math.max(0, durationDays - 1), Math.max(0L, currentDay));
+        int beforeDays = (int) Math.min(Math.max(0L, currentDay - citizen.pregnantSince()), maximumProgressDays);
+        int afterDays = Math.clamp(beforeDays + deltaDays, 0, maximumProgressDays);
+        citizen.setPregnantSince(currentDay - afterDays);
+        if (!MedicalService.isAdmitted(citizen)
+                && !MedicalService.MEDICAL_CARE_MARKER.equals(citizen.workNeedDetail())) {
+            citizen.setStatusLabel(PregnancyStage.resolve(afterDays, durationDays).translationKey());
+        }
+        CitizenService.save(level, citizen.uuid());
+        CitizenService.syncEntity(level, (CitizenEntity) entity);
+
+        String messageKey = deltaDays > 0
+                ? "message.simukraft.command.npc_pregnancy.progress_added"
+                : "message.simukraft.command.npc_pregnancy.progress_removed";
+        int changedDays = Math.abs(afterDays - beforeDays);
+        source.sendSuccess(() -> Component.translatable(
+                messageKey, citizen.name(), changedDays, beforeDays, afterDays), true);
         return Command.SINGLE_SUCCESS;
     }
 

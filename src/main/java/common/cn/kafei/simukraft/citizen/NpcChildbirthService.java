@@ -11,6 +11,7 @@ import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.city.CityRuntimeService;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.building.MedicalBedPoiService;
+import common.cn.kafei.simukraft.entity.CitizenEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -92,6 +93,10 @@ public final class NpcChildbirthService {
         wife.medical().setPostpartumUntilDay(currentDay + Math.max(0, ServerConfig.familyPostpartumRecoveryDays()));
         wife.setStatusLabel("pregnancy.postpartum");
         manager.saveCitizenNow(wife.uuid());
+        CitizenEntity wifeEntity = CitizenTeleportService.findCitizenEntity(level, wife.uuid());
+        if (wifeEntity != null) {
+            manager.syncEntity(wifeEntity);
+        }
 
         if (wife.cityId() != null) {
             CityGroupMessageService.successToCity(level, wife.cityId(),

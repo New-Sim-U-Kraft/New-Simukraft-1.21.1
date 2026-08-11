@@ -31,11 +31,13 @@ public class CitizenRenderer extends MobRenderer<CitizenEntity, CitizenModel> {
         super(context, new CitizenModel(context.bakeLayer(ModelLayers.PLAYER_SLIM), true), 0.5F);
         this.slimModel = this.model;
         this.defaultModel = new CitizenModel(context.bakeLayer(ModelLayers.PLAYER), false);
+        this.addLayer(new PregnancyBellyLayer(this));
         this.addLayer(new HumanoidArmorLayer<>(
                 this,
                 new HumanoidArmorModel<>(context.bakeLayer(ModelLayers.PLAYER_INNER_ARMOR)),
                 new HumanoidArmorModel<>(context.bakeLayer(ModelLayers.PLAYER_OUTER_ARMOR)),
                 context.getModelManager()));
+        this.addLayer(new PregnancyBellyArmorLayer(this, context.getModelManager()));
         this.addLayer(new ItemInHandLayer<>(this, context.getItemInHandRenderer()));
     }
 

@@ -3,6 +3,7 @@ package common.cn.kafei.simukraft.citizen;
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.job.CitizenEmploymentService;
+import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.storage.SimuSqliteStorage;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -507,6 +508,12 @@ public final class CitizenManager extends SavedData {
         entity.setHealth((float) data.health());
         entity.setSick(data.sick());
         entity.setChildNpc(data.child());
+        long currentDay = entity.level() instanceof ServerLevel serverLevel
+                ? serverLevel.getDayTime() / 24000L : data.pregnantSince();
+        PregnancyStage pregnancyStage = data.pregnant()
+                ? PregnancyStage.resolve(currentDay - data.pregnantSince(), ServerConfig.familyPregnancyDurationDays())
+                : PregnancyStage.NONE;
+        entity.setPregnancyStage(pregnancyStage.name().toLowerCase(java.util.Locale.ROOT));
         if (entity.level() instanceof ServerLevel level) {
             CitizenJobVisualService.sync(level, entity, data);
         }
