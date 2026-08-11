@@ -58,7 +58,8 @@ public final class NpcChildbirthService {
                 CitizenService.spawnCitizen(level, spawnPos, wife.cityId(), true);
         if (entityOpt.isEmpty()) return;
 
-        CitizenData child = CitizenManager.get(level).getOrCreate(entityOpt.get());
+        var childEntity = entityOpt.get();
+        CitizenData child = manager.getOrCreate(childEntity);
         if (child == null) return;
 
         String childGender = random.nextDouble() < 0.5D ? "male" : "female";
@@ -80,6 +81,7 @@ public final class NpcChildbirthService {
         child.setOriginFamilyId(family.familyId());
         child.setCityId(wife.cityId());
         CitizenProfileGenerator.fillChildProfile(child, random, currentDay);
+        manager.syncEntity(childEntity);
 
         familyManager.addChild(level, family.familyId(), child.uuid());
         manager.saveCitizenNow(child.uuid());

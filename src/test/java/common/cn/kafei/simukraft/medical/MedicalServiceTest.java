@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.medical;
 
 import common.cn.kafei.simukraft.citizen.CitizenData;
+import common.cn.kafei.simukraft.citizen.CitizenWorkStatus;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -45,5 +46,19 @@ class MedicalServiceTest {
 
         assertTrue(MedicalService.isOnMedicalLeave(citizen, 0L, 8.0D));
         assertFalse(MedicalService.isOnMedicalLeave(citizen, 0L, 7.9D));
+    }
+
+    @Test
+    void recoveredCitizenClearsUnadmittedMedicalLeave() {
+        CitizenData citizen = new CitizenData(UUID.randomUUID());
+        citizen.setHealth(20.0D);
+        citizen.setWorkStatus(CitizenWorkStatus.RESTING);
+        citizen.setWorkNeedDetail(MedicalService.MEDICAL_CARE_MARKER);
+        citizen.setStatusLabel("medical.low_health");
+
+        assertTrue(MedicalService.shouldClearMedicalLeave(citizen, 0L, 8.0D));
+
+        citizen.setPregnant(true);
+        assertFalse(MedicalService.shouldClearMedicalLeave(citizen, 0L, 8.0D));
     }
 }

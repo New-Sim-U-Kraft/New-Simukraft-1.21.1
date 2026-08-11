@@ -628,7 +628,7 @@
     "message.simukraft.residential_control_box.assigned_existing":  "已安排 %s 名 NPC 入住房屋。",
     "message.simukraft.residential_control_box.spawned_new":  "已向城市新增 %s 名 NPC。",
     "message.simukraft.citizen.joined_city":  "新市民 %s 已加入城市。",
-    "message.simukraft.citizen.born":  "%s 在 %s 家出生了！",
+    "message.simukraft.citizen.born":  "%s 出生了！",
     "message.simukraft.citizen.married":  "%s 和 %s 喜结连理！",
     "message.simukraft.citizen.moved_in":  "%s 一家搬入了 %s。",
     "pregnant":  "孕期中",

@@ -621,7 +621,7 @@
     "message.simukraft.residential_control_box.assigned_existing":  "Assigned %s NPC(s) to vacant beds.",
     "message.simukraft.residential_control_box.spawned_new":  "Added %s new NPC(s) to the city.",
     "message.simukraft.citizen.joined_city":  "New citizen %s has joined the city.",
-    "message.simukraft.citizen.born":  "%s was born to %s!",
+    "message.simukraft.citizen.born":  "%s was born!",
     "message.simukraft.citizen.married":  "%s and %s have married!",
     "message.simukraft.citizen.moved_in":  "%s's family has moved into %s.",
     "pregnant":  "Pregnant",

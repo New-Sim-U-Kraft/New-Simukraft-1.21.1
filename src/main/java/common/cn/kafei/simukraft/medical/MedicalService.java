@@ -207,12 +207,19 @@ public final class MedicalService {
             processAdmittedPatient(level, citizen, bed, currentDay);
         }
 
-        List<CitizenData> candidates = citizens.stream()
-                .filter(citizen -> !isAdmitted(citizen))
-                .filter(citizen -> needsCare(level, citizen, currentDay))
-                .sorted(Comparator.comparingInt((CitizenData citizen) -> carePriority(level, citizen, currentDay))
-                        .thenComparing(CitizenData::uuid))
-                .toList();
+        List<CitizenData> candidates = new ArrayList<>();
+        for (CitizenData citizen : citizens) {
+            if (isAdmitted(citizen)) {
+                continue;
+            }
+            if (needsCare(level, citizen, currentDay)) {
+                candidates.add(citizen);
+            } else {
+                clearRecoveredMedicalLeave(level, citizen, currentDay);
+            }
+        }
+        candidates.sort(Comparator.comparingInt((CitizenData citizen) -> carePriority(level, citizen, currentDay))
+                .thenComparing(CitizenData::uuid));
         for (CitizenData citizen : candidates) {
             Hospital hospital = findHospitalForCitizen(level, citizen, hospitals, occupiedBeds);
             if (hospital == null) {
@@ -362,6 +369,21 @@ public final class MedicalService {
         }
     }
 
+    /** clearRecoveredMedicalLeave：恢复后释放未住院居民的医疗静养状态。 */
+    private static void clearRecoveredMedicalLeave(ServerLevel level, CitizenData citizen, long currentDay) {
+        if (!shouldClearMedicalLeave(citizen, currentDay, ServerConfig.medicalLowHealthThreshold())) {
+            return;
+        }
+        citizen.setWorkNeedDetail("");
+        citizen.setStatusLabel("");
+        citizen.setWorkStatus(citizen.workplaceId() != null ? CitizenWorkStatus.WORKING : CitizenWorkStatus.IDLE);
+        CitizenService.save(level, citizen.uuid());
+        CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
+        if (entity != null) {
+            CitizenManager.get(level).syncEntity(entity);
+        }
+    }
+
     // 无床位时引导居民回家静养，避免停在原地
     private static void navigateHomeForMedicalLeave(ServerLevel level, CitizenData citizen) {
         if (citizen.homeId() == null) return;
@@ -418,6 +440,15 @@ public final class MedicalService {
                 || citizen.disease().isActive()
                 || citizen.medical().postpartumUntilDay() > currentDay
                 || citizen.pregnant();
+    }
+
+    /** shouldClearMedicalLeave：判断无床位静养状态是否已不再需要。 */
+    static boolean shouldClearMedicalLeave(CitizenData citizen, long currentDay,
+            double lowHealthThreshold) {
+        return citizen != null
+                && !isAdmitted(citizen)
+                && MEDICAL_CARE_MARKER.equals(citizen.workNeedDetail())
+                && !isOnMedicalLeave(citizen, currentDay, lowHealthThreshold);
     }
 
     /** isReadyForDischarge：血量恢复至满值、疾病治愈且无其他医疗需求时方可出院。 */

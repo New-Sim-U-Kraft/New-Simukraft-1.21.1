@@ -11,7 +11,7 @@ public final class SimuMigrations {
     }
 
     public static List<Migration> all() {
-        return List.of(new CityChunksDimensionPrimaryKey());
+        return List.of(new CityChunksDimensionPrimaryKey(), new CitizenReservedBabyBed());
     }
 
     /**
@@ -49,6 +49,26 @@ public final class SimuMigrations {
                 // DROP TABLE 会连带删掉旧索引，重建。
                 statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_city_chunks_city ON city_chunks(city_id)");
                 statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_city_chunks_dimension ON city_chunks(dimension_id)");
+            }
+        }
+    }
+
+    /** v3：持久化孕妇已预约的婴儿床位，避免重启后丢失分娩前置条件。 */
+    private static final class CitizenReservedBabyBed implements Migration {
+        @Override
+        public int version() {
+            return 3;
+        }
+
+        @Override
+        public String description() {
+            return "add reserved baby bed to citizens";
+        }
+
+        @Override
+        public void apply(Connection connection) throws SQLException {
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("ALTER TABLE citizens ADD COLUMN reserved_baby_bed_poi_id TEXT");
             }
         }
     }

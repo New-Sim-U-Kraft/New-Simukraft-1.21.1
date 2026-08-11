@@ -1,3 +1,9 @@
 {
-    "parent": "simukraft:block/metal_railing"
+    "parent": "simukraft:block/metal_railing",
+    "display": {
+        "ground": {
+            "translation": [0, 2, 0],
+            "scale": [0.5, 0.5, 0.5]
+        }
+    }
 }
