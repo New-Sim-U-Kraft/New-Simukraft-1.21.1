@@ -145,10 +145,15 @@ public final class PlacedBuildingMoveService {
                     || !level.isAreaLoaded(newPos, 1) || !level.getWorldBorder().isWithinBounds(newPos)) {
                 return MoveStatus.INVALID;
             }
+            // 以世界中的现状为准，已损坏的格不应在移动时按建筑蓝图恢复。
+            BlockState currentState = level.getBlockState(oldPos);
+            if (currentState.isAir()) {
+                continue;
+            }
             CompoundTag blockEntityData = copyBlockEntityData(level.getBlockEntity(oldPos), level);
             oldPositions.add(oldPos.immutable());
-            blocks.add(new MoveBlock(oldPos, newPos, recorded.state(),
-                    BuildingTransform.rotateState(recorded.state(), rotationDegrees),
+            blocks.add(new MoveBlock(oldPos, newPos, currentState,
+                    BuildingTransform.rotateState(currentState, rotationDegrees),
                     blockEntityData != null ? blockEntityData : recorded.copyBlockEntityData(), recorded.originalStructurePos()));
         }
         if (blocks.isEmpty()) {
