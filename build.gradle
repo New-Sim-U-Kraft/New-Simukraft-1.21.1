@@ -1,3 +1,14 @@
+buildscript {
+    repositories {
+        maven {
+            url = "https://maven.neoforged.net/releases"
+        }
+    }
+    dependencies {
+        classpath "net.neoforged:srgutils:1.0.0"
+    }
+}
+
 plugins {
     id 'java-library'
     id 'maven-publish'
@@ -35,8 +46,27 @@ sourceSets.main.resources {
 
 repositories {
     mavenCentral()
+    ivy {
+        name = "MojangMappings"
+        url = "https://piston-data.mojang.com/v1/objects/"
+        patternLayout {
+            artifact "[revision]/client.txt"
+        }
+        metadataSources {
+            artifact()
+        }
+        content {
+            includeModule "com.mojang", "minecraft-client-mappings"
+        }
+    }
     maven {
         url = "https://maven.firstdark.dev/snapshots"
+    }
+    maven {
+        url = "https://maven.fabricmc.net/"
+        content {
+            includeGroup "net.fabricmc"
+        }
     }
     maven {
         url = "https://maven.neoforged.net/releases"
@@ -192,9 +222,79 @@ neoForge {
 configurations {
     runtimeClasspath.extendsFrom localRuntime
     additionalRuntimeClasspath.extendsFrom localRuntime
+    mixinNeoForm
+    mixinOfficialMappings
+}
+
+// NeoForge 1.21.1 ships official class names with SRG member names at runtime.
+// The Mixin annotation processor needs this bridge to generate a release refmap.
+def mixinNeoFormVersion = "1.21.1-20240808.144430"
+def mixinOfficialMappingsSha1 = "2244b6f072256667bcd9a73df124d6c58de77992"
+def mixinNeoFormArchive = configurations.mixinNeoForm
+def mixinOfficialMappings = configurations.mixinOfficialMappings
+def mixinMappingsOutput = layout.buildDirectory.file("tmp/mixin/officialToSrg.tsrg")
+def rawMixinRefMapOutput = layout.buildDirectory.file("tmp/mixin/simukraft.refmap.json")
+def mixinRefMapOutput = layout.buildDirectory.file("generated/mixin/simukraft.refmap.json")
+
+tasks.register("generateMixinMappings") {
+    description = "Generate the official-to-SRG mappings used by the Mixin refmap processor"
+    inputs.files(mixinNeoFormArchive, mixinOfficialMappings)
+    outputs.file(mixinMappingsOutput)
+
+    doLast {
+        def neoFormArchive = mixinNeoFormArchive.singleFile
+        def joinedMappings = new File(temporaryDir, "joined.tsrg")
+        def outputFile = mixinMappingsOutput.get().asFile
+
+        new java.util.zip.ZipFile(neoFormArchive).withCloseable { archive ->
+            def entry = archive.getEntry("config/joined.tsrg")
+            if (entry == null) {
+                throw new GradleException("NeoForm archive does not contain config/joined.tsrg")
+            }
+
+            archive.getInputStream(entry).withCloseable { input ->
+                joinedMappings.parentFile.mkdirs()
+                joinedMappings.withOutputStream { output -> input.transferTo(output) }
+            }
+        }
+
+        def officialToObfuscated = net.neoforged.srgutils.IMappingFile.load(mixinOfficialMappings.singleFile)
+        def obfuscatedToIds = net.neoforged.srgutils.INamedMappingFile.load(joinedMappings)
+                .getMap("obf", "id")
+        def builder = net.neoforged.srgutils.IMappingBuilder.create("official", "searge")
+
+        officialToObfuscated.classes.each { officialClass ->
+            def idClass = obfuscatedToIds.getClass(officialClass.mapped)
+            if (idClass == null) {
+                return
+            }
+
+            // NeoForge keeps official class names at runtime, while members use stable SRG ids.
+            def outputClass = builder.addClass(officialClass.original, officialClass.original)
+            officialClass.fields.each { officialField ->
+                def idField = idClass.getField(officialField.mapped)
+                if (idField != null && idField.mapped.isInteger()) {
+                    outputClass.field(officialField.original, "f_${idField.mapped}_")
+                }
+            }
+            officialClass.methods.each { officialMethod ->
+                def idMethod = idClass.getMethod(officialMethod.mapped, officialMethod.mappedDescriptor)
+                if (idMethod != null && idMethod.mapped.isInteger()) {
+                    outputClass.method(officialMethod.descriptor, officialMethod.original, "m_${idMethod.mapped}_")
+                }
+            }
+        }
+
+        builder.build().write(
+                outputFile.toPath(), net.neoforged.srgutils.IMappingFile.Format.TSRG, "official", "searge")
+    }
 }
 
 dependencies {
+    add("mixinNeoForm", "net.neoforged:neoform:${mixinNeoFormVersion}@zip")
+    add("mixinOfficialMappings", "com.mojang:minecraft-client-mappings:${mixinOfficialMappingsSha1}@txt")
+    annotationProcessor "net.fabricmc:sponge-mixin:0.15.2+mixin.0.8.7"
+
     // NT 保护层：内测版通过 JiJ 嵌入，正式版构建时用 -Prelease 剔除
     if (!rootProject.hasProperty('release')) {
         implementation files(ntJar)
@@ -283,6 +383,44 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+tasks.named("compileJava", JavaCompile).configure {
+    dependsOn "generateMixinMappings"
+    inputs.file(mixinMappingsOutput)
+    outputs.file(rawMixinRefMapOutput)
+    options.compilerArgs.addAll([
+            "-AoutRefMapFile=${rawMixinRefMapOutput.get().asFile.absolutePath}",
+            "-AreobfTsrgFile=${mixinMappingsOutput.get().asFile.absolutePath}",
+            "-AmappingTypes=tsrg",
+            "-AdefaultObfuscationEnv=searge"
+    ])
+}
+
+// The development runtime uses Mojang names, while a packaged NeoForge runtime
+// selects the SRG mappings from data.searge. Keeping the default mapping empty
+// lets one refmap serve both environments without remapping dev targets to SRG.
+tasks.register("prepareMixinRefMap") {
+    dependsOn "compileJava"
+    inputs.file(rawMixinRefMapOutput)
+    outputs.file(mixinRefMapOutput)
+
+    doLast {
+        def rawRefMap = rawMixinRefMapOutput.get().asFile
+        def outputRefMap = mixinRefMapOutput.get().asFile
+        def refMap = new groovy.json.JsonSlurper().parse(rawRefMap)
+        refMap.mappings = [:]
+
+        outputRefMap.parentFile.mkdirs()
+        outputRefMap.withWriter("UTF-8") { writer ->
+            new groovy.json.JsonBuilder(refMap).writeTo(writer)
+        }
+    }
+}
+
+sourceSets.main.resources.srcDir(layout.buildDirectory.dir("generated/mixin"))
+tasks.named("processResources").configure {
+    dependsOn "prepareMixinRefMap"
 }
 
 tasks.named('test', Test) {

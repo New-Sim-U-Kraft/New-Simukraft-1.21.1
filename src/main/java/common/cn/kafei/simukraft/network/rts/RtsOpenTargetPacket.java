@@ -16,6 +16,7 @@ import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenRequestPac
 import common.cn.kafei.simukraft.network.npc.state.EmploymentStateResponsePacket;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -26,7 +27,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.EnderChestBlock;
+import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** RTS 双击打开请求：只允许远程打开已白名单的原版菜单或本模组管理界面。 */
@@ -98,6 +103,8 @@ public record RtsOpenTargetPacket(BlockPos pos) implements CustomPacketPayload {
             if (MineralDrillingMenuProvider.open(level, player, pos)) {
                 RtsRemoteMenuAccess.bindOpenedMenu(player);
             }
+        } else if (player.mayInteract(level, pos) && isSpecialVanillaContainer(state)) {
+            openSpecialVanillaContainer(level, player, pos, state);
         } else if (player.mayInteract(level, pos)) {
             MenuProvider menu = state.getMenuProvider(level, pos);
             if (menu != null) {
@@ -117,8 +124,28 @@ public record RtsOpenTargetPacket(BlockPos pos) implements CustomPacketPayload {
                 || state.is(Blocks.CRAFTING_TABLE)) {
             return true;
         }
+        if (isSpecialVanillaContainer(state)) {
+            return true;
+        }
         return "minecraft".equals(BuiltInRegistries.BLOCK.getKey(state.getBlock()).getNamespace())
                 && level.getBlockEntity(pos) instanceof Container;
+    }
+
+    /** isSpecialVanillaContainer: 判断必须通过原版方块交互流程打开的容器。 */
+    private static boolean isSpecialVanillaContainer(BlockState state) {
+        return state.getBlock() instanceof EnderChestBlock || state.getBlock() instanceof ShulkerBoxBlock;
+    }
+
+    /** openSpecialVanillaContainer: 保留末影箱绑定和潜影盒碰撞检测后打开远程菜单。 */
+    private static void openSpecialVanillaContainer(
+            ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state) {
+        int previousMenuId = player.containerMenu.containerId;
+        state.useWithoutItem(level, player, new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false));
+        if (player.containerMenu != player.inventoryMenu && player.containerMenu.containerId != previousMenuId) {
+            RtsRemoteMenuAccess.bindOpenedMenu(player);
+        } else {
+            RtsRemoteMenuAccess.clear(player);
+        }
     }
 
     /** resolveBuildingControlBox: 从普通建筑方块反查其仍存在的专属控制箱。 */

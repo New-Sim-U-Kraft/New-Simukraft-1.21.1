@@ -2,15 +2,18 @@
   "required": true,
   "package": "common.cn.kafei.simukraft.mixin",
   "compatibilityLevel": "JAVA_21",
+  "refmap": "simukraft.refmap.json",
   "mixins": [
     "MixinChestBlockEntity",
     "MixinChunkMap",
     "MixinChunkMapAccessor",
     "MixinChestMenu",
+    "MixinEnderChestBlockEntity",
     "MixinMilkBucketItem",
     "MixinLivingEntityDimensions",
     "MixinServerGamePacketListenerImpl",
-    "MixinServerPlayer"
+    "MixinServerPlayer",
+    "MixinShulkerBoxMenu"
   ],
   "injectors": {
     "defaultRequire": 1

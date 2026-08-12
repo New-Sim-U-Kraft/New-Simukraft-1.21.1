@@ -9,9 +9,11 @@ import net.minecraft.world.CompoundContainer;
 import net.minecraft.world.Container;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.PlayerEnderChestContainer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.entity.EnderChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 
@@ -86,6 +88,29 @@ public final class RtsRemoteMenuAccess {
             }
             Container container = chestMenu.getContainer();
             if (container == chest || container instanceof CompoundContainer compound && compound.contains(chest)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** keepsEnderChestOpen: 判断当前远程会话是否仍持有对应的玩家末影箱菜单。 */
+    public static boolean keepsEnderChestOpen(ServerLevel level, EnderChestBlockEntity chest) {
+        if (level == null || chest == null) {
+            return false;
+        }
+        for (var entry : TARGETS.entrySet()) {
+            RemoteTarget target = entry.getValue();
+            if (!target.inDimension(level) || !target.pos().equals(chest.getBlockPos()) || target.menuId() == NO_MENU) {
+                continue;
+            }
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
+            if (player == null || player.level() != level || player.containerMenu.containerId != target.menuId()
+                    || !(player.containerMenu instanceof ChestMenu chestMenu)) {
+                continue;
+            }
+            if (chestMenu.getContainer() instanceof PlayerEnderChestContainer enderChest
+                    && enderChest.isActiveChest(chest)) {
                 return true;
             }
         }
