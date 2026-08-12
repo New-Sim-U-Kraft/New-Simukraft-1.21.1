@@ -968,6 +968,7 @@
     "message.simukraft.rts.block_moved":  "选中的方块已移动。",
     "message.simukraft.rts.destination_blocked":  "目标位置已被占用。",
     "message.simukraft.rts.move_invalid":  "目标无法移动到这里。",
+    "message.simukraft.rts.place_invalid":  "当前选中物品无法放置到目标位置。",
     "message.simukraft.rts.surface_loading":  "正在加载目标地形，请稍后确认。",
     "message.simukraft.rts.citizen_invalid":  "目标市民不可操作。",
     "message.simukraft.rts.citizens_moved":  "已命令 %s 名市民移动。",

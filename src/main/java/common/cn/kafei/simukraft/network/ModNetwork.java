@@ -80,6 +80,7 @@ import common.cn.kafei.simukraft.network.rts.RtsChunkViewPacket;
 import common.cn.kafei.simukraft.network.rts.RtsDemolishPacket;
 import common.cn.kafei.simukraft.network.rts.RtsMovePacket;
 import common.cn.kafei.simukraft.network.rts.RtsOpenTargetPacket;
+import common.cn.kafei.simukraft.network.rts.RtsPlaceBlockPacket;
 import common.cn.kafei.simukraft.network.toast.InfoToastPacket;
 import common.cn.kafei.simukraft.network.geology.GeologicalSurveyHintPacket;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -88,7 +89,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 @SuppressWarnings("null")
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "30";
+    private static final String NETWORK_VERSION = "31";
 
     private ModNetwork() {
     }
@@ -149,6 +150,7 @@ public final class ModNetwork {
         registrar.playToServer(RtsDemolishPacket.TYPE, RtsDemolishPacket.STREAM_CODEC, RtsDemolishPacket::handle);
         registrar.playToServer(RtsMovePacket.TYPE, RtsMovePacket.STREAM_CODEC, RtsMovePacket::handle);
         registrar.playToServer(RtsOpenTargetPacket.TYPE, RtsOpenTargetPacket.STREAM_CODEC, RtsOpenTargetPacket::handle);
+        registrar.playToServer(RtsPlaceBlockPacket.TYPE, RtsPlaceBlockPacket.STREAM_CODEC, RtsPlaceBlockPacket::handle);
         registrar.playToServer(ManifestTogglePacket.TYPE, ManifestTogglePacket.STREAM_CODEC, ManifestTogglePacket::handle);
         registrar.playToServer(ServerConfigSavePacket.TYPE, ServerConfigSavePacket.STREAM_CODEC, ServerConfigSavePacket::handle);
         registrar.playToClient(CityCoreOpenResponsePacket.TYPE, CityCoreOpenResponsePacket.STREAM_CODEC, CityCoreOpenResponsePacket::handle);

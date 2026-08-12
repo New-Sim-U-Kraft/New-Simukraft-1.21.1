@@ -959,6 +959,7 @@
     "message.simukraft.rts.block_moved":  "The selected block was moved.",
     "message.simukraft.rts.destination_blocked":  "The destination is occupied.",
     "message.simukraft.rts.move_invalid":  "The target cannot be moved here.",
+    "message.simukraft.rts.place_invalid":  "The selected item cannot be placed at the target position.",
     "message.simukraft.rts.surface_loading":  "Loading the target terrain. Please confirm again shortly.",
     "message.simukraft.rts.citizen_invalid":  "The target citizen cannot be operated.",
     "message.simukraft.rts.citizens_moved":  "Ordered %s citizen(s) to move.",

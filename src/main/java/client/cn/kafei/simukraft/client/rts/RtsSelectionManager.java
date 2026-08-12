@@ -6,6 +6,7 @@ import client.cn.kafei.simukraft.client.freecamera.FreeCameraScreen;
 import client.cn.kafei.simukraft.client.input.SimuKraftKeyMappings;
 import client.cn.kafei.simukraft.client.toast.ClientInfoToast;
 import client.cn.kafei.simukraft.mixin.MixinGameRenderer;
+import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.config.ServerConfig;
 import common.cn.kafei.simukraft.entity.CitizenEntity;
 import common.cn.kafei.simukraft.network.rts.RtsBuildingBoundsRequestPacket;
@@ -13,13 +14,16 @@ import common.cn.kafei.simukraft.network.rts.RtsCitizenActionPacket;
 import common.cn.kafei.simukraft.network.rts.RtsDemolishPacket;
 import common.cn.kafei.simukraft.network.rts.RtsMovePacket;
 import common.cn.kafei.simukraft.network.rts.RtsOpenTargetPacket;
+import common.cn.kafei.simukraft.network.rts.RtsPlaceBlockPacket;
 import common.cn.kafei.simukraft.config.ClientConfig;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.level.ClipContext;
@@ -44,9 +48,17 @@ import java.util.UUID;
 @OnlyIn(Dist.CLIENT)
 public final class RtsSelectionManager {
     private static final double MAX_RAY_DISTANCE = 128.0D;
+    private static final long HOLD_PROGRESS_DISPLAY_DELAY_NANOS = 200_000_000L;
+    private static final int HOLD_RING_FRAME_SIZE = 24;
+    private static final int HOLD_RING_FRAME_COLUMNS = 8;
+    private static final int HOLD_RING_FRAME_COUNT = 64;
+    private static final ResourceLocation HOLD_RING_TEXTURE = ResourceLocation.fromNamespaceAndPath(
+            SimuKraft.MOD_ID, "textures/gui/rts_hold_ring.png");
     private static volatile boolean active;
     private static volatile BlockPos targetPos;
     private static volatile BlockPos targetPlacementPos;
+    private static volatile BlockPos placementClickedPos;
+    private static volatile Direction placementFace;
     private static volatile BlockPos selectedPos;
     private static volatile UUID targetCitizenId;
     private static volatile Component targetCitizenName = Component.empty();
@@ -77,6 +89,7 @@ public final class RtsSelectionManager {
         }
         targetPos = null;
         targetPlacementPos = null;
+        clearPlacementTarget();
         selectedPos = null;
         setTargetCitizen(null);
         clearCitizenSelection();
@@ -135,6 +148,7 @@ public final class RtsSelectionManager {
         }
         active = true;
         selectedPos = null;
+        clearPlacementTarget();
         setTargetCitizen(null);
         clearCitizenSelection();
         lastLeftClickPos = null;
@@ -153,6 +167,7 @@ public final class RtsSelectionManager {
         active = false;
         targetPos = null;
         targetPlacementPos = null;
+        clearPlacementTarget();
         selectedPos = null;
         setTargetCitizen(null);
         clearCitizenSelection();
@@ -175,6 +190,7 @@ public final class RtsSelectionManager {
         active = false;
         targetPos = null;
         targetPlacementPos = null;
+        clearPlacementTarget();
         selectedPos = null;
         setTargetCitizen(null);
         clearCitizenSelection();
@@ -207,6 +223,7 @@ public final class RtsSelectionManager {
         }
         if (minecraft.screen != null) {
             setTarget(null);
+            clearPlacementTarget();
             setTargetCitizen(null);
             return;
         }
@@ -364,7 +381,13 @@ public final class RtsSelectionManager {
             return;
         }
         long holdNanos = moveHoldNanos();
-        double progress = Math.min(1.0D, (System.nanoTime() - leftPressedAtNanos) / (double) holdNanos);
+        long elapsedNanos = System.nanoTime() - leftPressedAtNanos;
+        if (elapsedNanos < HOLD_PROGRESS_DISPLAY_DELAY_NANOS) {
+            return;
+        }
+        long visibleHoldNanos = Math.max(1L, holdNanos - HOLD_PROGRESS_DISPLAY_DELAY_NANOS);
+        double progress = Math.min(1.0D,
+                (elapsedNanos - HOLD_PROGRESS_DISPLAY_DELAY_NANOS) / (double) visibleHoldNanos);
         Minecraft minecraft = Minecraft.getInstance();
         int screenWidth = minecraft.getWindow().getScreenWidth();
         int screenHeight = minecraft.getWindow().getScreenHeight();
@@ -373,15 +396,15 @@ public final class RtsSelectionManager {
         }
         int cursorX = (int) (minecraft.mouseHandler.xpos() * minecraft.getWindow().getGuiScaledWidth() / screenWidth);
         int cursorY = (int) (minecraft.mouseHandler.ypos() * minecraft.getWindow().getGuiScaledHeight() / screenHeight);
-        int segments = 24;
-        int completed = (int) Math.ceil(progress * segments);
-        for (int index = 0; index < segments; index++) {
-            double angle = -Math.PI * 0.5D + Math.PI * 2.0D * index / segments;
-            int x = cursorX + (int) Math.round(Math.cos(angle) * 12.0D);
-            int y = cursorY + (int) Math.round(Math.sin(angle) * 12.0D);
-            int color = index < completed ? 0xEE22DDFF : 0x772A4A55;
-            graphics.fill(x - 1, y - 1, x + 2, y + 2, color);
-        }
+        int frame = Mth.clamp((int) Math.round(progress * (HOLD_RING_FRAME_COUNT - 1)),
+                0, HOLD_RING_FRAME_COUNT - 1);
+        int sourceX = frame % HOLD_RING_FRAME_COLUMNS * HOLD_RING_FRAME_SIZE;
+        int sourceY = frame / HOLD_RING_FRAME_COLUMNS * HOLD_RING_FRAME_SIZE;
+        graphics.blit(HOLD_RING_TEXTURE, cursorX - HOLD_RING_FRAME_SIZE / 2,
+                cursorY - HOLD_RING_FRAME_SIZE / 2, sourceX, sourceY,
+                HOLD_RING_FRAME_SIZE, HOLD_RING_FRAME_SIZE,
+                HOLD_RING_FRAME_SIZE * HOLD_RING_FRAME_COLUMNS,
+                HOLD_RING_FRAME_SIZE * HOLD_RING_FRAME_COLUMNS);
     }
 
     /** targetPos: 返回当前光标命中的方块，供操作层读取。 */
@@ -413,6 +436,7 @@ public final class RtsSelectionManager {
         CursorRay ray = cursorRay(minecraft);
         BlockHitResult hit = rayTraceCursor(minecraft, ray);
         CitizenEntity citizen = rayTraceCitizen(minecraft, ray, hit);
+        setPlacementTarget(hit);
         if (citizen != null) {
             setTargetCitizen(citizen);
             setTarget(null, surfacePlacementPos(minecraft, hit));
@@ -426,6 +450,22 @@ public final class RtsSelectionManager {
         BlockState state = minecraft.level.getBlockState(hit.getBlockPos());
         setTarget(ClientConfig.isRtsTargetBlockEnabled(state) ? hit.getBlockPos() : null,
                 surfacePlacementPos(minecraft, hit));
+    }
+
+    /** setPlacementTarget: 保存所有命中的方块面，独立于 RTS 高亮方块筛选。 */
+    private static void setPlacementTarget(BlockHitResult hit) {
+        if (hit == null || hit.getType() != HitResult.Type.BLOCK) {
+            clearPlacementTarget();
+            return;
+        }
+        placementClickedPos = hit.getBlockPos().immutable();
+        placementFace = hit.getDirection();
+    }
+
+    /** clearPlacementTarget: 清理已失效的远程方块放置目标。 */
+    private static void clearPlacementTarget() {
+        placementClickedPos = null;
+        placementFace = null;
     }
 
     /** surfacePlacementPos: 将射线命中转换为同列最高可阻挡地表的上方落点。 */
@@ -545,6 +585,13 @@ public final class RtsSelectionManager {
     }
 
     private static void handleLeftPress() {
+        if (isShiftDown() && !RtsMovePreviewManager.isActive() && placementClickedPos != null && placementFace != null) {
+            PacketDistributor.sendToServer(new RtsPlaceBlockPacket(placementClickedPos, placementFace));
+            lastLeftClickPos = null;
+            lastLeftClickNanos = 0L;
+            clearMoveState();
+            return;
+        }
         if (RtsMovePreviewManager.isActive()) {
             if (targetPlacementPos == null) {
                 updateTarget(Minecraft.getInstance());
