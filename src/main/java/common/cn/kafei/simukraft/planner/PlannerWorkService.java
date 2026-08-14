@@ -93,8 +93,11 @@ public final class PlannerWorkService {
         }
         LevelRuntime runtime = runtime(level);
         runtime.hydrated = true;
-        runtime.tasks.put(task.citizenId(), new TaskRuntime(task));
-        NpcWorkChunkLoadService.load(level, task.buildBoxPos());
+        TaskRuntime replaced = runtime.tasks.put(task.citizenId(), new TaskRuntime(task));
+        if (replaced != null) {
+            NpcWorkChunkLoadService.release(level, replaced.task.taskId());
+        }
+        acquireTaskTickets(level, task);
         SimuSqliteStorage.savePlanningTask(level, task);
     }
 
@@ -103,7 +106,7 @@ public final class PlannerWorkService {
             return;
         }
         TaskRuntime removed = runtime(level).tasks.remove(citizenId);
-        if (removed != null) NpcWorkChunkLoadService.release(level, removed.task.buildBoxPos());
+        if (removed != null) NpcWorkChunkLoadService.release(level, removed.task.taskId());
         // 不再绕 IO_EXECUTOR：删除必须和 persistTask 的写入在同一线程上定序，
         // 否则一条迟到的写入会把已取消的任务复活。入队本身不做 JDBC 调用。
         SimuSqliteStorage.deletePlanningTask(level, citizenId);
@@ -156,7 +159,7 @@ public final class PlannerWorkService {
         TaskRuntime removed = runtime(level).tasks.remove(citizenId);
         SimuSqliteStorage.deletePlanningTask(level, citizenId);
         if (removed != null) {
-            NpcWorkChunkLoadService.release(level, removed.task.buildBoxPos());
+            NpcWorkChunkLoadService.release(level, removed.task.taskId());
             CitizenService.findCitizen(level, citizenId)
                     .filter(citizen -> !citizen.dead())
                     .ifPresent(citizen -> flushXp(level, citizen, removed));
@@ -176,7 +179,7 @@ public final class PlannerWorkService {
             CitizenService.findCitizen(level, taskRuntime.task.citizenId())
                     .filter(citizen -> !citizen.dead())
                     .ifPresent(citizen -> flushXp(level, citizen, taskRuntime));
-            NpcWorkChunkLoadService.release(level, taskRuntime.task.buildBoxPos());
+            NpcWorkChunkLoadService.release(level, taskRuntime.task.taskId());
             PlanningTaskData paused = taskRuntime.task.withStatus(PlanningTaskStatus.PAUSED_OFFLINE.id(), System.currentTimeMillis());
             SimuSqliteStorage.savePlanningTask(level, paused);
         });
@@ -185,6 +188,12 @@ public final class PlannerWorkService {
     public static void clearServerCaches(MinecraftServer server) {
         String serverKey = SaveScopedCacheKey.serverKey(server).toLowerCase(Locale.ROOT);
         LEVEL_RUNTIMES.keySet().removeIf(key -> key.startsWith(serverKey + "|"));
+    }
+
+    /** acquireTaskTickets：为规划师和任务选区分别申请实体 tick 与区块加载 ticket。 */
+    private static void acquireTaskTickets(ServerLevel level, PlanningTaskData task) {
+        NpcWorkChunkLoadService.acquire(level, task.taskId(), task.buildBoxPos());
+        NpcWorkChunkLoadService.loadWorkArea(level, task.taskId(), task.minPos(), task.maxPos(), 0);
     }
 
     private static void tickTask(ServerLevel level, CitizenData citizen, LevelRuntime runtime, TaskRuntime taskRuntime) {
@@ -237,8 +246,7 @@ public final class PlannerWorkService {
             BlockPos pos = task.blockAt(index);
             scanned++;
             if (!level.isLoaded(pos)) {
-                index++;
-                continue;
+                break;
             }
             CellResult result = applyCell(level, task, pos, chestPositions);
             if (result == CellResult.WAITING) {
@@ -370,7 +378,7 @@ public final class PlannerWorkService {
 
     private static void completeTask(ServerLevel level, CitizenData citizen, LevelRuntime runtime, TaskRuntime taskRuntime) {
         flushXp(level, citizen, taskRuntime);
-        NpcWorkChunkLoadService.release(level, taskRuntime.task.buildBoxPos());
+        NpcWorkChunkLoadService.release(level, taskRuntime.task.taskId());
         runtime.tasks.remove(citizen.uuid(), taskRuntime);
         SimuSqliteStorage.deletePlanningTask(level, citizen.uuid());
         CityGroupMessageService.successToCity(level, taskRuntime.task.cityId(),
@@ -400,7 +408,7 @@ public final class PlannerWorkService {
                     ? task.withStatus(PlanningTaskStatus.PLANNING.id(), System.currentTimeMillis())
                     : task;
             if (runtime.tasks.putIfAbsent(resumed.citizenId(), new TaskRuntime(resumed)) == null) {
-                NpcWorkChunkLoadService.load(level, resumed.buildBoxPos());
+                acquireTaskTickets(level, resumed);
             }
             restorePlannerEmployment(level, resumed);
         }

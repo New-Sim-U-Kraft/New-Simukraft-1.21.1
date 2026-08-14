@@ -57,6 +57,7 @@ import common.cn.kafei.simukraft.path.CitizenNavigationService;
 import common.cn.kafei.simukraft.guard.NtIntegrityGuard;
 import common.cn.kafei.simukraft.protection.NpcBlockProtectionPolicy;
 import common.cn.kafei.simukraft.path.CitizenWanderService;
+import common.cn.kafei.simukraft.util.NpcWorkChunkLoadService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
 import common.cn.kafei.simukraft.registry.ModCreativeModeTabs;
 import common.cn.kafei.simukraft.registry.ModEntities;
@@ -303,6 +304,7 @@ public final class SimuKraft {
         SimuSqliteStorage.flush(event.getServer());
         BuilderConstructionService.clearServerCaches(event.getServer());
         PlannerWorkService.clearServerCaches(event.getServer());
+        NpcWorkChunkLoadService.clearServerCaches(event.getServer());
         IndustrialWorkService.clearServerCaches(event.getServer());
         MineralDrillingWorkService.clearServerCaches(event.getServer());
         CommercialWorkService.clearServerCaches(event.getServer());

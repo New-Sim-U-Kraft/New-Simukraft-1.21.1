@@ -60,6 +60,7 @@ public final class BuilderConstructionService {
     private static final int SAVE_BLOCK_INTERVAL = 12;
     private static final long SAVE_INTERVAL_MS = 1500L;
     private static final long MATERIAL_RETRY_INTERVAL_TICKS = 40L;
+    private static final int WORK_AREA_PADDING_BLOCKS = 4;
     private static final ExecutorService IO_EXECUTOR = Executors.newFixedThreadPool(
             Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors())),
             new BuilderIoThreadFactory()
@@ -98,12 +99,15 @@ public final class BuilderConstructionService {
         }
         LevelRuntime runtime = runtime(level);
         TaskRuntime taskRuntime = new TaskRuntime(task);
-        runtime.tasksByCitizen.put(task.citizenId(), taskRuntime);
+        TaskRuntime replaced = runtime.tasksByCitizen.put(task.citizenId(), taskRuntime);
+        if (replaced != null) {
+            NpcWorkChunkLoadService.release(level, replaced.task.taskId());
+        }
         runtime.hydrated = true;
         SimuSqliteStorage.saveBuildingTask(level, task);
         taskRuntime.lastSavedAt = task.updatedAt();
         taskRuntime.lastSavedIndex = task.currentBlockIndex();
-        NpcWorkChunkLoadService.load(level, task.buildBoxPos());
+        NpcWorkChunkLoadService.acquire(level, task.taskId(), task.buildBoxPos());
         primeStructureLoad(task);
     }
 
@@ -112,7 +116,7 @@ public final class BuilderConstructionService {
             return;
         }
         TaskRuntime removed = runtime(level).tasksByCitizen.remove(citizenId);
-        if (removed != null) NpcWorkChunkLoadService.release(level, removed.task.buildBoxPos());
+        if (removed != null) NpcWorkChunkLoadService.release(level, removed.task.taskId());
         SimuSqliteStorage.deleteBuildingTask(level, citizenId);
     }
 
@@ -147,7 +151,7 @@ public final class BuilderConstructionService {
         }
         TaskRuntime removed = runtime(level).tasksByCitizen.remove(citizenId);
         if (removed != null) {
-            NpcWorkChunkLoadService.release(level, removed.task.buildBoxPos());
+            NpcWorkChunkLoadService.release(level, removed.task.taskId());
             CitizenService.findCitizen(level, citizenId)
                     .filter(citizen -> !citizen.dead())
                     .ifPresent(citizen -> flushPendingBuilderXp(level, citizen, removed));
@@ -182,7 +186,7 @@ public final class BuilderConstructionService {
             CitizenService.findCitizen(level, taskRuntime.task.citizenId())
                     .filter(citizen -> !citizen.dead())
                     .ifPresent(citizen -> flushPendingBuilderXp(level, citizen, taskRuntime));
-            NpcWorkChunkLoadService.release(level, taskRuntime.task.buildBoxPos());
+            NpcWorkChunkLoadService.release(level, taskRuntime.task.taskId());
             // 服务器关闭时统一标记离线暂停，避免重进游戏后任务被当作正在施工。
             BuildingTaskData paused = taskRuntime.task.withStatus(BuildingTaskStatus.PAUSED_OFFLINE);
             taskRuntime.task = paused;
@@ -238,6 +242,7 @@ public final class BuilderConstructionService {
             syncCitizenTaskState(level, citizen, taskRuntime, task, null);
             return;
         }
+        ensureWorkAreaTickets(level, taskRuntime, cached);
         syncCitizenTaskState(level, citizen, taskRuntime, task, cached);
         int placed = 0;
         int index = Math.max(0, task.currentBlockIndex());
@@ -312,6 +317,32 @@ public final class BuilderConstructionService {
         }
     }
 
+    /** ensureWorkAreaTickets：按实际结构边界维持施工方块及其邻域的区块加载。 */
+    private static void ensureWorkAreaTickets(ServerLevel level, TaskRuntime taskRuntime, CachedStructure cached) {
+        if (taskRuntime.workAreaTicketsLoaded) {
+            return;
+        }
+        BlockPos firstPos = cached.blocks().getFirst().relativePos();
+        int minX = firstPos.getX();
+        int minY = firstPos.getY();
+        int minZ = firstPos.getZ();
+        int maxX = minX;
+        int maxY = minY;
+        int maxZ = minZ;
+        for (BuildingBlockData block : cached.blocks()) {
+            BlockPos blockPos = block.relativePos();
+            minX = Math.min(minX, blockPos.getX());
+            minY = Math.min(minY, blockPos.getY());
+            minZ = Math.min(minZ, blockPos.getZ());
+            maxX = Math.max(maxX, blockPos.getX());
+            maxY = Math.max(maxY, blockPos.getY());
+            maxZ = Math.max(maxZ, blockPos.getZ());
+        }
+        NpcWorkChunkLoadService.loadWorkArea(level, taskRuntime.task.taskId(),
+                new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ), WORK_AREA_PADDING_BLOCKS);
+        taskRuntime.workAreaTicketsLoaded = true;
+    }
+
     private static void completeTask(ServerLevel level, CitizenData citizen, LevelRuntime runtime, TaskRuntime taskRuntime, BuildingTaskData task, CachedStructure cached) {
         BuildingBlockPlacementService.placeStructureEntities(level, cached.entities(), task.rotationDegrees());
         UUID cityId = task.cityId();
@@ -356,7 +387,7 @@ public final class BuilderConstructionService {
         }
         ConstructionCompletionNotificationService.notifyCompleted(level, citizen, task);
         flushPendingBuilderXp(level, citizen, taskRuntime);
-        NpcWorkChunkLoadService.release(level, task.buildBoxPos());
+        NpcWorkChunkLoadService.release(level, task.taskId());
         runtime.tasksByCitizen.remove(citizen.uuid(), taskRuntime);
         SimuSqliteStorage.deleteBuildingTask(level, citizen.uuid());
         CitizenEmploymentService.clearAfterJobFinished(level, citizen.uuid());
@@ -384,7 +415,9 @@ public final class BuilderConstructionService {
                         : task;
                 TaskRuntime taskRuntime = new TaskRuntime(resumed);
                 TaskRuntime existing = runtime.tasksByCitizen.putIfAbsent(resumed.citizenId(), taskRuntime);
-                if (existing == null) NpcWorkChunkLoadService.load(level, resumed.buildBoxPos());
+                if (existing == null) {
+                    NpcWorkChunkLoadService.acquire(level, resumed.taskId(), resumed.buildBoxPos());
+                }
                 primeStructureLoad(resumed);
                 restoreBuilderEmployment(level, resumed);
                 if (existing == null && restoredFromOfflinePause && !shouldRest(level)) {
@@ -918,6 +951,7 @@ public final class BuilderConstructionService {
         private volatile String missingMaterialName = "";
         private volatile long nextMaterialRetryTick;
         private volatile long chestCloseAtTick;
+        private volatile boolean workAreaTicketsLoaded;
         private double buildProgressAccumulator;
         private final AtomicInteger pendingBuilderXp = new AtomicInteger();
 
