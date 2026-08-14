@@ -86,6 +86,11 @@ public final class ClientCityChunkCache {
         return currentScopeCache().chunkOwnerIndex.get(chunkLong);
     }
 
+    /** getChunkOwners: 返回当前世界和维度领地权属的不可变快照，供客户端渲染批量读取。 */
+    public Map<Long, UUID> getChunkOwners() {
+        return Map.copyOf(currentScopeCache().chunkOwnerIndex);
+    }
+
     public int getDataVersion() {
         return currentScopeCache().dataVersion;
     }

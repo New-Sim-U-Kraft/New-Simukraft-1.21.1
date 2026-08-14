@@ -1,5 +1,6 @@
 package client.cn.kafei.simukraft.client.rts;
 
+import client.cn.kafei.simukraft.client.city.ClientCityChunkCache;
 import client.cn.kafei.simukraft.client.freecamera.FreeCameraManager;
 import client.cn.kafei.simukraft.client.input.SimuKraftKeyMappings;
 import net.minecraft.client.Camera;
@@ -23,6 +24,7 @@ public final class RtsMiniMapRenderer {
     private static final int MAP_MARGIN = 12;
     private static final int FRAME_SIZE = 3;
     private static final int REFRESH_INTERVAL_TICKS = 5;
+    private static final int MAP_DRAG_THRESHOLD = 2;
     private static final int COLOR_FRAME = 0xEE111815;
     private static final int COLOR_BORDER = 0xFF8DAA8A;
     private static final int COLOR_VIEWPORT = 0xFFECF77A;
@@ -30,7 +32,13 @@ public final class RtsMiniMapRenderer {
     private static boolean expanded;
     private static boolean textureRefreshRequested = true;
     private static boolean mapClickCaptured;
+    private static boolean mapDragActive;
     private static int ticksUntilRefresh;
+    private static int territoryDataVersion = -1;
+    private static int mapDragStartX;
+    private static int mapDragStartY;
+    private static int mapDragLastX;
+    private static int mapDragLastY;
 
     private RtsMiniMapRenderer() {
     }
@@ -42,12 +50,18 @@ public final class RtsMiniMapRenderer {
         if (!isVisible()) {
             FreeCameraManager.setRtsEdgePanBlocked(false);
             RtsMiniMapTexture.releaseConsumer();
-            mapClickCaptured = false;
+            resetMapInteraction();
             textureRefreshRequested = true;
             return;
         }
-        FreeCameraManager.setRtsEdgePanBlocked(isMouseOverMap(minecraft));
+        FreeCameraManager.setRtsEdgePanBlocked(mapClickCaptured || isMouseOverMap(minecraft));
         RtsMiniMapTexture.acquireConsumer();
+        updateMapDrag(minecraft);
+        int dataVersion = ClientCityChunkCache.getInstance().getDataVersion();
+        if (territoryDataVersion != dataVersion) {
+            territoryDataVersion = dataVersion;
+            textureRefreshRequested = true;
+        }
         if (togglePressed && RtsSelectionManager.canUseRtsCameraControls()) {
             expanded = !expanded;
             textureRefreshRequested = true;
@@ -84,15 +98,15 @@ public final class RtsMiniMapRenderer {
 
     /** handleMouseButton: 捕获地图区域的左键，防止同时触发 RTS 方块操作。 */
     public static boolean handleMouseButton(InputEvent.MouseButton.Pre event) {
-        if (!isVisible() || !RtsSelectionManager.canUseRtsCameraControls()
-                || event.getButton() != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (!isVisible() || event.getButton() != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             return false;
         }
         if (event.getAction() == GLFW.GLFW_RELEASE && mapClickCaptured) {
-            mapClickCaptured = false;
+            finishMapInteraction(Minecraft.getInstance());
             return true;
         }
-        if (event.getAction() != GLFW.GLFW_PRESS) {
+        if (event.getAction() != GLFW.GLFW_PRESS
+                || !RtsSelectionManager.canUseRtsCameraControls()) {
             return false;
         }
         Minecraft minecraft = Minecraft.getInstance();
@@ -102,8 +116,7 @@ public final class RtsMiniMapRenderer {
         if (!layout.contains(mouseX, mouseY)) {
             return false;
         }
-        jumpCamera(layout, mouseX, mouseY);
-        mapClickCaptured = true;
+        beginMapInteraction(mouseX, mouseY);
         return true;
     }
 
@@ -112,8 +125,9 @@ public final class RtsMiniMapRenderer {
         RtsMiniMapTexture.clear();
         expanded = false;
         textureRefreshRequested = true;
-        mapClickCaptured = false;
+        resetMapInteraction();
         ticksUntilRefresh = 0;
+        territoryDataVersion = -1;
     }
 
     private static boolean isVisible() {
@@ -128,6 +142,74 @@ public final class RtsMiniMapRenderer {
         double z = focus.z + ((mouseY - layout.top()) / (double) layout.size() - 0.5D) * span;
         FreeCameraManager.setRtsFocus(x, z);
         textureRefreshRequested = true;
+    }
+
+    /** beginMapInteraction: 记录小地图按下点，以便区分单击跳转与视图框拖拽。 */
+    private static void beginMapInteraction(int mouseX, int mouseY) {
+        mapClickCaptured = true;
+        mapDragActive = false;
+        mapDragStartX = mouseX;
+        mapDragStartY = mouseY;
+        mapDragLastX = mouseX;
+        mapDragLastY = mouseY;
+    }
+
+    /** updateMapDrag: 按当前鼠标位移平移 RTS 摄像机，鼠标移出小地图时限制在边界。 */
+    private static void updateMapDrag(Minecraft minecraft) {
+        if (!mapClickCaptured) {
+            return;
+        }
+        if (!RtsSelectionManager.canUseRtsCameraControls()) {
+            resetMapInteraction();
+            return;
+        }
+        if (GLFW.glfwGetMouseButton(minecraft.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_LEFT)
+                != GLFW.GLFW_PRESS) {
+            finishMapInteraction(minecraft);
+            return;
+        }
+        MapLayout layout = layout(minecraft);
+        int mouseX = Mth.clamp(guiMouseX(minecraft), layout.left(), layout.right() - 1);
+        int mouseY = Mth.clamp(guiMouseY(minecraft), layout.top(), layout.bottom() - 1);
+        if (!mapDragActive && Math.abs(mouseX - mapDragStartX) < MAP_DRAG_THRESHOLD
+                && Math.abs(mouseY - mapDragStartY) < MAP_DRAG_THRESHOLD) {
+            return;
+        }
+        mapDragActive = true;
+        int dragX = mouseX - mapDragLastX;
+        int dragY = mouseY - mapDragLastY;
+        mapDragLastX = mouseX;
+        mapDragLastY = mouseY;
+        if (dragX == 0 && dragY == 0) {
+            return;
+        }
+        double worldBlocksPerPixel = worldSpan() / (double) layout.size();
+        Vec3 focus = FreeCameraManager.rtsFocus();
+        FreeCameraManager.setRtsFocus(
+                focus.x + dragX * worldBlocksPerPixel,
+                focus.z + dragY * worldBlocksPerPixel);
+        textureRefreshRequested = true;
+    }
+
+    /** finishMapInteraction: 拖拽未开始时执行既有单击跳转，并清理小地图输入状态。 */
+    private static void finishMapInteraction(Minecraft minecraft) {
+        if (mapClickCaptured && !mapDragActive && RtsSelectionManager.canUseRtsCameraControls()) {
+            MapLayout layout = layout(minecraft);
+            int mouseX = Mth.clamp(guiMouseX(minecraft), layout.left(), layout.right() - 1);
+            int mouseY = Mth.clamp(guiMouseY(minecraft), layout.top(), layout.bottom() - 1);
+            jumpCamera(layout, mouseX, mouseY);
+        }
+        resetMapInteraction();
+    }
+
+    /** resetMapInteraction: 重置小地图单击和拖拽的临时输入状态。 */
+    private static void resetMapInteraction() {
+        mapClickCaptured = false;
+        mapDragActive = false;
+        mapDragStartX = 0;
+        mapDragStartY = 0;
+        mapDragLastX = 0;
+        mapDragLastY = 0;
     }
 
     private static void drawViewport(GuiGraphics graphics, MapLayout layout) {

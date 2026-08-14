@@ -1,5 +1,6 @@
 package client.cn.kafei.simukraft.client.rts;
 
+import client.cn.kafei.simukraft.client.city.ClientCityChunkCache;
 import client.cn.kafei.simukraft.client.city.map.SimuBlockColors;
 import client.cn.kafei.simukraft.client.city.map.SimuMapManager;
 import client.cn.kafei.simukraft.client.city.map.SimuMapRegion;
@@ -9,9 +10,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+
+import java.util.Map;
+import java.util.UUID;
 
 /** RTS 小地图纹理：从已有地图缓存采样并管理动态纹理生命周期。 */
 @SuppressWarnings("null")
@@ -19,6 +24,10 @@ import net.neoforged.api.distmarker.OnlyIn;
 final class RtsMiniMapTexture {
     private static final int SIZE = 192;
     private static final int COLOR_UNKNOWN = 0xFF202725;
+    private static final int CURRENT_TERRITORY_FILL_COLOR = 0x5500DD00;
+    private static final int OTHER_TERRITORY_FILL_COLOR = 0x55FF8800;
+    private static final int CURRENT_TERRITORY_BORDER_COLOR = 0xCC00DD00;
+    private static final int OTHER_TERRITORY_BORDER_COLOR = 0xCCFF8800;
     private static DynamicTexture texture;
     private static ResourceLocation textureLocation;
     private static boolean mapConsumerAcquired;
@@ -54,11 +63,18 @@ final class RtsMiniMapTexture {
         }
         int minX = Mth.floor(focus.x - worldSpan * 0.5D);
         int minZ = Mth.floor(focus.z - worldSpan * 0.5D);
+        ClientCityChunkCache territoryCache = ClientCityChunkCache.getInstance();
+        Map<Long, UUID> chunkOwners = territoryCache.getChunkOwners();
+        UUID currentCityId = territoryCache.getCurrentCityId();
+        int pixelWorldSpan = Math.max(1, Mth.ceil(worldSpan / (double) SIZE));
         for (int pixelZ = 0; pixelZ < SIZE; pixelZ++) {
             int worldZ = minZ + (int) ((pixelZ + 0.5D) * worldSpan / SIZE);
             for (int pixelX = 0; pixelX < SIZE; pixelX++) {
                 int worldX = minX + (int) ((pixelX + 0.5D) * worldSpan / SIZE);
-                image.setPixelRGBA(pixelX, pixelZ, SimuBlockColors.toNativeColor(sampleColor(worldX, worldZ)));
+                int terrainColor = sampleColor(worldX, worldZ);
+                int displayColor = applyTerritoryOverlay(
+                        terrainColor, worldX, worldZ, pixelWorldSpan, currentCityId, chunkOwners);
+                image.setPixelRGBA(pixelX, pixelZ, SimuBlockColors.toNativeColor(displayColor));
             }
         }
         texture.upload();
@@ -104,5 +120,37 @@ final class RtsMiniMapTexture {
         }
         int color = data.getColor(worldX & 511, worldZ & 511);
         return (color >>> 24) == 0 ? COLOR_UNKNOWN : color;
+    }
+
+    /** applyTerritoryOverlay: 按领地权属为地形采样色叠加填充和相邻城市边界。 */
+    private static int applyTerritoryOverlay(int terrainColor, int worldX, int worldZ, int pixelWorldSpan,
+                                              UUID currentCityId, Map<Long, UUID> chunkOwners) {
+        int chunkX = worldX >> 4;
+        int chunkZ = worldZ >> 4;
+        UUID owner = chunkOwners.get(ChunkPos.asLong(chunkX, chunkZ));
+        if (owner == null) {
+            return terrainColor;
+        }
+        boolean currentCityTerritory = owner.equals(currentCityId);
+        int overlayColor = isTerritoryBorder(owner, chunkOwners, chunkX, chunkZ, worldX, worldZ, pixelWorldSpan)
+                ? currentCityTerritory ? CURRENT_TERRITORY_BORDER_COLOR : OTHER_TERRITORY_BORDER_COLOR
+                : currentCityTerritory ? CURRENT_TERRITORY_FILL_COLOR : OTHER_TERRITORY_FILL_COLOR;
+        return SimuBlockColors.blendColors(terrainColor, overlayColor);
+    }
+
+    /** isTerritoryBorder: 判断当前采样像素是否覆盖领地外侧或不同城市相邻的区块边界。 */
+    private static boolean isTerritoryBorder(UUID owner, Map<Long, UUID> chunkOwners, int chunkX, int chunkZ,
+                                             int worldX, int worldZ, int pixelWorldSpan) {
+        int localX = worldX & 15;
+        int localZ = worldZ & 15;
+        return localX < pixelWorldSpan && hasDifferentOwner(owner, chunkOwners, chunkX - 1, chunkZ)
+                || localX + pixelWorldSpan >= 16 && hasDifferentOwner(owner, chunkOwners, chunkX + 1, chunkZ)
+                || localZ < pixelWorldSpan && hasDifferentOwner(owner, chunkOwners, chunkX, chunkZ - 1)
+                || localZ + pixelWorldSpan >= 16 && hasDifferentOwner(owner, chunkOwners, chunkX, chunkZ + 1);
+    }
+
+    /** hasDifferentOwner: 判断相邻区块是否未认领或归属另一座城市。 */
+    private static boolean hasDifferentOwner(UUID owner, Map<Long, UUID> chunkOwners, int chunkX, int chunkZ) {
+        return !owner.equals(chunkOwners.get(ChunkPos.asLong(chunkX, chunkZ)));
     }
 }
