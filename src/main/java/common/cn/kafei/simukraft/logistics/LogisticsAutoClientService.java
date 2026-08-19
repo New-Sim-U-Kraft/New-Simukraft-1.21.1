@@ -46,10 +46,10 @@ public final class LogisticsAutoClientService {
         if (level == null || clientId == null) {
             return null;
         }
-        return allClients(level).stream()
-                .filter(client -> clientId.equals(client.clientId()))
-                .findFirst()
-                .orElse(null);
+        for (LogisticsClientData client : allClients(level)) {
+            if (clientId.equals(client.clientId())) return client;
+        }
+        return null;
     }
 
     /** allClients: 返回当前维度的自动客户端快照。 */

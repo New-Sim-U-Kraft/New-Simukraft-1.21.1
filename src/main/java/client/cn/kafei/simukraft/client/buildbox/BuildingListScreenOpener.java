@@ -654,9 +654,13 @@ public final class BuildingListScreenOpener {
         if (selectedBuildingFileName == null || currentCategory == null || currentBuildBoxPos == null) {
             return;
         }
-        Optional<BuildingCacheService.BuildingMeta> selectedBuilding = BuildingCacheService.getBuildings(currentCategory).stream()
-                .filter(building -> selectedBuildingFileName.equals(building.structureFileName()))
-                .findFirst();
+        Optional<BuildingCacheService.BuildingMeta> selectedBuilding = Optional.empty();
+        for (BuildingCacheService.BuildingMeta building : BuildingCacheService.getBuildings(currentCategory)) {
+            if (selectedBuildingFileName.equals(building.structureFileName())) {
+                selectedBuilding = Optional.of(building);
+                break;
+            }
+        }
         if (selectedBuilding.isEmpty()) {
             return;
         }
@@ -802,10 +806,13 @@ public final class BuildingListScreenOpener {
             if (selectedBuildingFileName == null) {
                 return;
             }
-            BuildingCacheService.BuildingMeta selected = buildings.stream()
-                    .filter(building -> selectedBuildingFileName.equals(building.structureFileName()))
-                    .findFirst()
-                    .orElse(null);
+            BuildingCacheService.BuildingMeta selected = null;
+            for (var target : buildings) {
+                if (selectedBuildingFileName.equals(target.structureFileName())) {
+                    selected = target;
+                    break;
+                }
+            }
             if (isLocked(selected)) {
                 selectedBuildingFileName = null;
                 return;
@@ -862,11 +869,15 @@ public final class BuildingListScreenOpener {
             Button confirmButton = new Button();
             confirmButton.setText(Component.translatable("gui.button.select"));
             layoutButtonInRegion(confirmButton, regions.confirmRegion(), 0.88F, 0.82F);
-            BuildingCacheService.BuildingMeta selected = buildings.stream()
-                    .filter(building -> selectedBuildingFileName != null
-                            && selectedBuildingFileName.equals(building.structureFileName()))
-                    .findFirst()
-                    .orElse(null);
+
+            BuildingCacheService.BuildingMeta selected = null;
+            for (var target : buildings) {
+                if (selectedBuildingFileName != null
+                        && selectedBuildingFileName.equals(target.structureFileName())) {
+                    selected = target;
+                    break;
+                }
+            }
             if (selected != null && !isLocked(selected)) {
                 confirmButton.setOnClick(event -> confirmSelectedBuilding());
             } else {

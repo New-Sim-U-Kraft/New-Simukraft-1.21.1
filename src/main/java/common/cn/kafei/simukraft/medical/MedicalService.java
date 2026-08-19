@@ -546,11 +546,17 @@ public final class MedicalService {
 
     private record Hospital(PlacedBuildingRecord building, BlockPos controlBoxPos, int serviceRangeRings, List<CityPoiData> beds) {
         private CityPoiData bed(UUID bedId) {
-            return beds.stream().filter(bed -> bed.poiId().equals(bedId)).findFirst().orElse(null);
+            for (CityPoiData bed : beds) {
+                if (bed.poiId().equals(bedId)) return bed;
+            }
+            return null;
         }
 
         private CityPoiData firstVacant(Set<UUID> occupiedBeds) {
-            return beds.stream().filter(bed -> !occupiedBeds.contains(bed.poiId())).findFirst().orElse(null);
+            for (CityPoiData bed : beds) {
+                if (!occupiedBeds.contains(bed.poiId())) return bed;
+            }
+            return null;
         }
     }
 }

@@ -225,10 +225,13 @@ final class CityUpgradePanelFactory {
             addChild(line(Component.translatable("screen.simukraft.city_core.upgrade.current", packet.cityLevel())));
             CityCoreOpenResponsePacket.UpgradeProgress upgradeProgress = packet.upgradeProgress();
             if (upgradeProgress.active()) {
-                CityCoreOpenResponsePacket.UpgradeTarget target = packet.upgradeTargets().stream()
-                        .filter(candidate -> candidate.level() == upgradeProgress.targetLevel())
-                        .findFirst()
-                        .orElse(CityCoreOpenResponsePacket.UpgradeTarget.NONE);
+                CityCoreOpenResponsePacket.UpgradeTarget target = CityCoreOpenResponsePacket.UpgradeTarget.NONE;
+                for (var t : packet.upgradeTargets()) {
+                    if (t.level() == upgradeProgress.targetLevel()) {
+                        target = t;
+                        break;
+                    }
+                }
                 String targetName = target.available() ? targetName(target) : "Lv" + upgradeProgress.targetLevel();
                 addChild(line(Component.translatable("screen.simukraft.city_core.upgrade.in_progress", targetName)));
                 addChild(upgradeProgressBar(packet, upgradeProgress));

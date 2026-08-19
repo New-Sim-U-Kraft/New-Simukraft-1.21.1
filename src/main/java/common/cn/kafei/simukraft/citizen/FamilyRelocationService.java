@@ -112,11 +112,14 @@ public final class FamilyRelocationService {
         var poi = poiManager.getPoi(member.homeId());
         if (poi == null) return null;
         // 按 POI 的 pos 找所属建筑
-        return PlacedBuildingService.getBuildings(level).stream()
-                .filter(b -> family.cityId().equals(b.cityId()))
-                .filter(b -> b.poiInstances().stream()
-                        .anyMatch(inst -> poi.pos().equals(inst.worldPos())))
-                .findFirst().orElse(null);
+        for (PlacedBuildingRecord building : PlacedBuildingService.getBuildings(level)) {
+            if (family.cityId().equals(building.cityId())) {
+                for (var inst : building.poiInstances()) {
+                    if (poi.pos().equals(inst.worldPos())) return building;
+                }
+            }
+        }
+        return null;
     }
 
     private static void relocateFamily(ServerLevel level, CitizenManager manager,

@@ -130,7 +130,8 @@ public final class IndustrialEntityActionService {
                                                    IndustrialDefinition definition,
                                                    IndustrialDefinition.StepDefinition step,
                                                    CitizenEntity worker) {
-        return matchingDrops(level, building, definition, step, worker).stream().findFirst();
+        List<ItemEntity> drops = matchingDrops(level, building, definition, step, worker);
+        return drops.isEmpty() ? Optional.empty() : Optional.of(drops.getFirst());
     }
 
     public static ActionResult collectReachableDrops(ServerLevel level,

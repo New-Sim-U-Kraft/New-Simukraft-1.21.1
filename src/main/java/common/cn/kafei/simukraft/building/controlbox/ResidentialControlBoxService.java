@@ -142,14 +142,18 @@ public final class ResidentialControlBoxService {
             bedCountByUnit.get(unit.unitId()).addAndGet(unit.poiIds().size());
         }
         for (CityPoiData poi : bedPois) {
-            UUID unitId = building.unitInstances().stream()
-                    .filter(u -> u.poiIds().contains(poi.poiId()))
-                    .map(BuildingUnitInstance::unitId)
-                    .findFirst().orElse(null);
+            UUID unitId = null;
+            for (var unit : building.unitInstances()) {
+                if (unit.poiIds().contains(poi.poiId())) {
+                    unitId = unit.unitId();
+                    break;
+                }
+            }
             if (unitId == null) continue;
+            final UUID unitIdFinal = unitId;
             CitizenManager.get(level).allCitizens().stream()
                     .filter(c -> !c.dead() && poi.poiId().equals(c.homeId()))
-                    .forEach(c -> residentsByUnit.get(unitId).add(
+                    .forEach(c -> residentsByUnit.get(unitIdFinal).add(
                             new ResidentialControlBoxView.ResidentEntry(c.uuid(), c.name())));
         }
         return unitLabels.entrySet().stream()

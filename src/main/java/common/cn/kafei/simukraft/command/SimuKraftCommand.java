@@ -922,10 +922,13 @@ public final class SimuKraftCommand {
         }
         CityData city = cityOpt.get();
         // 找出当前市长成员（支持离线）
-        CityMemberData mayorMember = city.members().stream()
-                .filter(m -> m.permissionLevel() == CityPermissionLevel.MAYOR)
-                .findFirst()
-                .orElse(null);
+        CityMemberData mayorMember = null;
+        for (CityMemberData member : city.members()) {
+            if (member.permissionLevel() == CityPermissionLevel.MAYOR) {
+                mayorMember = member;
+                break;
+            }
+        }
         if (mayorMember == null) {
             source.sendFailure(Component.translatable("message.simukraft.command.city_mayor.failed"));
             return 0;

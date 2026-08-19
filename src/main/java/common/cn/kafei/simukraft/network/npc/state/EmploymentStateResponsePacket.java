@@ -123,10 +123,10 @@ public record EmploymentStateResponsePacket(BlockPos sourcePos, String sourceTyp
     }
 
     private static Optional<CitizenData> findCitizenByWorkplace(CitizenManager manager, UUID workplaceId) {
-        return manager.allCitizens().stream()
-                .filter(data -> !data.dead())
-                .filter(data -> workplaceId.equals(data.workplaceId()))
-                .findFirst();
+        for (CitizenData data : manager.allCitizens()) {
+            if (!data.dead() && workplaceId.equals(data.workplaceId())) return Optional.of(data);
+        }
+        return Optional.empty();
     }
 
     private static void backfillWorkplacePos(ServerLevel level, CitizenData citizen, BlockPos workplacePos) {

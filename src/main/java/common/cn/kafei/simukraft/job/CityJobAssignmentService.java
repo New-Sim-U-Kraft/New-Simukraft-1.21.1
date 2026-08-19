@@ -106,9 +106,11 @@ public final class CityJobAssignmentService {
 
     private static Optional<CityPoiData> firstAvailablePoi(ServerLevel level, UUID cityId, CityPoiType poiType, AssignmentIndex index) {
         CityPoiManager manager = CityPoiManager.get(level);
-        return manager.getCityPois(cityId, poiType).stream()
-                .filter(poi -> index.assignedByPoi.getOrDefault(poi.poiId(), 0) < poi.capacity())
-                .findFirst();
+        for (CityPoiData poi : manager.getCityPois(cityId, poiType)) {
+            if (index.assignedByPoi.getOrDefault(poi.poiId(), 0) < poi.capacity())
+                return Optional.of(poi);
+        }
+        return Optional.empty();
     }
 
     private static AssignmentIndex index(ServerLevel level, UUID cityId) {

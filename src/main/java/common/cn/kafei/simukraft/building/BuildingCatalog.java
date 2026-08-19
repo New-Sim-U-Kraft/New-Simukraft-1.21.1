@@ -17,10 +17,12 @@ public final class BuildingCatalog {
             return Optional.empty();
         }
         String normalizedName = stripExtension(buildingFileName);
-        Optional<BuildingDefinition> byMetaFile = listBuildings(category).stream()
-                .filter(candidate -> stripExtension(candidate.metaFileName()).equalsIgnoreCase(normalizedName))
-                .findFirst();
-        return byMetaFile.isPresent() ? byMetaFile : findBuildingByStructureFile(category, buildingFileName);
+        for (BuildingDefinition candidate : listBuildings(category)) {
+            if (stripExtension(candidate.metaFileName()).equalsIgnoreCase(normalizedName)) {
+                return Optional.of(candidate);
+            }
+        }
+        return findBuildingByStructureFile(category, buildingFileName);
     }
 
     /** findBuildingByStructureFile: 通过结构文件名恢复旧任务和已放置建筑。 */
@@ -29,9 +31,12 @@ public final class BuildingCatalog {
             return Optional.empty();
         }
         String normalizedName = stripExtension(structureFileName);
-        return listBuildings(category).stream()
-                .filter(candidate -> stripExtension(candidate.structureFileName()).equalsIgnoreCase(normalizedName))
-                .findFirst();
+        for (var candidate : listBuildings(category)) {
+            if (stripExtension(candidate.structureFileName()).equalsIgnoreCase(normalizedName)) {
+                return Optional.of(candidate);
+            }
+        }
+        return Optional.empty();
     }
 
     public static List<BuildingDefinition> listBuildings(String category) {
