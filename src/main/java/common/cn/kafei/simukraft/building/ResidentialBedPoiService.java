@@ -153,12 +153,15 @@ public final class ResidentialBedPoiService {
                 return instance.worldPos();
             }
         }
-        return building.blocks().stream()
-                .filter(block -> block.state().is(common.cn.kafei.simukraft.registry.ModBlocks.RESIDENTIAL_CONTROL_BOX.get()))
-                .map(BuildingBlockData::relativePos)
-                .filter(pos -> level.getBlockState(pos).is(common.cn.kafei.simukraft.registry.ModBlocks.RESIDENTIAL_CONTROL_BOX.get()))
-                .findFirst()
-                .orElse(null);
+        for (BuildingBlockData block : building.blocks()) {
+            if (block.state().is(common.cn.kafei.simukraft.registry.ModBlocks.RESIDENTIAL_CONTROL_BOX.get())) {
+                BlockPos pos = block.relativePos();
+                if (pos != null && level.getBlockState(pos).is(common.cn.kafei.simukraft.registry.ModBlocks.RESIDENTIAL_CONTROL_BOX.get())) {
+                    return pos;
+                }
+            }
+        }
+        return null;
     }
 
     private static boolean isRedBedHead(BlockState state) {

@@ -283,10 +283,10 @@ public record CityCoreOpenResponsePacket(BlockPos pos, boolean hasCity, UUID cit
     /** upgradeTarget: 返回与当前等级连续的下一等级，缺失时表示不可升级。 */
     public UpgradeTarget upgradeTarget() {
         int expectedLevel = cityLevel >= CityLevelDefinition.MAX_LEVEL ? -1 : cityLevel + 1;
-        return upgradeTargets.stream()
-                .filter(target -> target.level() == expectedLevel)
-                .findFirst()
-                .orElse(UpgradeTarget.NONE);
+        for (UpgradeTarget target : upgradeTargets) {
+            if (target.level() == expectedLevel) return target;
+        }
+        return UpgradeTarget.NONE;
     }
 
     /** UpgradeTarget: 发送给客户端的下一等级只读快照。 */

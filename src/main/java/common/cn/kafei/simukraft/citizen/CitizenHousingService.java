@@ -252,10 +252,10 @@ public final class CitizenHousingService {
         if (poiId == null) {
             return List.of();
         }
-        return householdResidentialPoiGroups(building, poiManager).stream()
-                .filter(household -> household.contains(poiId))
-                .findFirst()
-                .orElse(List.of());
+        for (List<UUID> household : householdResidentialPoiGroups(building, poiManager)) {
+            if (household.contains(poiId)) return household;
+        }
+        return List.of();
     }
 
     /** hasFullyVacantHousehold：判断城市是否存在没有任何住户的完整住宅户。 */

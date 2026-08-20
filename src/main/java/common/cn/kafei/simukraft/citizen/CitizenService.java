@@ -179,12 +179,10 @@ public final class CitizenService {
         if (level == null || workplaceId == null) {
             return null;
         }
-        return CitizenManager.get(level).allCitizens().stream()
-                .filter(data -> !data.dead())
-                .filter(data -> workplaceId.equals(data.workplaceId()))
-                .map(CitizenData::uuid)
-                .findFirst()
-                .orElse(null);
+        for (CitizenData data : CitizenManager.get(level).allCitizens()) {
+            if (!data.dead() && workplaceId.equals(data.workplaceId())) return data.uuid();
+        }
+        return null;
     }
 
     public static List<CitizenData> listHireableCitizens(ServerLevel level) {

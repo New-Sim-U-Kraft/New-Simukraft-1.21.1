@@ -41,6 +41,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @SuppressWarnings("null")
@@ -635,11 +636,14 @@ public final class PlannerMaterialSelectionScreenOpener {
         if (packet == null || selectedChest == null) {
             return Map.of();
         }
-        return packet.containers().stream()
-                .filter(container -> selectedChest.equals(container.pos()))
-                .findFirst()
-                .map(PlannerMaterialScanResponsePacket.ContainerBlocks::blocks)
-                .orElse(Map.of());
+        for (var container : packet.containers()) {
+            if (selectedChest.equals(container.pos())) {
+                return Optional.of(container)
+                        .map(PlannerMaterialScanResponsePacket.ContainerBlocks::blocks)
+                        .orElse(Map.of());
+            }
+        }
+        return Map.of();
     }
 
     private static void startFill() {

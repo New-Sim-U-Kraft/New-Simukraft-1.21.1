@@ -240,10 +240,10 @@ public final class LogisticsChannelCreateScreenOpener {
             if (selectedClientId == null) {
                 return null;
             }
-            return packet.clients().stream()
-                    .filter(client -> selectedClientId.equals(client.clientId()))
-                    .findFirst()
-                    .orElse(null);
+            for (LogisticsControlBoxService.ClientEntry client : packet.clients()) {
+                if (selectedClientId.equals(client.clientId())) return client;
+            }
+            return null;
         }
 
         /** refreshFilterItems: 按当前方向和客户端刷新过滤物品来源。 */
@@ -289,11 +289,10 @@ public final class LogisticsChannelCreateScreenOpener {
             if (selectedClientId == null) {
                 return List.of();
             }
-            return packet.clientInventories().stream()
-                    .filter(entry -> selectedClientId.equals(entry.clientId()))
-                    .findFirst()
-                    .map(LogisticsControlBoxService.ClientInventoryEntry::inventory)
-                    .orElse(List.of());
+            for (var entry : packet.clientInventories()) {
+                if (selectedClientId.equals(entry.clientId())) return entry.inventory();
+            }
+            return List.of();
         }
 
         /** layout: 计算表单位置和尺寸。 */

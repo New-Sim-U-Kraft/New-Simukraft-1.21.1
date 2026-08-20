@@ -323,10 +323,13 @@ public final class ManifestScreen extends Screen {
         if (materialIndex < 0 || materialIndex >= materials.size()) {
             return;
         }
-        ManifestItem.MaterialEntry entry = materials.stream()
-                .filter(candidate -> candidate.index() == materialIndex)
-                .findFirst()
-                .orElse(null);
+        ManifestItem.MaterialEntry entry = null;
+        for (var candidate : materials) {
+            if (candidate.index() == materialIndex) {
+                entry = candidate;
+                break;
+            }
+        }
         if (entry == null) {
             return;
         }

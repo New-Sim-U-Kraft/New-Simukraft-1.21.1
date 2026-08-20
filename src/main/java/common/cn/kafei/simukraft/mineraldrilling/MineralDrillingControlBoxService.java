@@ -401,23 +401,26 @@ public final class MineralDrillingControlBoxService {
         if (!lookup.isReady() || selectedVeinId == null || selectedVeinId.isBlank()) {
             return null;
         }
-        return lookup.profile().slots().stream()
-                .filter(slot -> slot.state() == VirtualVeinSlotState.ACTIVE)
-                .filter(slot -> slot.veinId().equals(selectedVeinId))
-                .filter(slot -> slot.acceptsY(depth))
-                .findFirst()
-                .orElse(null);
+        for (var slot : lookup.profile().slots()) {
+            if (slot.state() == VirtualVeinSlotState.ACTIVE
+                    && slot.veinId().equals(selectedVeinId)
+                    && slot.acceptsY(depth)) {
+                return slot;
+            }
+        }
+        return null;
     }
 
     private static VirtualVeinSlot firstSlotAtDepth(VirtualVeinLookupResult lookup, int depth) {
         if (!lookup.isReady()) {
             return null;
         }
-        return lookup.profile().slots().stream()
-                .filter(slot -> slot.state() == VirtualVeinSlotState.ACTIVE)
-                .filter(slot -> slot.acceptsY(depth))
-                .findFirst()
-                .orElse(null);
+        for (var slot : lookup.profile().slots()) {
+            if (slot.state() == VirtualVeinSlotState.ACTIVE && slot.acceptsY(depth)) {
+                return slot;
+            }
+        }
+        return null;
     }
 
     private static boolean drillBitSupportsDepth(MineralDrillingInventory inventory, int depth) {

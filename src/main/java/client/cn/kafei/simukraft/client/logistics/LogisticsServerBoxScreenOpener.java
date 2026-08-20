@@ -403,11 +403,10 @@ public final class LogisticsServerBoxScreenOpener {
 
         /** clientName: 按客户端 ID 获取显示名。 */
         private String clientName(UUID clientId) {
-            return packet.clients().stream()
-                    .filter(client -> client.clientId().equals(clientId))
-                    .map(LogisticsControlBoxService.ClientEntry::name)
-                    .findFirst()
-                    .orElse("-");
+            for (var client : packet.clients()) {
+                if (client.clientId().equals(clientId)) return client.name();
+            }
+            return "-";
         }
 
         /** filterText: 格式化频道物品过滤器。 */

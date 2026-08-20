@@ -468,10 +468,10 @@ final class LogisticsNetworkMapScreen extends Screen {
         if (clientId == null) {
             return null;
         }
-        return packet.clients().stream()
-                .filter(client -> clientId.equals(client.clientId()))
-                .findFirst()
-                .orElse(null);
+        for (var client : packet.clients()) {
+            if (clientId.equals(client.clientId())) return client;
+        }
+        return null;
     }
 
     /** preferredClientId: 根据快速端点为普通创建按钮预选客户端。 */

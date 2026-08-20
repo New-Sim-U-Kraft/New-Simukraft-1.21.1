@@ -43,10 +43,12 @@ public final class CityLevelDefinitionLoader implements PreparableReloadListener
 
     /** definition: 按等级读取当前生效的城市等级定义。 */
     public CityLevelDefinition definition(int level) {
-        return definitions().stream()
-                .filter(definition -> definition.level() == level)
-                .findFirst()
-                .orElse(null);
+        for (CityLevelDefinition definition : definitions()) {
+            if (definition.level() == level) {
+                return definition;
+            }
+        }
+        return null;
     }
 
     /** nextLevel: 查找高于当前等级的下一个数据包等级。 */
@@ -56,10 +58,7 @@ public final class CityLevelDefinitionLoader implements PreparableReloadListener
             return null;
         }
         int targetLevel = normalizedCurrent + 1;
-        return definitions().stream()
-                .filter(definition -> definition.level() == targetLevel)
-                .findFirst()
-                .orElse(null);
+        return definition(targetLevel);
     }
 
     /** futureLevels: 返回客户端等级列表使用的有限只读快照。 */
