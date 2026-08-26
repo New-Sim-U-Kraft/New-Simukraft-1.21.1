@@ -190,6 +190,7 @@ final class PathSnapshotBuilder {
                 }
             }
         }
+        markDangerAdjacent(data, bounds, cells);
         for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
             for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
                 for (int y = bounds.minY() - 1; y <= bounds.maxY() + 1; y++) {
@@ -198,9 +199,25 @@ final class PathSnapshotBuilder {
                 }
             }
         }
+        Long2ObjectOpenHashMap<VoxelShape> snapshotShapes = extractSnapshotShapes(capture);
         return new PathSnapshot(capture.dimensionId(), start.immutable(), target.immutable(),
                 cells, LongSets.unmodifiable(bodyPassages), Long2ByteMaps.unmodifiable(horizontalBarriers),
-                bounds.minY(), bounds.maxY(), capture.createdAt(), capture.complete());
+                bounds.minY(), bounds.maxY(), capture.createdAt(), capture.complete(), snapshotShapes);
+    }
+
+    private static Long2ObjectOpenHashMap<VoxelShape> extractSnapshotShapes(ChunkDataCapture capture) {
+        if (capture.sections() == null) {
+            return capture.shapes() != null
+                    ? new Long2ObjectOpenHashMap<>(capture.shapes())
+                    : new Long2ObjectOpenHashMap<>();
+        }
+        Long2ObjectOpenHashMap<VoxelShape> composed = new Long2ObjectOpenHashMap<>();
+        for (SectionDataCapture section : capture.sections().values()) {
+            if (section.shapes() != null) {
+                composed.putAll(section.shapes());
+            }
+        }
+        return composed;
     }
 
     /**
@@ -606,5 +623,39 @@ final class PathSnapshotBuilder {
                     SectionPos.blockToSectionCoord(pos.getY()),
                     SectionPos.blockToSectionCoord(pos.getZ()));
         }
+    }
+
+    /**
+     * Post-classification pass: marks every walkable cell that has a dangerous block in its
+     * 26-connected neighbourhood. Mirrors vanilla {@code WalkNodeEvaluator.getDanger()} so the A*
+     * search can penalise paths that pass close to lava, fire, cactus, etc.
+     */
+    private static void markDangerAdjacent(BlockDataSource cache, SnapshotBounds bounds,
+                                           Long2ObjectOpenHashMap<PathCell> cells) {
+        BlockPos.MutableBlockPos dangerPos = new BlockPos.MutableBlockPos();
+        Long2ObjectOpenHashMap<PathCell> updated = new Long2ObjectOpenHashMap<>();
+        for (PathCell cell : cells.values()) {
+            if (cell.water() || cell.climbable()) {
+                continue;
+            }
+            boolean near = false;
+            for (int dx = -1; dx <= 1 && !near; dx++) {
+                for (int dy = -1; dy <= 1 && !near; dy++) {
+                    for (int dz = -1; dz <= 1 && !near; dz++) {
+                        if (dx == 0 && dy == 0 && dz == 0) continue;
+                        dangerPos.set(cell.x() + dx, cell.y() + dy, cell.z() + dz);
+                        if (isDangerous(cache.state(dangerPos))) {
+                            near = true;
+                        }
+                    }
+                }
+            }
+            if (near) {
+                updated.put(cell.key(), new PathCell(cell.pos(), cell.x(), cell.y(), cell.z(),
+                        cell.standY(), cell.water(), cell.climbable(), cell.woodenDoor(),
+                        cell.floorSupported(), true, cell.cost()));
+            }
+        }
+        cells.putAll(updated);
     }
 }

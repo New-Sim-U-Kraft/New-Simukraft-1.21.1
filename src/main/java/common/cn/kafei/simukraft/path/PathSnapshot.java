@@ -8,22 +8,31 @@ import it.unimi.dsi.fastutil.longs.LongSets;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.Collection;
 
 public record PathSnapshot(ResourceLocation dimensionId, BlockPos startPos, BlockPos targetPos, Long2ObjectOpenHashMap<PathCell> cells,
                            LongSet bodyPassages, Long2ByteMap horizontalBarriers,
-                           int minY, int maxY, long createdAt, boolean complete) {
+                           int minY, int maxY, long createdAt, boolean complete,
+                           Long2ObjectOpenHashMap<VoxelShape> collisionShapes) {
     public PathSnapshot(ResourceLocation dimensionId, BlockPos startPos, BlockPos targetPos, Long2ObjectOpenHashMap<PathCell> cells,
                         int minY, int maxY, long createdAt, boolean complete) {
         this(dimensionId, startPos, targetPos, cells, LongSets.EMPTY_SET, Long2ByteMaps.EMPTY_MAP,
-                minY, maxY, createdAt, complete);
+                minY, maxY, createdAt, complete, new Long2ObjectOpenHashMap<>());
     }
 
     public PathSnapshot(ResourceLocation dimensionId, BlockPos startPos, BlockPos targetPos, Long2ObjectOpenHashMap<PathCell> cells,
                         LongSet bodyPassages, int minY, int maxY, long createdAt, boolean complete) {
         this(dimensionId, startPos, targetPos, cells, bodyPassages, Long2ByteMaps.EMPTY_MAP,
-                minY, maxY, createdAt, complete);
+                minY, maxY, createdAt, complete, new Long2ObjectOpenHashMap<>());
+    }
+
+    public PathSnapshot(ResourceLocation dimensionId, BlockPos startPos, BlockPos targetPos, Long2ObjectOpenHashMap<PathCell> cells,
+                        LongSet bodyPassages, Long2ByteMap horizontalBarriers,
+                        int minY, int maxY, long createdAt, boolean complete) {
+        this(dimensionId, startPos, targetPos, cells, bodyPassages, horizontalBarriers,
+                minY, maxY, createdAt, complete, new Long2ObjectOpenHashMap<>());
     }
 
     public PathCell cell(BlockPos pos) {
