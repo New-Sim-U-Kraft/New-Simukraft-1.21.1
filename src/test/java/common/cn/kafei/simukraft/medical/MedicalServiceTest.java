@@ -59,6 +59,35 @@ class MedicalServiceTest {
         assertTrue(MedicalService.shouldClearMedicalLeave(citizen, 0L, 8.0D));
 
         citizen.setPregnant(true);
-        assertFalse(MedicalService.shouldClearMedicalLeave(citizen, 0L, 8.0D));
+        citizen.setPregnantSince(0L);
+        assertFalse(MedicalService.shouldClearMedicalLeave(citizen, 0L, 8.0D, 3));
+        assertFalse(MedicalService.shouldClearMedicalLeave(citizen, 2L, 8.0D, 3));
+    }
+
+    @Test
+    void anyPregnancyStageNeedsCareWhenHealthy() {
+        CitizenData citizen = new CitizenData(UUID.randomUUID());
+        citizen.setHealth(20.0D);
+        citizen.setPregnant(true);
+        citizen.setPregnantSince(5L);
+
+        assertTrue(MedicalService.needsCare(null, citizen, 5L, 8.0D, 3));
+        assertTrue(MedicalService.needsCare(null, citizen, 6L, 8.0D, 3));
+        assertTrue(MedicalService.needsCare(null, citizen, 7L, 8.0D, 3));
+        assertTrue(MedicalService.isOnMedicalLeave(citizen, 5L, 8.0D, 3));
+        assertTrue(MedicalService.isOnMedicalLeave(citizen, 7L, 8.0D, 3));
+    }
+
+    @Test
+    void postpartumAndLowHealthStillNeedCare() {
+        CitizenData citizen = new CitizenData(UUID.randomUUID());
+        citizen.setHealth(20.0D);
+        citizen.medical().setPostpartumUntilDay(4L);
+        assertTrue(MedicalService.needsCare(null, citizen, 3L, 8.0D, 3));
+        assertFalse(MedicalService.needsCare(null, citizen, 4L, 8.0D, 3));
+
+        citizen.medical().setPostpartumUntilDay(0L);
+        citizen.setHealth(8.0D);
+        assertTrue(MedicalService.needsCare(null, citizen, 4L, 8.0D, 3));
     }
 }

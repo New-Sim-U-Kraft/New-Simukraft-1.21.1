@@ -253,8 +253,15 @@ public class CitizenEntity extends PathfinderMob {
         if (!immediate && tickCount % WALL_RESCUE_INTERVAL_TICKS != 0) {
             return;
         }
+        if (!onGround()) {
+            return;
+        }
         AABB collisionBox = getBoundingBox().deflate(WALL_RESCUE_COLLISION_DEFLATE);
         if (serverLevel.noBlockCollision(this, collisionBox)) {
+            return;
+        }
+        // 翻上 1 格方块时脚会短暂嵌进顶面，只抬一点就分离则不是卡墙。
+        if (serverLevel.noBlockCollision(this, collisionBox.move(0.0D, 0.08D, 0.0D))) {
             return;
         }
         CitizenNavigationService.stop(serverLevel, getUUID());

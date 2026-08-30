@@ -26,6 +26,8 @@ import common.cn.kafei.simukraft.network.city.core.CityCoreOpenResponsePacket;
 import common.cn.kafei.simukraft.network.city.core.CityUpgradeRequestPacket;
 import common.cn.kafei.simukraft.network.city.map.CityCoreMapRequestPacket;
 import common.cn.kafei.simukraft.network.city.map.CityCoreMapResponsePacket;
+import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenFamilyGraphRequestPacket;
+import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenFamilyGraphResponsePacket;
 import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenManageActionPacket;
 import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenManageRequestPacket;
 import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenManageResponsePacket;
@@ -105,6 +107,7 @@ public final class ModNetwork {
         registrar.playToServer(CityCoreMemberActionPacket.TYPE, CityCoreMemberActionPacket.STREAM_CODEC, CityCoreMemberActionPacket::handle);
         registrar.playToServer(CityCitizenManageRequestPacket.TYPE, CityCitizenManageRequestPacket.STREAM_CODEC, CityCitizenManageRequestPacket::handle);
         registrar.playToServer(CityCitizenManageActionPacket.TYPE, CityCitizenManageActionPacket.STREAM_CODEC, CityCitizenManageActionPacket::handle);
+        registrar.playToServer(CityCitizenFamilyGraphRequestPacket.TYPE, CityCitizenFamilyGraphRequestPacket.STREAM_CODEC, CityCitizenFamilyGraphRequestPacket::handle);
         registrar.playToServer(CitizenBehaviorActionPacket.TYPE, CitizenBehaviorActionPacket.STREAM_CODEC, CitizenBehaviorActionPacket::handle);
         registrar.playToServer(CityCoreMapRequestPacket.TYPE, CityCoreMapRequestPacket.STREAM_CODEC, CityCoreMapRequestPacket::handle);
         registrar.playToServer(CityChunkPurchasePacket.TYPE, CityChunkPurchasePacket.STREAM_CODEC, CityChunkPurchasePacket::handle);
@@ -156,6 +159,7 @@ public final class ModNetwork {
         registrar.playToClient(CityCoreOpenResponsePacket.TYPE, CityCoreOpenResponsePacket.STREAM_CODEC, CityCoreOpenResponsePacket::handle);
         registrar.playToClient(CityCoreMembersResponsePacket.TYPE, CityCoreMembersResponsePacket.STREAM_CODEC, CityCoreMembersResponsePacket::handle);
         registrar.playToClient(CityCitizenManageResponsePacket.TYPE, CityCitizenManageResponsePacket.STREAM_CODEC, CityCitizenManageResponsePacket::handle);
+        registrar.playToClient(CityCitizenFamilyGraphResponsePacket.TYPE, CityCitizenFamilyGraphResponsePacket.STREAM_CODEC, CityCitizenFamilyGraphResponsePacket::handle);
         registrar.playToClient(CityCoreMapResponsePacket.TYPE, CityCoreMapResponsePacket.STREAM_CODEC, CityCoreMapResponsePacket::handle);
         registrar.playToClient(CityChunkSyncPacket.TYPE, CityChunkSyncPacket.STREAM_CODEC, CityChunkSyncPacket::handle);
         registrar.playToClient(NpcHireListResponsePacket.TYPE, NpcHireListResponsePacket.STREAM_CODEC, NpcHireListResponsePacket::handle);

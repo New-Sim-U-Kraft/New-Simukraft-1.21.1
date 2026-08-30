@@ -299,6 +299,23 @@ class HybridPathfinderRegressionTest {
                 "陆地台阶必须保持 JUMP 动作");
     }
 
+    /** 翻越 1 格方块的代价高于绕行，中间有空地时应走路而不是跳上箱子。 */
+    @Test
+    void prefersWalkAroundOneBlockObstacle() {
+        Scene scene = new Scene();
+        scene.floor(0, 64, 0).floor(2, 64, 0);
+        scene.floor(1, 65, 0);
+        scene.passage(2, 65, 0);
+        scene.floor(0, 64, 1).floor(1, 64, 1).floor(2, 64, 1);
+
+        PathCase result = scene.path(0, 64, 0, 2, 64, 0);
+
+        assertSuccess(result);
+        assertNoActionMode(result);
+        assertFalse(containsBlock(result.result(), 1, 65, 0),
+                "有绕行空地时不应跳上 1 格障碍");
+    }
+
     /**
      * Waterside, ladder exit: a swimmer in a one-wide pool whose only way out is a side-wall ladder
      * must be able to grab the ladder and climb out instead of being trapped.

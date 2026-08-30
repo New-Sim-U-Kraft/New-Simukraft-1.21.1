@@ -71,6 +71,7 @@ public final class CitizenHomeRestService {
         CityPoiManager poiManager = CityPoiManager.get(level);
         CitizenManager manager = CitizenManager.get(level);
         String dimensionId = level.dimension().location().toString();
+        long currentDay = level.getDayTime() / 24_000L;
         for (CitizenData citizen : manager.allCitizens()) {
             if (citizen.dead()) {
                 continue;
@@ -92,13 +93,16 @@ public final class CitizenHomeRestService {
                 continue;
             }
             Vec3 homeTarget = homeTargets.computeIfAbsent(home.poiId(), ignored -> resolveHomeTarget(level, home.pos()));
+            boolean keepMedicalStatus = shouldKeepMedicalStatus(citizen, currentDay);
             CitizenEntity sleepingEntity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
             if (sleepingEntity != null && sleepingEntity.isSleeping()) {
                 if (!restedCitizens.contains(citizen.uuid())) {
                     CitizenBedSleepService.restoreSleeping(level, sleepingEntity, homeTarget);
                 }
                 citizen.setWorkStatus(CitizenWorkStatus.RESTING);
-                citizen.setWorkNeedDetail(HOME_REST_MARKER);
+                if (!keepMedicalStatus) {
+                    citizen.setWorkNeedDetail(HOME_REST_MARKER);
+                }
                 restedCitizens.add(citizen.uuid());
                 continue;
             }
@@ -115,8 +119,10 @@ public final class CitizenHomeRestService {
             }
             if (moveOrTeleportHome(level, citizen, homeTarget)) {
                 citizen.setWorkStatus(CitizenWorkStatus.RESTING);
-                citizen.setStatusLabel(HOME_REST_STATUS_KEY);
-                citizen.setWorkNeedDetail(HOME_REST_MARKER);
+                if (!keepMedicalStatus) {
+                    citizen.setStatusLabel(HOME_REST_STATUS_KEY);
+                    citizen.setWorkNeedDetail(HOME_REST_MARKER);
+                }
                 manager.saveCitizenNow(citizen.uuid());
                 restedCitizens.add(citizen.uuid());
             }
@@ -134,6 +140,13 @@ public final class CitizenHomeRestService {
             if (CitizenNavigationService.isNavigating(level, citizen.uuid())) continue;
             CitizenWorkplaceMoveService.returnToWorkplace(level, citizen);
         }
+    }
+
+    /** shouldKeepMedicalStatus：夜间回家不能覆盖住院/孕晚期/产后静养标签，否则清晨会被当成普通上班。 */
+    private static boolean shouldKeepMedicalStatus(CitizenData citizen, long currentDay) {
+        return MedicalService.MEDICAL_CARE_MARKER.equals(citizen.workNeedDetail())
+                || MedicalService.isAdmitted(citizen)
+                || MedicalService.isOnMedicalLeave(citizen, currentDay);
     }
 
     private static boolean moveOrTeleportHome(ServerLevel level, CitizenData citizen, Vec3 homeTarget) {
@@ -162,6 +175,9 @@ public final class CitizenHomeRestService {
                 continue;
             }
             if (!HOME_REST_MARKER.equals(citizen.workNeedDetail())) {
+                continue;
+            }
+            if (shouldKeepMedicalStatus(citizen, level.getDayTime() / 24_000L)) {
                 continue;
             }
             CitizenEntity entityToWake = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());

@@ -47,12 +47,14 @@ public final class NpcChildbirthService {
             FamilyManager familyManager, FamilyData family,
             CitizenData wife, RandomSource random, long currentDay) {
         BlockPos spawnPos = resolveDeliveryPos(level, wife);
-        if (spawnPos == null) return;
+        if (spawnPos == null) {
+            CitizenEntity wifeEntity = CitizenTeleportService.findCitizenEntity(level, wife.uuid());
+            if (wifeEntity == null) return;
+            spawnPos = wifeEntity.blockPosition();
+        }
 
-        // 优先使用怀孕时预约的床位，预约丢失时兜底搜索
-        UUID vacantBedPoiId = wife.reservedBabyBedPoiId() != null
-                ? wife.reservedBabyBedPoiId()
-                : findVacantBedInSameHousehold(level, wife);
+        // 预约床仍存在时优先使用，POI 丢失或失效则在同户兜底搜索
+        UUID vacantBedPoiId = resolveBabyBed(level, wife);
         if (vacantBedPoiId == null) return;
 
         Optional<common.cn.kafei.simukraft.entity.CitizenEntity> entityOpt =
@@ -118,6 +120,18 @@ public final class NpcChildbirthService {
         if (homeId == null) return null;
         CityPoiData poi = CityPoiManager.get(level).getPoi(homeId);
         return poi != null && level.isLoaded(poi.pos()) ? poi.pos() : null;
+    }
+
+    /** resolveBabyBed：预约床仍有效则沿用，否则在同户搜索空床。 */
+    private static UUID resolveBabyBed(ServerLevel level, CitizenData wife) {
+        UUID reservedBedId = wife.reservedBabyBedPoiId();
+        if (reservedBedId != null) {
+            CityPoiData reserved = CityPoiManager.get(level).getPoi(reservedBedId);
+            if (reserved != null && reserved.active()) {
+                return reservedBedId;
+            }
+        }
+        return findVacantBedInSameHousehold(level, wife);
     }
 
     /** findVacantBedInSameHousehold：在产妇所在户内兜底查找空床。 */

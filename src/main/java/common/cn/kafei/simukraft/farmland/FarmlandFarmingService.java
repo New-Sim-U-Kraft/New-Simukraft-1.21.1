@@ -28,7 +28,6 @@ import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.FarmBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
@@ -241,13 +240,14 @@ public final class FarmlandFarmingService {
             return false;
         }
         BlockPos soilPos = cropPos.below();
-        if (isProtected(level, cropPos, level.getBlockState(cropPos), data.boxPos(), chestPositions)
-                || isProtected(level, soilPos, level.getBlockState(soilPos), data.boxPos(), chestPositions)) {
-            return false;
-        }
         BlockState cropState = level.getBlockState(cropPos);
         BlockState soilState = level.getBlockState(soilPos);
-        return !cropState.isAir() || !hasWater(soilState);
+        if (isProtected(level, cropPos, cropState, data.boxPos(), chestPositions)
+                || isProtected(level, soilPos, soilState, data.boxPos(), chestPositions)) {
+            return false;
+        }
+        // 土槽已是水/冰/灯就视为挖完，之后只种地，冬天结冰或槽里放灯都不再清槽。
+        return !FarmlandWorkGeometry.isTroughSoilReady(level, soilPos, soilState);
     }
 
     private static boolean needsTillWork(ServerLevel level, FarmlandBoxData data, BlockPos cropPos) {
@@ -298,27 +298,19 @@ public final class FarmlandFarmingService {
         }
         BlockPos soilPos = cropPos.below();
         BlockState cropState = level.getBlockState(cropPos);
-        if (!cropState.isAir()) {
+        if (!cropState.isAir()
+                && !FarmlandWorkGeometry.hasWater(cropState)
+                && !FarmlandWorkGeometry.isIrrigationLight(level, cropPos, cropState)) {
             harvestBlock(level, chestPositions, cropPos, cropState);
         }
         BlockState soilState = level.getBlockState(soilPos);
-        if (!hasWater(soilState)) {
+        if (!FarmlandWorkGeometry.isTroughSoilReady(level, soilPos, soilState)) {
             if (!soilState.isAir()) {
                 harvestBlock(level, chestPositions, soilPos, soilState);
             }
             level.setBlock(soilPos, Blocks.WATER.defaultBlockState(), 3);
         }
         return FarmlandWorkResult.PROCESSED;
-    }
-
-    private static boolean hasWater(BlockState state) {
-        if (state.is(Blocks.WATER)) {
-            return true;
-        }
-        if (state.hasProperty(BlockStateProperties.WATERLOGGED)) {
-            return state.getValue(BlockStateProperties.WATERLOGGED);
-        }
-        return false;
     }
 
     private static FarmlandWorkResult applyTillWork(ServerLevel level, FarmlandBoxData data, BlockPos cropPos) {
