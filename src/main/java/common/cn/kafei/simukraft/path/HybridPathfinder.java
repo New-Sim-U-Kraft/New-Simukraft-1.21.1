@@ -25,6 +25,8 @@ final class HybridPathfinder {
     private static final double WALK_CORRIDOR_HALF_WIDTH = 0.36D;
     private static final double WALK_CORRIDOR_SAMPLE_STEP = 0.20D;
     private static final double STEP_CLEARANCE = 0.55D;
+    // JUMP_ONE_BLOCK_COST：翻越约 1 格方块的起跳代价，高于绕行数格步行，避免跳上箱子/田埂。
+    private static final double JUMP_ONE_BLOCK_COST = 8.0D;
     private static final ThreadLocal<List<Neighbor>> NEIGHBOR_SCRATCH =
             ThreadLocal.withInitial(() -> new ArrayList<>(32));
 
@@ -195,7 +197,7 @@ final class HybridPathfinder {
                         && up.standY() - current.standY() <= 1.25D
                         && canCrossHorizontalBoundary(snapshot, current, up)
                         && hasVerticalPassage(snapshot, current, up)) {
-                    output.add(new Neighbor(up, MovementMode.JUMP, 2.5D + distance(current, up)));
+                    output.add(new Neighbor(up, MovementMode.JUMP, JUMP_ONE_BLOCK_COST + distance(current, up)));
                 }
                 if (up != null
                         && up.climbable()
@@ -204,7 +206,7 @@ final class HybridPathfinder {
                         && hasVerticalPassage(snapshot, current, up)) {
                     // 梯子格下方有支撑面时，先跳上方块顶部再进入梯子，不能在方块侧面横移入梯。
                     MovementMode entryMode = up.floorSupported() ? MovementMode.JUMP : MovementMode.CLIMB;
-                    double entryCost = entryMode == MovementMode.JUMP ? 2.5D : 8.0D;
+                    double entryCost = entryMode == MovementMode.JUMP ? JUMP_ONE_BLOCK_COST : 8.0D;
                     output.add(new Neighbor(up, entryMode, entryCost + distance(current, up)));
                 }
                 PathCell ladderBelow = snapshot.cell(current.x() + dx, current.y() - 1, current.z() + dz);
@@ -756,16 +758,16 @@ final class HybridPathfinder {
      */
     /**
      * fallCost: 按高度差分档计算跳落代价。
-     * <1格: 低代价（微台阶）; ~1格: 中代价; >1格: 高代价（尽量绕路）
+     * 不到 1 格仍是微台阶；约 1 格与起跳同级，促使绕路而不是翻箱子。
      */
     private static double fallCost(double heightDiff) {
         if (heightDiff < 1.0D) {
-            return 1.5D;           // 低代价：不到1格
-        } else if (heightDiff <= 1.5D) {
-            return 4.0D;           // 中代价：约1格
-        } else {
-            return 8.0D + heightDiff * 2.0D; // 高代价：超过1格，线性惩罚
+            return 1.5D;
         }
+        if (heightDiff <= 1.5D) {
+            return JUMP_ONE_BLOCK_COST;
+        }
+        return 8.0D + heightDiff * 2.0D;
     }
 
     private static double distance(PathCell from, PathCell to) {

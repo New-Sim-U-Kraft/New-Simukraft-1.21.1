@@ -29,10 +29,11 @@ public final class CitizenWanderService {
     private static final int DEFAULT_WANDER_RADIUS = 12;
     private static final int MIN_WANDER_DISTANCE = 4;
     private static final int TARGET_ATTEMPTS = 12;
-    // 闲逛目标与公共建筑控制块的最小水平距离（格²），避免NPC在商店/工厂/农田/医院门口逗留
+    // 闲逛目标与室内公共建筑控制块的最小水平距离（格²），避免NPC在商店/工厂/医院门口逗留。
+    // 农田盒是露天作业台，不列入驱离，否则站上盒顶会被下一次闲逛立刻带走。
     private static final int PUBLIC_BUILDING_EXCLUSION_RADIUS_SQ = 10 * 10;
     private static final java.util.EnumSet<CityPoiType> PUBLIC_WORK_TYPES = java.util.EnumSet.of(
-            CityPoiType.COMMERCIAL, CityPoiType.INDUSTRIAL, CityPoiType.FARMLAND, CityPoiType.MEDICAL
+            CityPoiType.COMMERCIAL, CityPoiType.INDUSTRIAL, CityPoiType.MEDICAL
     );
     private static final ConcurrentMap<String, Long> WANDER_COOLDOWNS = new ConcurrentHashMap<>();
 
