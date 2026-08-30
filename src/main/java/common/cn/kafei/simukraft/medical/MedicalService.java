@@ -87,11 +87,18 @@ public final class MedicalService {
 
     /** isOnMedicalLeave：低血量、患病、全孕期、产后和住院居民暂停正常工作。 */
     public static boolean isOnMedicalLeave(CitizenData citizen, long currentDay) {
-        return isOnMedicalLeave(citizen, currentDay, ServerConfig.medicalLowHealthThreshold());
+        return isOnMedicalLeave(citizen, currentDay, ServerConfig.medicalLowHealthThreshold(),
+                ServerConfig.familyPregnancyDurationDays());
     }
 
     /** isOnMedicalLeave：按给定低血量阈值判断居民是否应暂停工作。 */
     static boolean isOnMedicalLeave(CitizenData citizen, long currentDay, double lowHealthThreshold) {
+        return isOnMedicalLeave(citizen, currentDay, lowHealthThreshold, 3);
+    }
+
+    /** isOnMedicalLeave：测试与运行时共用的医疗静养判定，怀孕全程停工去医院。 */
+    static boolean isOnMedicalLeave(CitizenData citizen, long currentDay, double lowHealthThreshold,
+            int pregnancyDurationDays) {
         if (citizen == null || citizen.dead()) {
             return false;
         }
@@ -371,7 +378,8 @@ public final class MedicalService {
 
     /** clearRecoveredMedicalLeave：恢复后释放未住院居民的医疗静养状态。 */
     private static void clearRecoveredMedicalLeave(ServerLevel level, CitizenData citizen, long currentDay) {
-        if (!shouldClearMedicalLeave(citizen, currentDay, ServerConfig.medicalLowHealthThreshold())) {
+        if (!shouldClearMedicalLeave(citizen, currentDay, ServerConfig.medicalLowHealthThreshold(),
+                ServerConfig.familyPregnancyDurationDays())) {
             return;
         }
         citizen.setWorkNeedDetail("");
@@ -432,11 +440,18 @@ public final class MedicalService {
 
     /** needsCare：全孕期、产后、低生命或患病均需住院。 */
     static boolean needsCare(ServerLevel level, CitizenData citizen, long currentDay) {
+        return needsCare(level, citizen, currentDay, ServerConfig.medicalLowHealthThreshold(),
+                ServerConfig.familyPregnancyDurationDays());
+    }
+
+    /** needsCare：可注入阈值，避免单元测试依赖游戏配置。 */
+    static boolean needsCare(ServerLevel level, CitizenData citizen, long currentDay,
+            double lowHealthThreshold, int pregnancyDurationDays) {
         CitizenEntity entity = CitizenTeleportService.findCitizenEntity(level, citizen.uuid());
         if (entity != null) {
             citizen.setHealth(entity.getHealth());
         }
-        return citizen.health() <= ServerConfig.medicalLowHealthThreshold()
+        return citizen.health() <= lowHealthThreshold
                 || citizen.disease().isActive()
                 || citizen.medical().postpartumUntilDay() > currentDay
                 || citizen.pregnant();
@@ -445,21 +460,32 @@ public final class MedicalService {
     /** shouldClearMedicalLeave：判断无床位静养状态是否已不再需要。 */
     static boolean shouldClearMedicalLeave(CitizenData citizen, long currentDay,
             double lowHealthThreshold) {
+        return shouldClearMedicalLeave(citizen, currentDay, lowHealthThreshold, 3);
+    }
+
+    /** shouldClearMedicalLeave：按孕期天数判断是否应解除未住院静养。 */
+    static boolean shouldClearMedicalLeave(CitizenData citizen, long currentDay,
+            double lowHealthThreshold, int pregnancyDurationDays) {
         return citizen != null
                 && !isAdmitted(citizen)
                 && MEDICAL_CARE_MARKER.equals(citizen.workNeedDetail())
-                && !isOnMedicalLeave(citizen, currentDay, lowHealthThreshold);
+                && !isOnMedicalLeave(citizen, currentDay, lowHealthThreshold, pregnancyDurationDays);
     }
 
-    /** isReadyForDischarge：血量恢复至满值、疾病治愈且无其他医疗需求时方可出院。 */
+    /** isReadyForDischarge：血量接近满值、疾病治愈、产后结束且已结束妊娠才可出院。 */
     private static boolean isReadyForDischarge(CitizenData citizen, CitizenEntity entity, long currentDay) {
-        // 血量未恢复至最大值则继续留院
-        if (citizen.health() < entity.getMaxHealth()) {
+        if (!hasRecoveredHealth(citizen, entity)) {
             return false;
         }
         return !citizen.disease().isActive()
                 && citizen.medical().postpartumUntilDay() <= currentDay
                 && !citizen.pregnant();
+    }
+
+    /** hasRecoveredHealth：用少量容差避免浮点生命值卡在最大值以下无法出院。 */
+    private static boolean hasRecoveredHealth(CitizenData citizen, CitizenEntity entity) {
+        float maxHealth = entity.getMaxHealth();
+        return entity.getHealth() >= maxHealth - 0.05F && citizen.health() >= maxHealth - 0.05D;
     }
 
     private static int carePriority(ServerLevel level, CitizenData citizen, long currentDay) {
@@ -469,11 +495,25 @@ public final class MedicalService {
         return 3;
     }
 
+    /** isLatePregnancy：判断当前是否处于需要住院的孕晚期。 */
+    static boolean isLatePregnancy(CitizenData citizen, long currentDay) {
+        return isLatePregnancy(citizen, currentDay, ServerConfig.familyPregnancyDurationDays());
+    }
+
+    /** isLatePregnancy：按给定孕期天数计算是否已进入晚期。 */
+    static boolean isLatePregnancy(CitizenData citizen, long currentDay, int pregnancyDurationDays) {
+        return pregnancyStage(citizen, currentDay, pregnancyDurationDays) == PregnancyStage.LATE;
+    }
+
     private static PregnancyStage pregnancyStage(CitizenData citizen, long currentDay) {
+        return pregnancyStage(citizen, currentDay, ServerConfig.familyPregnancyDurationDays());
+    }
+
+    private static PregnancyStage pregnancyStage(CitizenData citizen, long currentDay, int pregnancyDurationDays) {
         if (citizen == null || !citizen.pregnant()) {
             return PregnancyStage.NONE;
         }
-        return PregnancyStage.resolve(currentDay - citizen.pregnantSince(), ServerConfig.familyPregnancyDurationDays());
+        return PregnancyStage.resolve(currentDay - citizen.pregnantSince(), pregnancyDurationDays);
     }
 
     private static String conditionKey(CitizenData citizen, long currentDay) {

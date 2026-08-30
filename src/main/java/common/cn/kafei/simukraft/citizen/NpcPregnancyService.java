@@ -28,7 +28,7 @@ public final class NpcPregnancyService {
         for (FamilyData family : familyManager.allFamilies()) {
             tryPregnancy(family, manager, familyManager, level, random, chance, currentDay);
         }
-        // 每日刷新妊娠阶段标签；岗位保留，晚期由医疗服务临时安排住院休假。
+        // 每日刷新妊娠阶段标签；住院由医疗服务按孕期全程安排。
         for (CitizenData data : manager.allCitizens()) {
             if (!data.pregnant() || data.dead()) {
                 continue;
@@ -59,8 +59,7 @@ public final class NpcPregnancyService {
 
     /** forcePregnancy：由管理员命令跳过随机概率，为满足正常分娩条件的妻子开始妊娠。 */
     public static boolean forcePregnancy(ServerLevel level, CitizenData wife) {
-        if (level == null || wife == null || wife.dead() || wife.child() || wife.pregnant()
-                || !"female".equalsIgnoreCase(wife.gender())) {
+        if (level == null || !canStartPregnancy(wife, level.getDayTime() / 24000L)) {
             return false;
         }
         FamilyData family = FamilyManager.get(level).getFamilyByCitizen(wife.uuid()).orElse(null);
@@ -82,6 +81,23 @@ public final class NpcPregnancyService {
         return true;
     }
 
+    /** canStartPregnancy：妻子必须是未怀孕的存活成年女性，且不在产后、住院或低血量静养中。 */
+    static boolean canStartPregnancy(CitizenData wife, long currentDay) {
+        return canStartPregnancy(wife, currentDay, ServerConfig.medicalLowHealthThreshold());
+    }
+
+    /** canStartPregnancy：可注入低血量阈值，避免单元测试依赖游戏配置。 */
+    static boolean canStartPregnancy(CitizenData wife, long currentDay, double lowHealthThreshold) {
+        if (wife == null || wife.dead() || wife.child() || wife.pregnant()
+                || !"female".equalsIgnoreCase(wife.gender())) {
+            return false;
+        }
+        if (MedicalService.isAdmitted(wife) || wife.medical().postpartumUntilDay() > currentDay) {
+            return false;
+        }
+        return wife.health() > lowHealthThreshold && !wife.disease().isActive();
+    }
+
     private static void tryPregnancy(FamilyData family, CitizenManager manager,
             FamilyManager familyManager, ServerLevel level,
             RandomSource random, double chance, long currentDay) {
@@ -91,7 +107,7 @@ public final class NpcPregnancyService {
         if (family.wifeId() == null) return;
 
         CitizenData wife = manager.getCitizen(family.wifeId()).orElse(null);
-        if (wife == null || wife.dead() || wife.child() || wife.pregnant()) return;
+        if (!canStartPregnancy(wife, currentDay)) return;
 
         // 夫妻任意一方仍与原生家庭成员同住时不允许怀孕（等搬出再生育）
         CitizenData husband = family.husbandId() != null
