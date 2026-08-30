@@ -143,6 +143,9 @@ public final class FamilyManager extends SavedData {
 
     // ── 查询 ──────────────────────────────────────────────────────────────────
     public Optional<FamilyData> getFamily(UUID familyId) {
+        if (familyId == null) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(families.get(familyId));
     }
 

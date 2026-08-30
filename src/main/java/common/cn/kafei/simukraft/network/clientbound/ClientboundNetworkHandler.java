@@ -4,6 +4,7 @@ import common.cn.kafei.simukraft.network.building.BuildingCacheReloadPacket;
 import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxBoundsUpdatePacket;
 import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxViewUpdatePacket;
+import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenFamilyGraphResponsePacket;
 import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenManageResponsePacket;
 import common.cn.kafei.simukraft.network.city.chunk.CityChunkSyncPacket;
 import common.cn.kafei.simukraft.network.city.core.CityCoreOpenResponsePacket;
@@ -69,6 +70,10 @@ public interface ClientboundNetworkHandler {
 
     /** handleCityCitizenManageResponse: 处理城市市民管理界面响应。 */
     default void handleCityCitizenManageResponse(CityCitizenManageResponsePacket packet) {
+    }
+
+    /** handleCityCitizenFamilyGraphResponse: 处理市民五代关系图画布。 */
+    default void handleCityCitizenFamilyGraphResponse(CityCitizenFamilyGraphResponsePacket packet) {
     }
 
     /** handleFarmlandBoxBoundsResponse: 处理农田范围预览响应。 */

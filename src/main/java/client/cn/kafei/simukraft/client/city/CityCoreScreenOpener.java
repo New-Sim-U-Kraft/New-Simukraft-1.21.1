@@ -7,6 +7,7 @@ import client.cn.kafei.simukraft.client.ui.SimuKraftFlexLayout;
 import client.cn.kafei.simukraft.client.ui.SimuKraftWindowFrame;
 import client.cn.kafei.simukraft.client.city.map.SimuMapManager;
 import client.cn.kafei.simukraft.client.citizen.CitizenAvatarFactory;
+import client.cn.kafei.simukraft.client.citizen.CitizenFamilyGraphCanvas;
 import client.cn.kafei.simukraft.client.city.map.SimuMapRegion;
 import common.cn.kafei.simukraft.city.CityPermissionLevel;
 import common.cn.kafei.simukraft.network.city.chunk.CityChunkBatchPurchasePacket;
@@ -17,6 +18,8 @@ import common.cn.kafei.simukraft.network.city.core.CityCoreManageCityPacket;
 import common.cn.kafei.simukraft.network.city.core.CityCoreOpenResponsePacket;
 import common.cn.kafei.simukraft.network.city.map.CityCoreMapRequestPacket;
 import common.cn.kafei.simukraft.network.city.map.CityCoreMapResponsePacket;
+import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenFamilyGraphRequestPacket;
+import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenFamilyGraphResponsePacket;
 import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenManageActionPacket;
 import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenManageRequestPacket;
 import common.cn.kafei.simukraft.network.citizen.manage.CityCitizenManageResponsePacket;
@@ -357,6 +360,29 @@ public final class CityCoreScreenOpener {
         });
     }
 
+    /** openFamilyGraph：在城市核心窗口内打开无侧栏内容的五代关系图画布。 */
+    public static void openFamilyGraph(CityCitizenFamilyGraphResponsePacket packet) {
+        Minecraft minecraft = Minecraft.getInstance();
+        minecraft.execute(() -> {
+            CityCoreWindow window = activeWindow;
+            if (!isActiveScreen(minecraft, window) || !window.matches(packet.pos())) {
+                return;
+            }
+            window.openOrReplaceTab("family_graph", "screen.simukraft.city_core.family_graph", familyGraphPanel(packet));
+            window.hideSidebar();
+        });
+    }
+
+    private static UIElement familyGraphPanel(CityCitizenFamilyGraphResponsePacket packet) {
+        UIElement panel = new UIElement().layout(layout -> {
+            layout.widthPercent(100);
+            layout.heightPercent(100);
+            layout.flexDirection(FlexDirection.COLUMN);
+        });
+        panel.addChild(new CitizenFamilyGraphCanvas(packet.snapshot()));
+        return panel;
+    }
+
     private static UIElement citizensPanel(CityCitizenManageResponsePacket packet) {
         UIElement outer = new UIElement().layout(layout -> {
             layout.widthPercent(100);
@@ -433,6 +459,8 @@ public final class CityCoreScreenOpener {
                 Component.translatable("screen.simukraft.city_core.citizen_manage.gender_" + citizen.gender()))));
         info.addChild(line(Component.literal(citizen.name() == null || citizen.name().isBlank() ? "-" : citizen.name())));
         row.addChild(info);
+        row.addChild(memberActionButton("screen.simukraft.city_core.citizen_manage.family_graph", 52,
+                () -> PacketDistributor.sendToServer(new CityCitizenFamilyGraphRequestPacket(packet.pos(), citizen.citizenId()))));
         if (packet.canManage()) {
             row.addChild(memberActionButton("screen.simukraft.city_core.citizen_manage.dismiss", 52,
                     () -> { PacketDistributor.sendToServer(new CityCitizenManageActionPacket(packet.pos(), CityCitizenManageActionPacket.Action.DISMISS, citizen.citizenId())); close(); }));
@@ -937,6 +965,14 @@ public final class CityCoreScreenOpener {
             rebuildSidebar();
         }
 
+        /** hideSidebar：关系图画布占满内容区，不保留左侧菜单。 */
+        private void hideSidebar() {
+            if (!sidebarCollapsed) {
+                sidebarCollapsed = true;
+                rebuildSidebar();
+            }
+        }
+
         private void openDefaultTabs() {
             if ("upgrade".equals(initialTabId) && packet.hasCity() && packet.canManageCity()) {
                 openTab("info", "screen.simukraft.city_core.menu.info", scrollable(contentPanel(packet)));
@@ -952,6 +988,15 @@ public final class CityCoreScreenOpener {
             } else {
                 openTab("create", "screen.simukraft.city_core.create", createPanel(packet));
             }
+        }
+
+        /** openOrReplaceTab：同一标签换内容，避免关系图停留在上一个市民。 */
+        private void openOrReplaceTab(String id, String titleKey, UIElement content) {
+            View existing = openedTabs.remove(id);
+            if (existing != null && rightTabs.hasView(existing)) {
+                existing.removeSelf();
+            }
+            openTab(id, titleKey, content);
         }
 
         private void openTab(String id, String titleKey, UIElement content) {
