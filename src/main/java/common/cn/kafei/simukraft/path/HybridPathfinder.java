@@ -2,7 +2,9 @@ package common.cn.kafei.simukraft.path;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,6 +29,14 @@ final class HybridPathfinder {
     private static final double STEP_CLEARANCE = 0.55D;
     // JUMP_ONE_BLOCK_COST：翻越约 1 格方块的起跳代价，高于绕行数格步行，避免跳上箱子/田埂。
     private static final double JUMP_ONE_BLOCK_COST = 8.0D;
+    // npc参数
+    private static final double NPC_HALF_WIDTH = 0.31D;
+    private static final double NPC_HEIGHT = 1.8D;
+    // 陆地市民进入水体的代价倍率，使其优先绕开水池而非直接涉水
+    private static final double WATER_LAND_PENALTY = 12.0D;
+    // 邻近危险方块（岩浆、火、仙人掌等）的可走格代价倍率
+    // Vanilla: WalkNodeEvaluator.getDanger()。
+    private static final double DANGER_ADJACENT_PENALTY = 16.0D;
     private static final ThreadLocal<List<Neighbor>> NEIGHBOR_SCRATCH =
             ThreadLocal.withInitial(() -> new ArrayList<>(32));
 
@@ -122,7 +132,7 @@ final class HybridPathfinder {
                     if ((dx == 0 || dz == 0) && !canCrossHorizontalBoundary(snapshot, current, next)) {
                         continue;
                     }
-                    output.add(new Neighbor(next, walkMode(intent), distance(current, next) * next.cost()));
+                    output.add(new Neighbor(next, walkMode(intent), distance(current, next) * cellCost(next)));
                 }
             }
         }
@@ -149,9 +159,10 @@ final class HybridPathfinder {
                     continue;
                 }
                 if (next.water()) {
-                    output.add(new Neighbor(next, MovementMode.SWIM, 1.0D + distance(current, next) * next.cost()));
+                    // 从陆地进入水体施加额外惩罚，使市民优先绕开水面。
+                    output.add(new Neighbor(next, MovementMode.SWIM, 1.0D + distance(current, next) * waterEntryCost(next)));
                 } else if (next.climbable()) {
-                    output.add(new Neighbor(next, MovementMode.CLIMB, 1.0D + distance(current, next) * next.cost()));
+                    output.add(new Neighbor(next, MovementMode.CLIMB, 1.0D + distance(current, next) * cellCost(next)));
                 }
             }
         }
@@ -297,7 +308,7 @@ final class HybridPathfinder {
                         // climb generator then drives the ascent. A pure 3D diagonal is skipped
                         // because its destination-level corner cannot be validated.
                         if (dy == 0 || !diagonal) {
-                            output.add(new Neighbor(next, MovementMode.CLIMB, 1.0D + distance(current, next) * next.cost()));
+                            output.add(new Neighbor(next, MovementMode.CLIMB, 1.0D + distance(current, next) * cellCost(next)));
                         }
                         continue;
                     }
@@ -308,7 +319,7 @@ final class HybridPathfinder {
                         if (diagonal && !hasClearWalkLine(snapshot, current.pos(), next.pos())) {
                             continue;
                         }
-                        output.add(new Neighbor(next, walkMode(intent), distance(current, next) * next.cost()));
+                        output.add(new Neighbor(next, walkMode(intent), distance(current, next) * cellCost(next)));
                     } else if (dy == 1) {
                         // Orthogonal only, matching addVerticalTransitions: a diagonal jump would
                         // sweep the body through the destination-level corner column.
@@ -710,25 +721,104 @@ final class HybridPathfinder {
     /**
      * Returns the snapshot cell at {@code target}, or the closest cell within {@code range} when the
      * exact block is not part of the grid.
+     *
+     * <p>Candidate cells are validated against the citizen's collision box using actual block
+     * collision shapes captured in the snapshot. A collision-free cell is preferred; when none
+     * exists within range the geometrically nearest cell is returned as a fallback.
      */
     private static PathCell nearestCell(PathSnapshot snapshot, BlockPos target, int range) {
         PathCell direct = snapshot.cell(target);
         if (direct != null) {
             return direct;
         }
-        PathCell best = null;
-        double bestDistance = Double.MAX_VALUE;
+        PathCell bestClear = null;
+        double bestClearDistance = Double.MAX_VALUE;
+        PathCell bestAny = null;
+        double bestAnyDistance = Double.MAX_VALUE;
+        Long2ObjectOpenHashMap<VoxelShape> shapes = snapshot.collisionShapes();
         for (int dx = -range; dx <= range; dx++) {
             for (int dy = -range; dy <= range; dy++) {
                 for (int dz = -range; dz <= range; dz++) {
                     PathCell cell = snapshot.cell(target.getX() + dx, target.getY() + dy, target.getZ() + dz);
                     if (cell == null) continue;
-                    double d = (double)(dx * dx + dy * dy + dz * dz);
-                    if (d < bestDistance) { best = cell; bestDistance = d; }
+                    double d = dx * dx + dy * dy + dz * dz;
+                    if (d < bestAnyDistance) { bestAny = cell; bestAnyDistance = d; }
+                    if (d < bestClearDistance && hasCitizenClearance(cell, shapes)) {
+                        bestClear = cell;
+                        bestClearDistance = d;
+                    }
                 }
             }
         }
-        return best;
+        return bestClear != null ? bestClear : bestAny;
+    }
+
+    /**
+     * Returns whether the citizen's bounding box, centred on {@code cell} at its stand height,
+     * is free of intersection with any captured block collision shape.
+     */
+    private static boolean hasCitizenClearance(PathCell cell, Long2ObjectOpenHashMap<VoxelShape> shapes) {
+        if (shapes == null || shapes.isEmpty()) {
+            return true;
+        }
+        double centerX = cell.x() + 0.5D;
+        double centerZ = cell.z() + 0.5D;
+        AABB npcBox = new AABB(
+                centerX - NPC_HALF_WIDTH, cell.standY(),
+                centerZ - NPC_HALF_WIDTH,
+                centerX + NPC_HALF_WIDTH, cell.standY() + NPC_HEIGHT,
+                centerZ + NPC_HALF_WIDTH);
+        int minX = (int) Math.floor(npcBox.minX);
+        int minY = (int) Math.floor(npcBox.minY) - 1;
+        int minZ = (int) Math.floor(npcBox.minZ);
+        int maxX = (int) Math.floor(npcBox.maxX);
+        int maxY = (int) Math.floor(npcBox.maxY);
+        int maxZ = (int) Math.floor(npcBox.maxZ);
+        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    mutable.set(x, y, z);
+                    VoxelShape shape = shapes.get(mutable.asLong());
+                    if (shape == null) continue;
+                    for (AABB box : shape.toAabbs()) {
+                        if (box.maxX + x > npcBox.minX && box.minX + x < npcBox.maxX
+                                && box.maxY + y > npcBox.minY && box.minY + y < npcBox.maxY
+                                && box.maxZ + z > npcBox.minZ && box.minZ + z < npcBox.maxZ) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Returns the effective traversal cost of a cell, applying the danger-adjacent penalty so
+     * cells bordering lava, fire, cactus etc. are preferred against. Mirrors vanilla
+     * {@code WalkNodeEvaluator.getDanger()} as a multiplicative cost rather than a hard block,
+     * so a path can still force through when no alternative exists.
+     */
+    private static double cellCost(PathCell cell) {
+        double cost = cell.cost();
+        if (cell.dangerAdjacent()) {
+            cost *= DANGER_ADJACENT_PENALTY;
+        }
+        return cost;
+    }
+
+    /**
+     * Returns the effective cost of a land citizen entering a water cell: the base water cost
+     * scaled by {@link #WATER_LAND_PENALTY} so dry routes around a pool win, plus the
+     * danger-adjacent penalty when applicable.
+     */
+    private static double waterEntryCost(PathCell cell) {
+        double cost = cell.cost() * WATER_LAND_PENALTY;
+        if (cell.dangerAdjacent()) {
+            cost *= DANGER_ADJACENT_PENALTY;
+        }
+        return cost;
     }
 
     /**
