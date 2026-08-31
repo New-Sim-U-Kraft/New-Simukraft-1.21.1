@@ -27,8 +27,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("null")
@@ -614,7 +615,14 @@ public final class CitizenNavigationService {
                 existing.shutdown();
             }
             executorSize = requestedSize;
-            pathExecutor = Executors.newFixedThreadPool(requestedSize, new PathThreadFactory());
+            // Use a bounded elastic pool: core=0 so idle threads are reaped after 60 s,
+            // avoiding permanent thread overhead when no pathfinding work is pending.
+            ThreadPoolExecutor pool = new ThreadPoolExecutor(
+                    0, requestedSize, 60L, TimeUnit.SECONDS,
+                    new java.util.concurrent.SynchronousQueue<>(),
+                    new PathThreadFactory());
+            pool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+            pathExecutor = pool;
             return pathExecutor;
         }
     }
