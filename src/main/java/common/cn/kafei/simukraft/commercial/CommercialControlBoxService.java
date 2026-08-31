@@ -54,8 +54,8 @@ public final class CommercialControlBoxService {
         );
     }
 
-    /** buildTradeView: 构建 NPC 商业交易客户端视图。 */
-    public static CommercialTradeView buildTradeView(ServerLevel level, BlockPos boxPos, UUID workerId) {
+    /** buildTradeView: 构建 NPC 商业交易客户端视图，余额按付款城市计算。 */
+    public static CommercialTradeView buildTradeView(ServerLevel level, BlockPos boxPos, UUID workerId, ServerPlayer player) {
         PlacedBuildingRecord building = resolveBuilding(level, boxPos);
         CommercialDefinitionLoader.LoadResult loadResult = CommercialDefinitionLoader.loadForBuilding(building);
         CommercialDefinition definition = loadResult.definition();
@@ -70,7 +70,7 @@ public final class CommercialControlBoxService {
                 worker != null ? worker.uuid() : null,
                 definition != null ? definition.name() : "",
                 worker != null ? worker.name() : "",
-                building != null && building.cityId() != null ? EconomyService.getCityBalance(level, building.cityId()) : 0.0D,
+                tradeBalance(level, building, player),
                 CommercialBoxManager.get(level).getOrCreate(boxPos).running(),
                 definition != null ? playerOfferEntries(level, boxPos, definition) : List.of()
         );
@@ -100,7 +100,7 @@ public final class CommercialControlBoxService {
         if (!CommercialTradeAccessValidator.canUseTradeMenu(level, player, boxPos, worker.uuid())) {
             return false;
         }
-        return CommercialTradeMenuProvider.open(player, buildTradeView(level, boxPos, worker.uuid()));
+        return CommercialTradeMenuProvider.open(player, buildTradeView(level, boxPos, worker.uuid(), player));
     }
 
     /** interrupt: 当员工状态变化时中断对应商业箱。 */
@@ -225,6 +225,15 @@ public final class CommercialControlBoxService {
             return data.statusKey();
         }
         return data.running() ? "gui.simukraft.commercial.status.open" : "gui.simukraft.commercial.status.closed";
+    }
+
+    /** tradeBalance: 成员显示建筑城市余额，访客显示自己城市余额，无城市为 0。 */
+    private static double tradeBalance(ServerLevel level, PlacedBuildingRecord building, ServerPlayer player) {
+        if (building == null || building.cityId() == null) {
+            return 0.0D;
+        }
+        UUID payerCityId = CommercialTradeService.resolvePayerCityId(level, player, building.cityId());
+        return payerCityId != null ? EconomyService.getCityBalance(level, payerCityId) : 0.0D;
     }
 
     private static List<CommercialTradeView.OfferEntry> playerOfferEntries(ServerLevel level, BlockPos boxPos, CommercialDefinition definition) {

@@ -268,7 +268,7 @@ public final class MedicalMealService {
     private static ItemStack previewMeal(CommercialFoodMarketService.PurchasePlan plan) {
         ResourceLocation itemId = plan != null ? ResourceLocation.tryParse(plan.itemId()) : null;
         Item item = itemId != null ? BuiltInRegistries.ITEM.getOptional(itemId).orElse(Items.AIR) : Items.AIR;
-        return item == Items.AIR ? ItemStack.EMPTY : new ItemStack(item);
+        return item == Items.AIR ? ItemStack.EMPTY : new ItemStack(item, Math.max(1, plan.resultCount()));
     }
 
     private static Vec3 marketTarget(CommercialFoodMarketService.PurchasePlan plan) {

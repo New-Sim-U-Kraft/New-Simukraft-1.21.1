@@ -54,17 +54,17 @@ public final class CommercialTaxService {
         for (Map.Entry<UUID, Double> entry : incomeByCity.entrySet()) {
             UUID cityId = entry.getKey();
             double tax = EconomyService.normalizeAmount(entry.getValue() * ENTERPRISE_TAX_RATE);
+            // 先入账再标记已收：入账失败时下次还能重试，避免税被标成已收但城市没拿到钱。
+            if (tax > 0.0D && !EconomyService.depositCityFunds(level, cityId, null, tax, "commercial_enterprise_tax")) {
+                SimuKraft.LOGGER.warn("Simukraft: Failed to deposit commercial enterprise tax city={} amount={}", cityId, tax);
+                continue;
+            }
             if (!SimuSqliteStorage.markCommercialIncomeTaxCollected(level, cityId, currentDay)) {
                 SimuKraft.LOGGER.warn("Simukraft: Failed to mark commercial enterprise tax collected city={} day={}", cityId, currentDay);
                 continue;
             }
-            if (tax <= 0.0D) {
-                continue;
-            }
-            if (EconomyService.depositCityFunds(level, cityId, null, tax, "commercial_enterprise_tax")) {
+            if (tax > 0.0D) {
                 taxByCity.put(cityId, tax);
-            } else {
-                SimuKraft.LOGGER.warn("Simukraft: Failed to deposit commercial enterprise tax city={} amount={}", cityId, tax);
             }
         }
         return Map.copyOf(taxByCity);

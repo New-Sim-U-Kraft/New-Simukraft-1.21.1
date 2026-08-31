@@ -1,5 +1,7 @@
 package common.cn.kafei.simukraft.commercial;
 
+import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
+import common.cn.kafei.simukraft.industrial.IndustrialCoordinateResolver;
 import common.cn.kafei.simukraft.material.GenericContainerAccess;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -49,7 +51,7 @@ public final class CommercialTradeSupplyService {
         }
         CommercialOffer.StockRule rule = offer.stock();
         if (usesMaterialSupply(offer)) {
-            int available = availableFromMaterials(level, boxPos, rule);
+            int available = availableFromMaterials(level, tradeContainers(level, boxPos), rule);
             return rule.max() > 0 ? Math.min(rule.max(), available) : available;
         }
         if (rule != null && rule.sqliteBacked()) {
@@ -69,7 +71,8 @@ public final class CommercialTradeSupplyService {
             return CommercialTradeService.TradeResult.success("message.simukraft.commercial.ready");
         }
         int multiplier = Math.max(1, times);
-        int availableTrades = availableFromMaterials(level, boxPos, offer.stock());
+        Set<BlockPos> containers = tradeContainers(level, boxPos);
+        int availableTrades = availableFromMaterials(level, containers, offer.stock());
         if (offer.stock().max() > 0) {
             availableTrades = Math.min(offer.stock().max(), availableTrades);
         }
@@ -77,7 +80,7 @@ public final class CommercialTradeSupplyService {
             return CommercialTradeService.TradeResult.fail("message.simukraft.commercial.insufficient_materials");
         }
         for (CommercialOffer.MaterialRequirement requirement : offer.stock().materials()) {
-            if (countMaterial(level, boxPos, requirement.item()) < requirement.countFor(multiplier)) {
+            if (countMaterial(level, containers, requirement.item()) < requirement.countFor(multiplier)) {
                 return CommercialTradeService.TradeResult.fail("message.simukraft.commercial.insufficient_materials");
             }
         }
@@ -110,32 +113,33 @@ public final class CommercialTradeSupplyService {
             return true;
         }
         int multiplier = Math.max(1, times);
+        Set<BlockPos> containers = tradeContainers(level, boxPos);
         for (CommercialOffer.MaterialRequirement requirement : offer.stock().materials()) {
-            if (!consumeMaterial(level, boxPos, requirement.item(), requirement.countFor(multiplier))) {
+            if (!consumeMaterial(level, containers, requirement.item(), requirement.countFor(multiplier))) {
                 return false;
             }
         }
         return true;
     }
 
-    private static int availableFromMaterials(ServerLevel level, BlockPos boxPos, CommercialOffer.StockRule rule) {
+    private static int availableFromMaterials(ServerLevel level, Set<BlockPos> containers, CommercialOffer.StockRule rule) {
         if (rule == null || rule.materials().isEmpty()) {
             return 0;
         }
         int available = Integer.MAX_VALUE;
         for (CommercialOffer.MaterialRequirement requirement : rule.materials()) {
             int required = Math.max(1, requirement.count());
-            available = Math.min(available, countMaterial(level, boxPos, requirement.item()) / required);
+            available = Math.min(available, countMaterial(level, containers, requirement.item()) / required);
         }
         return available == Integer.MAX_VALUE ? 0 : available;
     }
 
-    private static int countMaterial(ServerLevel level, BlockPos boxPos, Item item) {
+    private static int countMaterial(ServerLevel level, Set<BlockPos> containers, Item item) {
         if (item == null) {
             return 0;
         }
         int total = 0;
-        for (BlockPos container : nearbyContainers(level, boxPos)) {
+        for (BlockPos container : containers) {
             for (GenericContainerAccess.SlotSnapshot snapshot : GenericContainerAccess.snapshotSlots(level, container)) {
                 if (!snapshot.stack().isEmpty() && snapshot.stack().getItem() == item) {
                     total += snapshot.stack().getCount();
@@ -145,12 +149,12 @@ public final class CommercialTradeSupplyService {
         return total;
     }
 
-    private static boolean consumeMaterial(ServerLevel level, BlockPos boxPos, Item item, int amount) {
+    private static boolean consumeMaterial(ServerLevel level, Set<BlockPos> containers, Item item, int amount) {
         int remaining = Math.max(0, amount);
         if (remaining <= 0) {
             return true;
         }
-        for (BlockPos container : nearbyContainers(level, boxPos)) {
+        for (BlockPos container : containers) {
             for (GenericContainerAccess.SlotSnapshot snapshot : GenericContainerAccess.snapshotSlots(level, container)) {
                 while (remaining > 0
                         && !snapshot.stack().isEmpty()
@@ -164,6 +168,35 @@ public final class CommercialTradeSupplyService {
             }
         }
         return false;
+    }
+
+    /** tradeContainers: 优先使用商业 JSON 声明的容器，没有声明时再扫控制箱附近。 */
+    private static Set<BlockPos> tradeContainers(ServerLevel level, BlockPos boxPos) {
+        Set<BlockPos> declared = declaredContainers(level, boxPos);
+        return declared.isEmpty() ? nearbyContainers(level, boxPos) : declared;
+    }
+
+    private static Set<BlockPos> declaredContainers(ServerLevel level, BlockPos boxPos) {
+        Set<BlockPos> containers = new LinkedHashSet<>();
+        PlacedBuildingRecord building = CommercialControlBoxService.resolveBuilding(level, boxPos);
+        if (building == null) {
+            return containers;
+        }
+        CommercialDefinition definition = CommercialDefinitionLoader.loadForBuilding(building).definition();
+        if (definition == null || definition.containers().isEmpty()) {
+            return containers;
+        }
+        for (CommercialDefinition.ContainerDefinition container : definition.containers().values()) {
+            if (!"structure_pos".equalsIgnoreCase(container.type())) {
+                continue;
+            }
+            for (BlockPos worldPos : IndustrialCoordinateResolver.resolvePositions(building, container.positions())) {
+                if (GenericContainerAccess.isContainer(level, worldPos)) {
+                    containers.add(GenericContainerAccess.canonicalContainerPos(level, worldPos));
+                }
+            }
+        }
+        return containers;
     }
 
     private static Set<BlockPos> nearbyContainers(ServerLevel level, BlockPos centerPos) {

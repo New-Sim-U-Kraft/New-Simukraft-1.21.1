@@ -80,7 +80,7 @@ public final class CommercialFoodMarketService {
         ItemStack foodStack = edibleResultStack(offer, null);
         return foodStack.isEmpty()
                 ? PurchaseResult.fail("message.simukraft.commercial.offer_unavailable")
-                : PurchaseResult.success(foodStack.copyWithCount(1));
+                : PurchaseResult.success(foodStack);
     }
 
     /** foodDetailKey: 获取 NPC 状态中展示的食物翻译键。 */

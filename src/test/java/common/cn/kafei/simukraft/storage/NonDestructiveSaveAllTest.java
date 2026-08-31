@@ -88,15 +88,15 @@ class NonDestructiveSaveAllTest {
         try (SimuSqliteDatabase database = openDatabase(tempDir.resolve("commercial.sqlite"))) {
             CommercialSqliteRepository repository = new CommercialSqliteRepository(database);
             try (Connection connection = database.borrowConnection()) {
-                repository.saveBoxes(connection, boxesTag("Boxes", commercialBoxTag(1, 64, 1), commercialBoxTag(2, 64, 2)));
+                repository.saveBoxes(connection, boxesTag("Boxes", commercialBoxTag(1, 64, 1), commercialBoxTag(2, 64, 2)), "minecraft:overworld");
             }
-            assertEquals(2, listSize(repository.loadBoxes(), "Boxes"));
+            assertEquals(2, listSize(repository.loadBoxes("minecraft:overworld"), "Boxes"));
 
             try (Connection connection = database.borrowConnection()) {
-                repository.saveBoxes(connection, boxesTag("Boxes", commercialBoxTag(1, 64, 1)));
+                repository.saveBoxes(connection, boxesTag("Boxes", commercialBoxTag(1, 64, 1)), "minecraft:overworld");
             }
 
-            assertEquals(2, listSize(repository.loadBoxes(), "Boxes"));
+            assertEquals(2, listSize(repository.loadBoxes("minecraft:overworld"), "Boxes"));
         }
     }
 
@@ -105,15 +105,15 @@ class NonDestructiveSaveAllTest {
         try (SimuSqliteDatabase database = openDatabase(tempDir.resolve("commercial-stock.sqlite"))) {
             CommercialSqliteRepository repository = new CommercialSqliteRepository(database);
             try (Connection connection = database.borrowConnection()) {
-                repository.saveStock(connection, boxesTag("Stock", stockTag(1, "minecraft:bread"), stockTag(1, "minecraft:apple")));
+                repository.saveStock(connection, boxesTag("Stock", stockTag(1, "minecraft:bread"), stockTag(1, "minecraft:apple")), "minecraft:overworld");
             }
-            assertEquals(2, listSize(repository.loadStock(), "Stock"));
+            assertEquals(2, listSize(repository.loadStock("minecraft:overworld"), "Stock"));
 
             try (Connection connection = database.borrowConnection()) {
-                repository.saveStock(connection, boxesTag("Stock", stockTag(1, "minecraft:bread")));
+                repository.saveStock(connection, boxesTag("Stock", stockTag(1, "minecraft:bread")), "minecraft:overworld");
             }
 
-            assertEquals(2, listSize(repository.loadStock(), "Stock"));
+            assertEquals(2, listSize(repository.loadStock("minecraft:overworld"), "Stock"));
         }
     }
 

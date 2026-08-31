@@ -210,7 +210,7 @@ JSON 请保存为 UTF-8。Windows PowerShell 校验中文 JSON 时建议显式�
 
 - 面包、熟肉、熟鱼这类基础食物可以使用 `visibleTo: "mixed"`，玩家和 NPC 都能消费。
 - 不希望 NPC 自动吃掉的特殊食物使用 `visibleTo: "player"`。
-- 如果使用 `stock.materials`，请把原材料放在商业控制盒附近容器；NPC 自动买饭不会从玩家背包取材料。
+- 如果使用 `stock.materials`，请把原材料放在商业 JSON `containers` 声明的容器里；没有声明容器时才会改扫商业控制盒附近容器。NPC 自动买饭不会从玩家背包取材料。
 
 ## 库存规则
 
@@ -265,7 +265,7 @@ JSON 请保存为 UTF-8。Windows PowerShell 校验中文 JSON 时建议显式�
 }
 ```
 
-这种模式适合面包、熟肉、熟鱼等需要真实原材料的商品。玩家购买和 NPC 自动经营都会先检查商业控制盒附近容器，材料足够才允许交易，并在成交时扣除对应材料。`materials` 非空时，该 `stock` 不再使用 SQLite 自动补货，`initial/restockAmount/restockInterval` 会被忽略。
+这种模式适合面包、熟肉、熟鱼等需要真实原材料的商品。玩家购买和 NPC 自动经营都会先检查商业 JSON `containers` 声明的容器；没有声明时才扫商业控制盒附近容器。材料足够才允许交易，并在成交时扣除对应材料。`materials` 非空时，该 `stock` 不再使用 SQLite 自动补货，`initial/restockAmount/restockInterval` 会被忽略。
 
 通用规则：
 
@@ -275,7 +275,7 @@ JSON 请保存为 UTF-8。Windows PowerShell 校验中文 JSON 时建议显式�
 - 补货按 `level.getGameTime()` 计算服务器运行 tick 间隔，不受 `/time set` 影响。
 - 同一个物品如果出现在多条报价里，库存初始化使用第一次遇到的 `stock` 规则。建议把带 `initial/restockAmount/restockInterval` 的出售报价放在前面。
 - 如果某个交易物品完全没有任何 `stock` 规则，它不会被库存限制，也不会写入商业库存。商店出售和以物换物产出的物品必须配置库存。
-- 原材料只会从商业控制盒附近容器扣除，不会从玩家背包扣除；玩家背包只处理报价 `cost` 中明确写出的物品。
+- 原材料只会从商业 JSON `containers` 声明的容器扣除；没有声明时才扫商业控制盒附近容器。不会从玩家背包扣除；玩家背包只处理报价 `cost` 中明确写出的物品。
 
 修改 `max` 会同步到已有商业箱库存记录；修改 `initial` 不会重置已有库存。如果需要重置存档里的库存，需要删除对应商业控制盒或清理对应 SQLite 记录。
 
@@ -366,7 +366,7 @@ Get-ChildItem .\run\simukraftbuilding\commercial,.\src\main\resources\assets\sim
 | 玩家能无限拿某物品 | 该 `result` 物品是否至少有一条 `stock` 规则 |
 | 玩家卖出物品后库存不增加 | 该 `cost` 物品是否有 `stock` 规则 |
 | NPC 自动经营没有处理报价 | `visibleTo` 是否为 `npc` 或 `mixed` |
-| 玩家或 NPC 买东西不扣原材料 | 对应出售报价的 `stock.materials` 是否存在，材料是否放在商业控制盒附近容器 |
+| 玩家或 NPC 买东西不扣原材料 | 对应出售报价的 `stock.materials` 是否存在，材料是否放在 JSON `containers` 或控制盒附近容器 |
 | 写了 `materials` 但自动补货不生效 | `materials` 非空会切换到材料供给型库存，不再使用 `restockAmount/restockInterval` |
 | 中文 JSON 在 PowerShell 中校验失败 | 命令是否使用 `-Encoding UTF8` |
 

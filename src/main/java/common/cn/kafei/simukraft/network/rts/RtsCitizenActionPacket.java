@@ -124,7 +124,7 @@ public record RtsCitizenActionPacket(Action action, List<UUID> citizenIds, Block
         }
         RtsRemoteCitizenAccess.authorize(player, citizenId, RtsRemoteCitizenAccess.Mode.SHOP, shopPos);
         if (CommercialTradeMenuProvider.open(player,
-                CommercialControlBoxService.buildTradeView(level, shopPos, citizenId))) {
+                CommercialControlBoxService.buildTradeView(level, shopPos, citizenId, player))) {
             RtsRemoteCitizenAccess.bindOpenedMenu(player);
         } else {
             RtsRemoteCitizenAccess.clear(player);

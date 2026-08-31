@@ -406,49 +406,57 @@ public final class SimuSqliteStorage {
 
     public static CompoundTag loadCommercialBoxes(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
-        return storage != null ? storage.commercial.loadBoxes() : null;
+        return storage != null ? storage.commercial.loadBoxes(dimensionId(level)) : null;
     }
 
     public static void saveCommercialBoxes(ServerLevel level, CompoundTag tag) {
         if (tag == null) {
             return;
         }
-        writeOrdered(level, (storage, connection) -> storage.commercial.saveBoxes(connection, tag));
+        String dimensionId = dimensionId(level);
+        writeOrdered(level, (storage, connection) -> storage.commercial.saveBoxes(connection, tag, dimensionId));
     }
 
     public static void saveCommercialBox(ServerLevel level, CompoundTag boxTag) {
         if (boxTag == null) {
             return;
         }
-        write(level, "commercial_boxes:" + boxTag.getLong("BoxPos"), (storage, connection) -> storage.commercial.upsertBox(connection, boxTag));
+        String dimensionId = dimensionId(level);
+        write(level, "commercial_boxes:" + dimensionId + ":" + boxTag.getLong("BoxPos"),
+                (storage, connection) -> storage.commercial.upsertBox(connection, boxTag, dimensionId));
     }
 
     public static void deleteCommercialBox(ServerLevel level, long boxPosLong) {
-        write(level, "commercial_boxes:" + boxPosLong, (storage, connection) -> storage.commercial.deleteBox(connection, boxPosLong));
+        String dimensionId = dimensionId(level);
+        write(level, "commercial_boxes:" + dimensionId + ":" + boxPosLong,
+                (storage, connection) -> storage.commercial.deleteBox(connection, boxPosLong, dimensionId));
     }
 
     public static CompoundTag loadCommercialStock(ServerLevel level) {
         SimuSqliteStorage storage = openSafely(level);
-        return storage != null ? storage.commercial.loadStock() : null;
+        return storage != null ? storage.commercial.loadStock(dimensionId(level)) : null;
     }
 
     public static void saveCommercialStock(ServerLevel level, CompoundTag tag) {
         if (tag == null) {
             return;
         }
-        writeOrdered(level, (storage, connection) -> storage.commercial.saveStock(connection, tag));
+        String dimensionId = dimensionId(level);
+        writeOrdered(level, (storage, connection) -> storage.commercial.saveStock(connection, tag, dimensionId));
     }
 
     public static void saveCommercialStockEntry(ServerLevel level, CompoundTag stockTag) {
         if (stockTag == null) {
             return;
         }
-        write(level, "commercial_stock:" + stockTag.getLong("BoxPos") + ":" + stockTag.getString("ItemId"),
-                (storage, connection) -> storage.commercial.upsertStockEntry(connection, stockTag));
+        String dimensionId = dimensionId(level);
+        write(level, "commercial_stock:" + dimensionId + ":" + stockTag.getLong("BoxPos") + ":" + stockTag.getString("ItemId"),
+                (storage, connection) -> storage.commercial.upsertStockEntry(connection, stockTag, dimensionId));
     }
 
     public static void deleteCommercialStockAtBox(ServerLevel level, long boxPosLong) {
-        writeOrdered(level, (storage, connection) -> storage.commercial.deleteStockAtBox(connection, boxPosLong));
+        String dimensionId = dimensionId(level);
+        writeOrdered(level, (storage, connection) -> storage.commercial.deleteStockAtBox(connection, boxPosLong, dimensionId));
     }
 
     /** addCommercialDailyIncome: 写入指定城市当天的商业营业收入增量。 */

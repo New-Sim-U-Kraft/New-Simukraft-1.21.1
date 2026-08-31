@@ -11,7 +11,7 @@ public final class SimuMigrations {
     }
 
     public static List<Migration> all() {
-        return List.of(new CityChunksDimensionPrimaryKey(), new CitizenReservedBabyBed());
+        return List.of(new CityChunksDimensionPrimaryKey(), new CitizenReservedBabyBed(), new CommercialBoxesDimensionPrimaryKey());
     }
 
     /**
@@ -69,6 +69,64 @@ public final class SimuMigrations {
         public void apply(Connection connection) throws SQLException {
             try (Statement statement = connection.createStatement()) {
                 statement.executeUpdate("ALTER TABLE citizens ADD COLUMN reserved_baby_bed_poi_id TEXT");
+            }
+        }
+    }
+
+    /**
+     * v4：给商业箱 / 商业库存补上 {@code dimension_id} 并改成复合主键。
+     *
+     * <p>这两张表原先只有 {@code box_pos_long}。管理器按维度加载，tick 时若坐标处不是本维度的
+     * 控制箱就会删库。跨维度同坐标或区块卸载时，会把别的维度商店一并抹掉。
+     */
+    private static final class CommercialBoxesDimensionPrimaryKey implements Migration {
+        @Override
+        public int version() {
+            return 4;
+        }
+
+        @Override
+        public String description() {
+            return "rebuild commercial boxes and stock with dimension_id in the primary key";
+        }
+
+        @Override
+        public void apply(Connection connection) throws SQLException {
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("CREATE TABLE commercial_boxes_v4("
+                        + "dimension_id TEXT NOT NULL DEFAULT 'minecraft:overworld', "
+                        + "box_pos_long INTEGER NOT NULL, "
+                        + "building_id TEXT NOT NULL DEFAULT '', "
+                        + "definition_id TEXT NOT NULL DEFAULT '', "
+                        + "running INTEGER NOT NULL DEFAULT 1, "
+                        + "status_key TEXT NOT NULL DEFAULT '', "
+                        + "status_text TEXT NOT NULL DEFAULT '', "
+                        + "updated_at INTEGER NOT NULL DEFAULT 0, "
+                        + "PRIMARY KEY(dimension_id, box_pos_long))");
+                statement.executeUpdate("INSERT OR IGNORE INTO commercial_boxes_v4("
+                        + "dimension_id, box_pos_long, building_id, definition_id, running, status_key, status_text, updated_at) "
+                        + "SELECT 'minecraft:overworld', box_pos_long, building_id, definition_id, running, status_key, status_text, updated_at "
+                        + "FROM commercial_boxes");
+                statement.executeUpdate("DROP TABLE commercial_boxes");
+                statement.executeUpdate("ALTER TABLE commercial_boxes_v4 RENAME TO commercial_boxes");
+                statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_commercial_boxes_running ON commercial_boxes(dimension_id, running)");
+
+                statement.executeUpdate("CREATE TABLE commercial_stock_v4("
+                        + "dimension_id TEXT NOT NULL DEFAULT 'minecraft:overworld', "
+                        + "box_pos_long INTEGER NOT NULL, "
+                        + "item_id TEXT NOT NULL, "
+                        + "current_stock INTEGER NOT NULL DEFAULT 0, "
+                        + "max_stock INTEGER NOT NULL DEFAULT 0, "
+                        + "last_restock_game_time INTEGER NOT NULL DEFAULT 0, "
+                        + "updated_at INTEGER NOT NULL DEFAULT 0, "
+                        + "PRIMARY KEY(dimension_id, box_pos_long, item_id))");
+                statement.executeUpdate("INSERT OR IGNORE INTO commercial_stock_v4("
+                        + "dimension_id, box_pos_long, item_id, current_stock, max_stock, last_restock_game_time, updated_at) "
+                        + "SELECT 'minecraft:overworld', box_pos_long, item_id, current_stock, max_stock, last_restock_game_time, updated_at "
+                        + "FROM commercial_stock");
+                statement.executeUpdate("DROP TABLE commercial_stock");
+                statement.executeUpdate("ALTER TABLE commercial_stock_v4 RENAME TO commercial_stock");
+                statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_commercial_stock_box ON commercial_stock(dimension_id, box_pos_long)");
             }
         }
     }

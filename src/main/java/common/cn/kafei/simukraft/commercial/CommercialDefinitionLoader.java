@@ -76,8 +76,9 @@ public final class CommercialDefinitionLoader {
             return LoadResult.missing("missing_path");
         }
         String key = "package:" + definition.packageKey() + ":" + definition.category() + "/" + fileName.toLowerCase(Locale.ROOT);
+        long modified = packageModified(definition);
         CacheEntry cached = CACHE.get(key);
-        if (cached != null) {
+        if (cached != null && cached.modified() == modified) {
             return cached.result();
         }
         try {
@@ -86,7 +87,7 @@ public final class CommercialDefinitionLoader {
                 return LoadResult.missing("missing_commercial_json");
             }
             LoadResult result = loadText(text, stripExtension(fileName), definition.packagePath());
-            CACHE.put(key, new CacheEntry(0L, result));
+            CACHE.put(key, new CacheEntry(modified, result));
             return result;
         } catch (Exception exception) {
             SimuKraft.LOGGER.warn("Simukraft: Failed to load commercial definition {} from {}", fileName, definition.packageName(), exception);
@@ -391,6 +392,19 @@ public final class CommercialDefinitionLoader {
             return object.get(key).getAsDouble();
         } catch (Exception exception) {
             return fallback;
+        }
+    }
+
+    /** packageModified: 用建筑包 ZIP 的修改时间让替换后的 JSON 重新加载。 */
+    private static long packageModified(BuildingCatalog.BuildingDefinition definition) {
+        Path path = definition != null ? definition.packagePath() : null;
+        if (path == null) {
+            return 0L;
+        }
+        try {
+            return Files.getLastModifiedTime(path).toMillis();
+        } catch (Exception exception) {
+            return 0L;
         }
     }
 

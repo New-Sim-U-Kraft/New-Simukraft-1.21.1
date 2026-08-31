@@ -46,10 +46,7 @@ public final class CommercialTradeService {
         if (!stateValidation.success()) {
             return stateValidation;
         }
-        CityData playerCity = CityService.findPlayerCity(level, player.getUUID()).orElse(null);
-        boolean isMember = playerCity != null && building.cityId().equals(playerCity.cityId());
-        // 城市成员用建筑城市账户，访客用自己城市账户，无城市玩家为 null
-        UUID payerCityId = isMember ? building.cityId() : (playerCity != null ? playerCity.cityId() : null);
+        UUID payerCityId = resolvePayerCityId(level, player, building.cityId());
         CommercialDefinitionLoader.LoadResult loadResult = CommercialDefinitionLoader.loadForBuilding(building);
         if (!loadResult.valid()) {
             return TradeResult.fail("message.simukraft.commercial.invalid_definition");
@@ -100,6 +97,18 @@ public final class CommercialTradeService {
             CommercialTaxService.recordShopIncome(level, building.cityId(), income);
         }
         return TradeResult.success("message.simukraft.commercial.npc_trade_done");
+    }
+
+    /** resolvePayerCityId: 成员用建筑城市账户，访客用自己城市账户，无城市为 null。 */
+    public static UUID resolvePayerCityId(ServerLevel level, ServerPlayer player, UUID buildingCityId) {
+        if (level == null || player == null || buildingCityId == null) {
+            return null;
+        }
+        CityData playerCity = CityService.findPlayerCity(level, player.getUUID()).orElse(null);
+        if (playerCity == null) {
+            return null;
+        }
+        return buildingCityId.equals(playerCity.cityId()) ? buildingCityId : playerCity.cityId();
     }
 
     private static TradeResult validateBoxState(ServerLevel level, BlockPos boxPos) {

@@ -67,12 +67,22 @@ public record CommercialTradePacket(BlockPos pos, UUID workerId, String offerId,
                 if (!result.carriedStack().isEmpty()) {
                     player.containerMenu.setCarried(result.carriedStack().copy());
                 }
-                player.containerMenu.broadcastChanges();
-                player.inventoryMenu.broadcastChanges();
-                PacketDistributor.sendToPlayer(player, CommercialTradeOpenResponsePacket.from(CommercialControlBoxService.buildTradeView(level, packet.pos(), packet.workerId())));
+                syncInventoryToClient(player);
+                PacketDistributor.sendToPlayer(player, CommercialTradeOpenResponsePacket.from(CommercialControlBoxService.buildTradeView(level, packet.pos(), packet.workerId(), player)));
             } else {
                 InfoToastService.warning(player, result.message());
             }
+        }
+    }
+
+    /**
+     * syncInventoryToClient: 成交后下发背包全量内容包。
+     * 交易直接改 Inventory，专用服上 LDLib 菜单没有玩家背包槽，增量 broadcast 不会把新物品推到客户端。
+     */
+    private static void syncInventoryToClient(ServerPlayer player) {
+        player.inventoryMenu.sendAllDataToRemote();
+        if (player.containerMenu != player.inventoryMenu) {
+            player.containerMenu.sendAllDataToRemote();
         }
     }
 

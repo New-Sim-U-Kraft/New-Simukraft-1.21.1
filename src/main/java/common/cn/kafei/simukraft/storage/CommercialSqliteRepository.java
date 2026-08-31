@@ -21,50 +21,58 @@ public final class CommercialSqliteRepository {
     }
 
     /**
-     * saveBoxes: 把内存中的商业箱全部 upsert 进库。
-     * <p>不再清空整表再重写：该表没有 dimension_id，而管理器是按维度的，
-     * 关服时逐维度保存会让每个维度都清空全表。删除只走 {@link #deleteBox(Connection, long)}。
+     * saveBoxes: 把当前维度内存中的商业箱全部 upsert 进库。
+     * <p>不再清空整表再重写：删除只走 {@link #deleteBox(Connection, long, String)}。
      */
-    public void saveBoxes(Connection connection, CompoundTag tag) throws SQLException {
+    public void saveBoxes(Connection connection, CompoundTag tag, String dimensionId) throws SQLException {
+        String normalized = normalizeDimensionId(dimensionId);
         ListTag boxes = tag.getList("Boxes", CompoundTag.TAG_COMPOUND);
         for (int i = 0; i < boxes.size(); i++) {
-            saveBox(connection, boxes.getCompound(i));
+            saveBox(connection, boxes.getCompound(i), normalized);
         }
     }
 
     /** upsertBox: 保存单个商业箱状态。 */
-    public void upsertBox(Connection connection, CompoundTag boxTag) throws SQLException {
-        saveBox(connection, boxTag);
+    public void upsertBox(Connection connection, CompoundTag boxTag, String dimensionId) throws SQLException {
+        saveBox(connection, boxTag, normalizeDimensionId(dimensionId));
     }
 
-    /** deleteBox: 删除商业箱和其库存。 */
-    public void deleteBox(Connection connection, long boxPosLong) throws SQLException {
-        try (PreparedStatement stockStatement = connection.prepareStatement("DELETE FROM commercial_stock WHERE box_pos_long = ?");
-             PreparedStatement boxStatement = connection.prepareStatement("DELETE FROM commercial_boxes WHERE box_pos_long = ?")) {
-            stockStatement.setLong(1, boxPosLong);
+    /** deleteBox: 删除指定维度的商业箱和其库存。 */
+    public void deleteBox(Connection connection, long boxPosLong, String dimensionId) throws SQLException {
+        String normalized = normalizeDimensionId(dimensionId);
+        try (PreparedStatement stockStatement = connection.prepareStatement(
+                "DELETE FROM commercial_stock WHERE dimension_id = ? AND box_pos_long = ?");
+             PreparedStatement boxStatement = connection.prepareStatement(
+                     "DELETE FROM commercial_boxes WHERE dimension_id = ? AND box_pos_long = ?")) {
+            stockStatement.setString(1, normalized);
+            stockStatement.setLong(2, boxPosLong);
             stockStatement.executeUpdate();
-            boxStatement.setLong(1, boxPosLong);
+            boxStatement.setString(1, normalized);
+            boxStatement.setLong(2, boxPosLong);
             boxStatement.executeUpdate();
         }
     }
 
-    /** loadBoxes: 读取全部商业箱状态。 */
-    public synchronized CompoundTag loadBoxes() {
+    /** loadBoxes: 读取指定维度的商业箱状态。 */
+    public synchronized CompoundTag loadBoxes(String dimensionId) {
         CompoundTag tag = new CompoundTag();
         ListTag boxes = new ListTag();
         try (Connection connection = database.borrowConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT * FROM commercial_boxes ORDER BY box_pos_long");
-             ResultSet resultSet = statement.executeQuery()) {
-            while (resultSet.next()) {
-                CompoundTag box = new CompoundTag();
-                box.putLong("BoxPos", resultSet.getLong("box_pos_long"));
-                box.putString("BuildingId", resultSet.getString("building_id"));
-                box.putString("DefinitionId", resultSet.getString("definition_id"));
-                box.putBoolean("Running", resultSet.getInt("running") != 0);
-                box.putString("StatusKey", resultSet.getString("status_key"));
-                box.putString("StatusText", resultSet.getString("status_text"));
-                box.putLong("UpdatedAt", resultSet.getLong("updated_at"));
-                boxes.add(box);
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT * FROM commercial_boxes WHERE dimension_id = ? ORDER BY box_pos_long")) {
+            statement.setString(1, normalizeDimensionId(dimensionId));
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    CompoundTag box = new CompoundTag();
+                    box.putLong("BoxPos", resultSet.getLong("box_pos_long"));
+                    box.putString("BuildingId", resultSet.getString("building_id"));
+                    box.putString("DefinitionId", resultSet.getString("definition_id"));
+                    box.putBoolean("Running", resultSet.getInt("running") != 0);
+                    box.putString("StatusKey", resultSet.getString("status_key"));
+                    box.putString("StatusText", resultSet.getString("status_text"));
+                    box.putLong("UpdatedAt", resultSet.getLong("updated_at"));
+                    boxes.add(box);
+                }
             }
             tag.put("Boxes", boxes);
             return boxes.isEmpty() ? null : tag;
@@ -76,46 +84,51 @@ public final class CommercialSqliteRepository {
     }
 
     /**
-     * saveStock: 把内存中的商业库存全部 upsert 进库。
-     * <p>不再清空整表再重写，理由同 {@link #saveBoxes(Connection, CompoundTag)}。
-     * 库存的删除只走 {@link #deleteStockAtBox(Connection, long)}。
+     * saveStock: 把当前维度内存中的商业库存全部 upsert 进库。
+     * <p>不再清空整表再重写，库存删除只走 {@link #deleteStockAtBox(Connection, long, String)}。
      */
-    public void saveStock(Connection connection, CompoundTag tag) throws SQLException {
+    public void saveStock(Connection connection, CompoundTag tag, String dimensionId) throws SQLException {
+        String normalized = normalizeDimensionId(dimensionId);
         ListTag stock = tag.getList("Stock", CompoundTag.TAG_COMPOUND);
         for (int i = 0; i < stock.size(); i++) {
-            saveStockEntry(connection, stock.getCompound(i));
+            saveStockEntry(connection, stock.getCompound(i), normalized);
         }
     }
 
     /** upsertStockEntry: 保存单个商业库存条目。 */
-    public void upsertStockEntry(Connection connection, CompoundTag stockTag) throws SQLException {
-        saveStockEntry(connection, stockTag);
+    public void upsertStockEntry(Connection connection, CompoundTag stockTag, String dimensionId) throws SQLException {
+        saveStockEntry(connection, stockTag, normalizeDimensionId(dimensionId));
     }
 
-    /** deleteStockAtBox: 删除指定商业箱库存。 */
-    public void deleteStockAtBox(Connection connection, long boxPosLong) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("DELETE FROM commercial_stock WHERE box_pos_long = ?")) {
-            statement.setLong(1, boxPosLong);
+    /** deleteStockAtBox: 删除指定维度商业箱库存。 */
+    public void deleteStockAtBox(Connection connection, long boxPosLong, String dimensionId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "DELETE FROM commercial_stock WHERE dimension_id = ? AND box_pos_long = ?")) {
+            statement.setString(1, normalizeDimensionId(dimensionId));
+            statement.setLong(2, boxPosLong);
             statement.executeUpdate();
         }
     }
 
-    /** loadStock: 读取全部商业库存。 */
-    public synchronized CompoundTag loadStock() {
+    /** loadStock: 读取指定维度的商业库存。 */
+    public synchronized CompoundTag loadStock(String dimensionId) {
         CompoundTag tag = new CompoundTag();
         ListTag stock = new ListTag();
         try (Connection connection = database.borrowConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT * FROM commercial_stock ORDER BY box_pos_long, item_id");
-             ResultSet resultSet = statement.executeQuery()) {
-            while (resultSet.next()) {
-                CompoundTag entry = new CompoundTag();
-                entry.putLong("BoxPos", resultSet.getLong("box_pos_long"));
-                entry.putString("ItemId", resultSet.getString("item_id"));
-                entry.putInt("CurrentStock", resultSet.getInt("current_stock"));
-                entry.putInt("MaxStock", resultSet.getInt("max_stock"));
-                entry.putLong("LastRestockGameTime", resultSet.getLong("last_restock_game_time"));
-                entry.putLong("UpdatedAt", resultSet.getLong("updated_at"));
-                stock.add(entry);
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT * FROM commercial_stock WHERE dimension_id = ? ORDER BY box_pos_long, item_id")) {
+            statement.setString(1, normalizeDimensionId(dimensionId));
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    CompoundTag entry = new CompoundTag();
+                    entry.putLong("BoxPos", resultSet.getLong("box_pos_long"));
+                    entry.putString("ItemId", resultSet.getString("item_id"));
+                    entry.putInt("CurrentStock", resultSet.getInt("current_stock"));
+                    entry.putInt("MaxStock", resultSet.getInt("max_stock"));
+                    entry.putLong("LastRestockGameTime", resultSet.getLong("last_restock_game_time"));
+                    entry.putLong("UpdatedAt", resultSet.getLong("updated_at"));
+                    stock.add(entry);
+                }
             }
             tag.put("Stock", stock);
             return stock.isEmpty() ? null : tag;
@@ -189,34 +202,41 @@ public final class CommercialSqliteRepository {
         }
     }
 
-    private void saveBox(Connection connection, CompoundTag box) throws SQLException {
+    private void saveBox(Connection connection, CompoundTag box, String dimensionId) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "INSERT INTO commercial_boxes(box_pos_long, building_id, definition_id, running, status_key, status_text, updated_at) "
-                        + "VALUES(?, ?, ?, ?, ?, ?, ?) "
-                        + "ON CONFLICT(box_pos_long) DO UPDATE SET building_id = excluded.building_id, definition_id = excluded.definition_id, running = excluded.running, status_key = excluded.status_key, status_text = excluded.status_text, updated_at = excluded.updated_at")) {
-            statement.setLong(1, box.getLong("BoxPos"));
-            statement.setString(2, box.getString("BuildingId"));
-            statement.setString(3, box.getString("DefinitionId"));
-            statement.setInt(4, box.getBoolean("Running") ? 1 : 0);
-            statement.setString(5, box.getString("StatusKey"));
-            statement.setString(6, box.getString("StatusText"));
-            statement.setLong(7, box.getLong("UpdatedAt"));
+                "INSERT INTO commercial_boxes(dimension_id, box_pos_long, building_id, definition_id, running, status_key, status_text, updated_at) "
+                        + "VALUES(?, ?, ?, ?, ?, ?, ?, ?) "
+                        + "ON CONFLICT(dimension_id, box_pos_long) DO UPDATE SET building_id = excluded.building_id, definition_id = excluded.definition_id, running = excluded.running, status_key = excluded.status_key, status_text = excluded.status_text, updated_at = excluded.updated_at")) {
+            statement.setString(1, dimensionId);
+            statement.setLong(2, box.getLong("BoxPos"));
+            statement.setString(3, box.getString("BuildingId"));
+            statement.setString(4, box.getString("DefinitionId"));
+            statement.setInt(5, box.getBoolean("Running") ? 1 : 0);
+            statement.setString(6, box.getString("StatusKey"));
+            statement.setString(7, box.getString("StatusText"));
+            statement.setLong(8, box.getLong("UpdatedAt"));
             statement.executeUpdate();
         }
     }
 
-    private void saveStockEntry(Connection connection, CompoundTag stock) throws SQLException {
+    private void saveStockEntry(Connection connection, CompoundTag stock, String dimensionId) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "INSERT INTO commercial_stock(box_pos_long, item_id, current_stock, max_stock, last_restock_game_time, updated_at) "
-                        + "VALUES(?, ?, ?, ?, ?, ?) "
-                        + "ON CONFLICT(box_pos_long, item_id) DO UPDATE SET current_stock = excluded.current_stock, max_stock = excluded.max_stock, last_restock_game_time = excluded.last_restock_game_time, updated_at = excluded.updated_at")) {
-            statement.setLong(1, stock.getLong("BoxPos"));
-            statement.setString(2, stock.getString("ItemId"));
-            statement.setInt(3, stock.getInt("CurrentStock"));
-            statement.setInt(4, stock.getInt("MaxStock"));
-            statement.setLong(5, stock.getLong("LastRestockGameTime"));
-            statement.setLong(6, stock.getLong("UpdatedAt"));
+                "INSERT INTO commercial_stock(dimension_id, box_pos_long, item_id, current_stock, max_stock, last_restock_game_time, updated_at) "
+                        + "VALUES(?, ?, ?, ?, ?, ?, ?) "
+                        + "ON CONFLICT(dimension_id, box_pos_long, item_id) DO UPDATE SET current_stock = excluded.current_stock, max_stock = excluded.max_stock, last_restock_game_time = excluded.last_restock_game_time, updated_at = excluded.updated_at")) {
+            statement.setString(1, dimensionId);
+            statement.setLong(2, stock.getLong("BoxPos"));
+            statement.setString(3, stock.getString("ItemId"));
+            statement.setInt(4, stock.getInt("CurrentStock"));
+            statement.setInt(5, stock.getInt("MaxStock"));
+            statement.setLong(6, stock.getLong("LastRestockGameTime"));
+            statement.setLong(7, stock.getLong("UpdatedAt"));
             statement.executeUpdate();
         }
+    }
+
+    /** normalizeDimensionId: 空维度归入主世界，和仓库层其他表口径一致。 */
+    private static String normalizeDimensionId(String dimensionId) {
+        return dimensionId == null || dimensionId.isBlank() ? "minecraft:overworld" : dimensionId;
     }
 }

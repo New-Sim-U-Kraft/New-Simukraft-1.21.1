@@ -64,6 +64,10 @@ public final class CommercialWorkService {
     }
 
     private static void tickBox(ServerLevel level, CommercialBoxManager manager, CommercialBoxData data, BoxRuntime runtime, long gameTime) {
+        // 未加载区块不能当“控制箱不存在”处理，否则会把商店状态和库存从 SQLite 删掉。
+        if (!level.isLoaded(data.boxPos())) {
+            return;
+        }
         if (!CommercialControlBoxService.isCommercialControlBox(level, data.boxPos())) {
             manager.remove(data.boxPos());
             CommercialStockService.removeBox(level, data.boxPos());
