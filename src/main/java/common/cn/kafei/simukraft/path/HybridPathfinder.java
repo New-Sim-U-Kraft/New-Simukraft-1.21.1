@@ -33,10 +33,10 @@ final class HybridPathfinder {
     private static final double NPC_HALF_WIDTH = 0.31D;
     private static final double NPC_HEIGHT = 1.8D;
     // 陆地市民进入水体的代价倍率，使其优先绕开水池而非直接涉水
-    private static final double WATER_LAND_PENALTY = 8.0D;
+    private static final double WATER_LAND_PENALTY = 12.0D;
     // 邻近危险方块（岩浆、火、仙人掌等）的可走格代价倍率
     // Vanilla: WalkNodeEvaluator.getDanger()。
-    private static final double DANGER_ADJACENT_PENALTY = 5.0D;
+    private static final double DANGER_ADJACENT_PENALTY = 16.0D;
     private static final ThreadLocal<List<Neighbor>> NEIGHBOR_SCRATCH =
             ThreadLocal.withInitial(() -> new ArrayList<>(32));
 
