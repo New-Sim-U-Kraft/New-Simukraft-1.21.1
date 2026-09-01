@@ -13,11 +13,14 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+import java.util.List;
 import java.util.UUID;
 
 @SuppressWarnings("null")
@@ -61,13 +64,14 @@ public record CommercialTradePacket(BlockPos pos, UUID workerId, String offerId,
                 InfoToastService.warning(player, Component.translatable("message.simukraft.commercial_control_box.not_found"));
                 return;
             }
+            List<ItemStack> before = snapshotInventory(player);
             CommercialTradeService.TradeResult result = CommercialTradeService.executePlayerTrade(level, player, packet.pos(), packet.offerId(), packet.count(), packet.quickMove());
             if (result.success()) {
                 InfoToastService.success(player, result.message());
                 if (!result.carriedStack().isEmpty()) {
                     player.containerMenu.setCarried(result.carriedStack().copy());
                 }
-                syncInventoryToClient(player);
+                syncChangedSlots(player, before);
                 PacketDistributor.sendToPlayer(player, CommercialTradeOpenResponsePacket.from(CommercialControlBoxService.buildTradeView(level, packet.pos(), packet.workerId(), player)));
             } else {
                 InfoToastService.warning(player, result.message());
@@ -75,15 +79,27 @@ public record CommercialTradePacket(BlockPos pos, UUID workerId, String offerId,
         }
     }
 
-    /**
-     * syncInventoryToClient: 成交后下发背包全量内容包。
-     * 交易直接改 Inventory，专用服上 LDLib 菜单没有玩家背包槽，增量 broadcast 不会把新物品推到客户端。
-     */
-    private static void syncInventoryToClient(ServerPlayer player) {
-        player.inventoryMenu.sendAllDataToRemote();
-        if (player.containerMenu != player.inventoryMenu) {
-            player.containerMenu.sendAllDataToRemote();
+    /** snapshotInventory: 快照玩家背包所有槽位用于交易后对比。 */
+    private static List<ItemStack> snapshotInventory(ServerPlayer player) {
+        List<ItemStack> snapshot = new java.util.ArrayList<>(player.getInventory().getContainerSize());
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            snapshot.add(player.getInventory().getItem(i).copy());
         }
+        return snapshot;
     }
 
+    /** syncChangedSlots: 逐槽对比并用 ClientboundContainerSetSlotPacket 同步变更。 */
+    private static void syncChangedSlots(ServerPlayer player, List<ItemStack> before) {
+        final int containerId = player.containerMenu.containerId;
+        final int stateId = player.containerMenu.getStateId();
+        final int low = 9;
+        final int high = Math.min(player.getInventory().getContainerSize(), 36);
+        for (int i = low; i < high; i++) {
+            ItemStack current = player.getInventory().getItem(i);
+            if (!ItemStack.matches(before.get(i), current)) {
+                final int slot = i - low;
+                player.connection.send(new ClientboundContainerSetSlotPacket(containerId, stateId, slot, current.copy()));
+            }
+        }
+    }
 }
