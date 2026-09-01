@@ -360,7 +360,7 @@ public final class ServerConfig {
                 .translation("config.simukraft.medical.lowHealthThreshold")
                 .defineInRange("lowHealthThreshold", 8.0D, 1.0D, 19.0D);
         MEDICAL_HEAL_INTERVAL_TICKS = builder
-                .comment("Ticks between hospital healing pulses.")
+                .comment("World-time ticks between hospital healing pulses. Sleeping through the night counts.")
                 .translation("config.simukraft.medical.healIntervalTicks")
                 .defineInRange("healIntervalTicks", 100, 20, 24_000);
         MEDICAL_HEAL_AMOUNT = builder
@@ -372,7 +372,7 @@ public final class ServerConfig {
                 .translation("config.simukraft.medical.diseaseChancePerDay")
                 .defineInRange("diseaseChancePerDay", 0.02D, 0.0D, 1.0D);
         MEDICAL_DISEASE_TREATMENT_TICKS = builder
-                .comment("Sleeping treatment ticks required to cure a disease.")
+                .comment("Hospital world-time ticks required to cure a disease. Sleeping through the night counts.")
                 .translation("config.simukraft.medical.diseaseTreatmentTicks")
                 .defineInRange("diseaseTreatmentTicks", 24_000, 20, 2_400_000);
         builder.pop();

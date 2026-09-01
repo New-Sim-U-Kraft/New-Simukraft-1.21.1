@@ -327,6 +327,10 @@ public final class MedicalService {
             return;
         }
         if (!entity.isSleeping()) {
+            if (citizen.medical().lastHospitalProgressDayTime() != 0L) {
+                citizen.medical().setLastHospitalProgressDayTime(0L);
+                CitizenService.save(level, citizen.uuid());
+            }
             if (entity.distanceToSqr(target) <= 2.25D && entity.getNavigation().isDone()) {
                 CitizenBedSleepService.tryStartSleeping(level, entity, bed.pos(), target);
             } else if (!CitizenNavigationService.isNavigating(level, citizen.uuid())
@@ -341,14 +345,34 @@ public final class MedicalService {
         }
         CitizenBedSleepService.restoreSleeping(level, entity, target);
         CitizenFoodConsumptionService.tryEatBackpackFood(level, entity, citizen);
-        int interval = Math.max(20, ServerConfig.medicalHealIntervalTicks());
-        if (level.getGameTime() % interval != 0L) {
+        advanceHospitalStay(level, citizen, entity, currentDay);
+    }
+
+    /**
+     * advanceHospitalStay：住院治疗按世界 dayTime 推进，睡觉跳过的夜晚会计入治疗和回血。
+     */
+    private static void advanceHospitalStay(ServerLevel level, CitizenData citizen, CitizenEntity entity, long currentDay) {
+        long now = level.getDayTime();
+        long last = citizen.medical().lastHospitalProgressDayTime();
+        if (last <= 0L || last > now) {
+            citizen.medical().setLastHospitalProgressDayTime(now);
+            CitizenService.save(level, citizen.uuid());
             return;
         }
-        entity.heal((float) ServerConfig.medicalHealAmount());
-        citizen.setHealth(entity.getHealth());
+        long elapsed = hospitalWorldTimeElapsed(last, now);
+        if (elapsed <= 0L) {
+            return;
+        }
+        citizen.medical().setLastHospitalProgressDayTime(now);
+        int interval = Math.max(20, ServerConfig.medicalHealIntervalTicks());
+        long pulses = hospitalHealPulses(last, now, interval);
+        if (pulses > 0L) {
+            float heal = (float) Math.min(entity.getMaxHealth(), ServerConfig.medicalHealAmount() * pulses);
+            entity.heal(heal);
+            citizen.setHealth(entity.getHealth());
+        }
         if (citizen.disease().isActive()) {
-            citizen.medical().addDiseaseTreatmentTicks(interval);
+            citizen.medical().addDiseaseTreatmentTicks(elapsed);
             if (citizen.medical().diseaseTreatmentTicks() >= ServerConfig.medicalDiseaseTreatmentTicks()) {
                 citizen.clearDisease();
             }
@@ -360,6 +384,22 @@ public final class MedicalService {
         }
         citizen.setStatusLabel(conditionKey(citizen, currentDay));
         CitizenService.save(level, citizen.uuid());
+    }
+
+    /** hospitalWorldTimeElapsed: 住院进度按世界时间计算，睡觉跳过的区间会一次性计入。 */
+    static long hospitalWorldTimeElapsed(long previousDayTime, long currentDayTime) {
+        if (previousDayTime <= 0L || currentDayTime <= previousDayTime) {
+            return 0L;
+        }
+        return currentDayTime - previousDayTime;
+    }
+
+    /** hospitalHealPulses: 世界时间跨越了多少个治疗间隔，睡觉跳过会一次性结算回血。 */
+    static long hospitalHealPulses(long previousDayTime, long currentDayTime, int interval) {
+        if (previousDayTime <= 0L || currentDayTime <= previousDayTime || interval <= 0) {
+            return 0L;
+        }
+        return currentDayTime / interval - previousDayTime / interval;
     }
 
     private static void applyMedicalLeave(ServerLevel level, CitizenData citizen, long currentDay) {
@@ -415,6 +455,7 @@ public final class MedicalService {
             CitizenBedSleepService.release(level, citizen.uuid());
         }
         citizen.medical().setMedicalBedPoiId(null);
+        citizen.medical().setLastHospitalProgressDayTime(0L);
         if (MEDICAL_CARE_MARKER.equals(citizen.workNeedDetail())) {
             citizen.setWorkNeedDetail("");
             citizen.setStatusLabel("");
@@ -544,7 +585,7 @@ public final class MedicalService {
         return bedId != null && bedIds.contains(bedId);
     }
 
-    /** canBypassResidentialCoverage：紧急医疗患者无需住宅覆盖即可直接前往同城医院。 */
+    /** canBypassResidentialCoverage：紧急医疗患者无需住宅覆盖即可���接前往同城医院。 */
     static boolean canBypassResidentialCoverage(CitizenData citizen) {
         if (citizen == null) {
             return false;

@@ -11,7 +11,11 @@ public final class SimuMigrations {
     }
 
     public static List<Migration> all() {
-        return List.of(new CityChunksDimensionPrimaryKey(), new CitizenReservedBabyBed(), new CommercialBoxesDimensionPrimaryKey());
+        return List.of(
+                new CityChunksDimensionPrimaryKey(),
+                new CitizenReservedBabyBed(),
+                new CommercialBoxesDimensionPrimaryKey(),
+                new CitizenLastHospitalProgressDayTime());
     }
 
     /**
@@ -127,6 +131,27 @@ public final class SimuMigrations {
                 statement.executeUpdate("DROP TABLE commercial_stock");
                 statement.executeUpdate("ALTER TABLE commercial_stock_v4 RENAME TO commercial_stock");
                 statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_commercial_stock_box ON commercial_stock(dimension_id, box_pos_long)");
+            }
+        }
+    }
+
+    /** v5：记下住院治疗的世界时间锚点，睡觉跳过的区间才能在重启后继续结算。 */
+    private static final class CitizenLastHospitalProgressDayTime implements Migration {
+        @Override
+        public int version() {
+            return 5;
+        }
+
+        @Override
+        public String description() {
+            return "add last hospital progress day time to citizens";
+        }
+
+        @Override
+        public void apply(Connection connection) throws SQLException {
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate(
+                        "ALTER TABLE citizens ADD COLUMN last_hospital_progress_day_time INTEGER NOT NULL DEFAULT 0");
             }
         }
     }

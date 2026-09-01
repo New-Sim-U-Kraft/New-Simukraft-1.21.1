@@ -11,11 +11,11 @@ import java.sql.SQLException;
 
 @SuppressWarnings("null")
 public final class CitizenSqliteRepository {
-    // 37 列的占位符与整条 SQL 都是常量，只在类加载时拼一次（旧实现每次 save 都重建这条 700+ 字符的 SQL）。
+    // 38 列的占位符与整条 SQL 都是常量，只在类加载时拼一次（旧实现每次 save 都重建这条 700+ 字符的 SQL）。
     private static final String UPSERT_SQL =
-            "INSERT INTO citizens(uuid, name, gender, age, lifespan, job_type, job_id, status, work_status, work_need_detail, status_label, is_working, npc_id, skin_path, city_id, home_id, workplace_id, workplace_pos_long, health, happiness, sick, child, child_growth_due_day, born_day, dimension_id, family_id, origin_family_id, pregnant, pregnant_since, last_age_growth_day, disease_id, disease_since_day, disease_treatment_ticks, medical_bed_poi_id, postpartum_until_day, last_hospital_meal_day, reserved_baby_bed_poi_id) VALUES("
-                    + String.join(", ", java.util.Collections.nCopies(37, "?"))
-                    + ") ON CONFLICT(uuid) DO UPDATE SET name = excluded.name, gender = excluded.gender, age = excluded.age, lifespan = excluded.lifespan, job_type = excluded.job_type, job_id = excluded.job_id, status = excluded.status, work_status = excluded.work_status, work_need_detail = excluded.work_need_detail, status_label = excluded.status_label, is_working = excluded.is_working, npc_id = excluded.npc_id, skin_path = excluded.skin_path, city_id = excluded.city_id, home_id = excluded.home_id, workplace_id = excluded.workplace_id, workplace_pos_long = excluded.workplace_pos_long, health = excluded.health, happiness = excluded.happiness, sick = excluded.sick, child = excluded.child, child_growth_due_day = excluded.child_growth_due_day, born_day = excluded.born_day, dimension_id = excluded.dimension_id, family_id = excluded.family_id, origin_family_id = excluded.origin_family_id, pregnant = excluded.pregnant, pregnant_since = excluded.pregnant_since, last_age_growth_day = excluded.last_age_growth_day, disease_id = excluded.disease_id, disease_since_day = excluded.disease_since_day, disease_treatment_ticks = excluded.disease_treatment_ticks, medical_bed_poi_id = excluded.medical_bed_poi_id, postpartum_until_day = excluded.postpartum_until_day, last_hospital_meal_day = excluded.last_hospital_meal_day, reserved_baby_bed_poi_id = excluded.reserved_baby_bed_poi_id";
+            "INSERT INTO citizens(uuid, name, gender, age, lifespan, job_type, job_id, status, work_status, work_need_detail, status_label, is_working, npc_id, skin_path, city_id, home_id, workplace_id, workplace_pos_long, health, happiness, sick, child, child_growth_due_day, born_day, dimension_id, family_id, origin_family_id, pregnant, pregnant_since, last_age_growth_day, disease_id, disease_since_day, disease_treatment_ticks, medical_bed_poi_id, postpartum_until_day, last_hospital_meal_day, reserved_baby_bed_poi_id, last_hospital_progress_day_time) VALUES("
+                    + String.join(", ", java.util.Collections.nCopies(38, "?"))
+                    + ") ON CONFLICT(uuid) DO UPDATE SET name = excluded.name, gender = excluded.gender, age = excluded.age, lifespan = excluded.lifespan, job_type = excluded.job_type, job_id = excluded.job_id, status = excluded.status, work_status = excluded.work_status, work_need_detail = excluded.work_need_detail, status_label = excluded.status_label, is_working = excluded.is_working, npc_id = excluded.npc_id, skin_path = excluded.skin_path, city_id = excluded.city_id, home_id = excluded.home_id, workplace_id = excluded.workplace_id, workplace_pos_long = excluded.workplace_pos_long, health = excluded.health, happiness = excluded.happiness, sick = excluded.sick, child = excluded.child, child_growth_due_day = excluded.child_growth_due_day, born_day = excluded.born_day, dimension_id = excluded.dimension_id, family_id = excluded.family_id, origin_family_id = excluded.origin_family_id, pregnant = excluded.pregnant, pregnant_since = excluded.pregnant_since, last_age_growth_day = excluded.last_age_growth_day, disease_id = excluded.disease_id, disease_since_day = excluded.disease_since_day, disease_treatment_ticks = excluded.disease_treatment_ticks, medical_bed_poi_id = excluded.medical_bed_poi_id, postpartum_until_day = excluded.postpartum_until_day, last_hospital_meal_day = excluded.last_hospital_meal_day, reserved_baby_bed_poi_id = excluded.reserved_baby_bed_poi_id, last_hospital_progress_day_time = excluded.last_hospital_progress_day_time";
 
     private final SimuSqliteDatabase database;
 
@@ -117,6 +117,7 @@ public final class CitizenSqliteRepository {
                     SqliteNbtHelper.putNullableUuid(citizen, "MedicalBedPoiId", resultSet.getString("medical_bed_poi_id"));
                     citizen.putLong("PostpartumUntilDay", resultSet.getLong("postpartum_until_day"));
                     citizen.putLong("LastHospitalMealDay", resultSet.getLong("last_hospital_meal_day"));
+                    citizen.putLong("LastHospitalProgressDayTime", resultSet.getLong("last_hospital_progress_day_time"));
                     citizen.put("Skills", skillsByUuid.getOrDefault(uuid, new CompoundTag()));
                     citizens.add(citizen);
                 }
@@ -178,6 +179,8 @@ public final class CitizenSqliteRepository {
             citizenStatement.setLong(36, citizen.contains("LastHospitalMealDay") ? citizen.getLong("LastHospitalMealDay") : -1L);
             SqliteNbtHelper.setNullableString(citizenStatement, 37,
                     citizen.hasUUID("ReservedBabyBedPoiId") ? citizen.getUUID("ReservedBabyBedPoiId").toString() : null);
+            citizenStatement.setLong(38,
+                    citizen.contains("LastHospitalProgressDayTime") ? citizen.getLong("LastHospitalProgressDayTime") : 0L);
             citizenStatement.executeUpdate();
             deleteSkills.setString(1, uuid);
             deleteSkills.executeUpdate();

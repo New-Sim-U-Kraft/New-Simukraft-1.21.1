@@ -36,6 +36,7 @@ class CitizenSqliteRepositoryTest {
         citizen.medical().setMedicalBedPoiId(medicalBedId);
         citizen.medical().setPostpartumUntilDay(12L);
         citizen.medical().setLastHospitalMealDay(10L);
+        citizen.medical().setLastHospitalProgressDayTime(18_000L);
 
         CompoundTag root = new CompoundTag();
         ListTag citizens = new ListTag();
@@ -61,6 +62,7 @@ class CitizenSqliteRepositoryTest {
             assertEquals(medicalBedId, loaded.medical().medicalBedPoiId());
             assertEquals(12L, loaded.medical().postpartumUntilDay());
             assertEquals(10L, loaded.medical().lastHospitalMealDay());
+            assertEquals(18_000L, loaded.medical().lastHospitalProgressDayTime());
         }
     }
 

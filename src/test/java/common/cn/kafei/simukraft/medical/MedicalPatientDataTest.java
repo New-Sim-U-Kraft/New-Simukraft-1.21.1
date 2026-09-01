@@ -18,6 +18,7 @@ class MedicalPatientDataTest {
         source.setMedicalBedPoiId(bedId);
         source.setPostpartumUntilDay(11L);
         source.setLastHospitalMealDay(9L);
+        source.setLastHospitalProgressDayTime(18_000L);
 
         CompoundTag tag = new CompoundTag();
         source.toTag(tag);
@@ -30,6 +31,7 @@ class MedicalPatientDataTest {
         assertEquals(bedId, loaded.medicalBedPoiId());
         assertEquals(11L, loaded.postpartumUntilDay());
         assertEquals(9L, loaded.lastHospitalMealDay());
+        assertEquals(18_000L, loaded.lastHospitalProgressDayTime());
     }
 
     @Test
@@ -39,6 +41,7 @@ class MedicalPatientDataTest {
         data.setMedicalBedPoiId(UUID.randomUUID());
         data.setPostpartumUntilDay(4L);
         data.setLastHospitalMealDay(3L);
+        data.setLastHospitalProgressDayTime(12_542L);
 
         data.clear();
 
@@ -46,5 +49,6 @@ class MedicalPatientDataTest {
         assertNull(data.medicalBedPoiId());
         assertEquals(0L, data.postpartumUntilDay());
         assertEquals(-1L, data.lastHospitalMealDay());
+        assertEquals(0L, data.lastHospitalProgressDayTime());
     }
 }

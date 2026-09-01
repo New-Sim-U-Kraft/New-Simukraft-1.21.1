@@ -13,6 +13,7 @@ public final class MedicalPatientData {
     private UUID medicalBedPoiId;
     private long postpartumUntilDay;
     private long lastHospitalMealDay = -1L;
+    private long lastHospitalProgressDayTime;
 
     /** fromTag：从居民标签读取医疗状态。 */
     public void fromTag(CompoundTag tag) {
@@ -22,6 +23,8 @@ public final class MedicalPatientData {
         medicalBedPoiId = tag.hasUUID("MedicalBedPoiId") ? tag.getUUID("MedicalBedPoiId") : null;
         postpartumUntilDay = Math.max(0L, tag.getLong("PostpartumUntilDay"));
         lastHospitalMealDay = tag.contains("LastHospitalMealDay") ? Math.max(-1L, tag.getLong("LastHospitalMealDay")) : -1L;
+        lastHospitalProgressDayTime = tag.contains("LastHospitalProgressDayTime")
+                ? Math.max(0L, tag.getLong("LastHospitalProgressDayTime")) : 0L;
     }
 
     /** toTag：将医疗状态写入居民标签。 */
@@ -34,6 +37,7 @@ public final class MedicalPatientData {
         }
         tag.putLong("PostpartumUntilDay", postpartumUntilDay);
         tag.putLong("LastHospitalMealDay", lastHospitalMealDay);
+        tag.putLong("LastHospitalProgressDayTime", lastHospitalProgressDayTime);
     }
 
     /** setDisease：设置疾病并重置本次疾病的治疗进度。 */
@@ -59,6 +63,7 @@ public final class MedicalPatientData {
         medicalBedPoiId = null;
         postpartumUntilDay = 0L;
         lastHospitalMealDay = -1L;
+        lastHospitalProgressDayTime = 0L;
     }
 
     public DiseaseType disease() {
@@ -100,5 +105,14 @@ public final class MedicalPatientData {
     /** setLastHospitalMealDay：记录住院患者最近一次收到医院餐食的游戏日。 */
     public void setLastHospitalMealDay(long lastHospitalMealDay) {
         this.lastHospitalMealDay = Math.max(-1L, lastHospitalMealDay);
+    }
+
+    public long lastHospitalProgressDayTime() {
+        return lastHospitalProgressDayTime;
+    }
+
+    /** setLastHospitalProgressDayTime：记录上次按世界时间结算住院治疗的 dayTime。 */
+    public void setLastHospitalProgressDayTime(long lastHospitalProgressDayTime) {
+        this.lastHospitalProgressDayTime = Math.max(0L, lastHospitalProgressDayTime);
     }
 }

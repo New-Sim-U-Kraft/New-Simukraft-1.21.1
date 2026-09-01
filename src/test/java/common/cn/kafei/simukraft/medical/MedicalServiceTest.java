@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -89,5 +90,21 @@ class MedicalServiceTest {
         citizen.medical().setPostpartumUntilDay(0L);
         citizen.setHealth(8.0D);
         assertTrue(MedicalService.needsCare(null, citizen, 4L, 8.0D, 3));
+    }
+
+    @Test
+    void hospitalWorldTimeCountsSleepSkip() {
+        assertEquals(0L, MedicalService.hospitalWorldTimeElapsed(0L, 24_000L));
+        assertEquals(0L, MedicalService.hospitalWorldTimeElapsed(18_000L, 18_000L));
+        assertEquals(0L, MedicalService.hospitalWorldTimeElapsed(24_000L, 18_000L));
+        assertEquals(6_000L, MedicalService.hospitalWorldTimeElapsed(18_000L, 24_000L));
+    }
+
+    @Test
+    void hospitalHealPulsesCountSleepSkip() {
+        assertEquals(0L, MedicalService.hospitalHealPulses(0L, 24_000L, 100));
+        assertEquals(0L, MedicalService.hospitalHealPulses(100L, 199L, 100));
+        assertEquals(1L, MedicalService.hospitalHealPulses(99L, 100L, 100));
+        assertEquals(60L, MedicalService.hospitalHealPulses(18_000L, 24_000L, 100));
     }
 }
