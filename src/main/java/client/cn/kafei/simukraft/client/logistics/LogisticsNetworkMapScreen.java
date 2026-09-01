@@ -24,19 +24,24 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.joml.Matrix4f;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @SuppressWarnings("null")
 @OnlyIn(Dist.CLIENT)
 final class LogisticsNetworkMapScreen extends Screen {
-    private static final int MARKER_SIZE = 5;
     private static final double MIN_ZOOM = 0.1D;
     private static final double MAX_ZOOM = 10.0D;
 
     private final LogisticsServerBoxOpenResponsePacket packet;
     private final SimuMapManager mapManager = SimuMapManager.getInstance();
     private UUID hoveredClientId;
+    private boolean hoveredWarehouse;
+    private List<HoveredRoute> hoveredRoutes = List.of();
     private UUID selectedClientId;
     private QuickEndpoint quickReceiver;
     private QuickEndpoint quickSender;
@@ -79,9 +84,10 @@ final class LogisticsNetworkMapScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, 0xFF0A0A0A);
         int mapWidth = mapWidth();
+        updateHover(mouseX, mouseY, mapWidth);
         renderTerrain(graphics, 0, 0, mapWidth, this.height);
         renderChannelLines(graphics, mapWidth);
-        renderMarkers(graphics, mapWidth, mouseX, mouseY);
+        renderMarkers(graphics, mapWidth);
         if (selectedClientId != null) {
             renderSidePanel(graphics, mapWidth);
         }
@@ -291,44 +297,54 @@ final class LogisticsNetworkMapScreen extends Screen {
         RenderSystem.disableBlend();
     }
 
-    /** renderChannelLines: 按频道方向绘制绿色物流线路。 */
+    /** renderChannelLines: 单向画方向箭头，同一对端点双向时合并成对顶角。 */
     private void renderChannelLines(GuiGraphics graphics, int mapWidth) {
         int centerX = mapWidth / 2;
         int centerY = this.height / 2;
         int[] warehouse = worldToScreen(packet.boxPos(), centerX, centerY);
+        Set<UUID> drawnBidirectional = new HashSet<>();
         for (LogisticsControlBoxService.ChannelEntry channel : packet.channels()) {
             LogisticsControlBoxService.ClientEntry client = client(channel.clientId());
             if (client == null) {
                 continue;
             }
             int[] clientPoint = worldToScreen(client.boxPos(), centerX, centerY);
-            int color = channel.enabled() ? LogisticsNativeStyle.CHANNEL : LogisticsNativeStyle.CHANNEL_DISABLED;
+            if (hasBothDirections(channel.clientId())) {
+                if (!drawnBidirectional.add(channel.clientId())) {
+                    continue;
+                }
+                LogisticsMapOverlay.drawRoute(graphics, warehouse[0], warehouse[1],
+                        clientPoint[0], clientPoint[1], anyChannelEnabled(channel.clientId()), 0.0F,
+                        anyChannelHovered(channel.clientId()), true);
+                continue;
+            }
+            float lane = LogisticsMapOverlay.laneOffset(channelLaneSlot(channel), channelLaneCount(channel.clientId()));
+            boolean highlighted = isHoveredRoute(channel.channelId());
             if (channel.direction() == LogisticsDirection.CLIENT_TO_WAREHOUSE) {
-                drawLine(graphics, clientPoint[0], clientPoint[1], warehouse[0], warehouse[1], color);
+                LogisticsMapOverlay.drawRoute(graphics, clientPoint[0], clientPoint[1],
+                        warehouse[0], warehouse[1], channel.enabled(), lane, highlighted, false);
             } else {
-                drawLine(graphics, warehouse[0], warehouse[1], clientPoint[0], clientPoint[1], color);
+                LogisticsMapOverlay.drawRoute(graphics, warehouse[0], warehouse[1],
+                        clientPoint[0], clientPoint[1], channel.enabled(), lane, highlighted, false);
             }
         }
     }
 
-    /** renderMarkers: 绘制仓库和客户端节点。 */
-    private void renderMarkers(GuiGraphics graphics, int mapWidth, int mouseX, int mouseY) {
+    /** renderMarkers: 绘制仓库仓房图标和客户端菱形节点。 */
+    private void renderMarkers(GuiGraphics graphics, int mapWidth) {
         int centerX = mapWidth / 2;
         int centerY = this.height / 2;
-        hoveredClientId = null;
         int[] warehouse = worldToScreen(packet.boxPos(), centerX, centerY);
         QuickEndpoint warehouseEndpoint = warehouseEndpoint();
-        drawMarker(graphics, warehouse[0], warehouse[1], LogisticsNativeStyle.WAREHOUSE, "W", false,
-                warehouseEndpoint.equals(quickReceiver), warehouseEndpoint.equals(quickSender));
+        LogisticsMapOverlay.drawWarehouseMarker(graphics, this.font, warehouse[0], warehouse[1],
+                Component.translatable("gui.simukraft.logistics.node.warehouse").getString(),
+                hoveredWarehouse, warehouseEndpoint.equals(quickReceiver), warehouseEndpoint.equals(quickSender));
         for (LogisticsControlBoxService.ClientEntry client : packet.clients()) {
             int[] screen = worldToScreen(client.boxPos(), centerX, centerY);
-            boolean selected = client.clientId().equals(selectedClientId);
+            boolean selected = client.clientId().equals(selectedClientId) || client.clientId().equals(hoveredClientId);
             QuickEndpoint endpoint = clientEndpoint(client);
-            drawMarker(graphics, screen[0], screen[1], LogisticsNativeStyle.CLIENT, "C", selected,
-                    endpoint.equals(quickReceiver), endpoint.equals(quickSender));
-            if (containsMarker(mouseX, mouseY, screen[0], screen[1])) {
-                hoveredClientId = client.clientId();
-            }
+            LogisticsMapOverlay.drawClientMarker(graphics, this.font, screen[0], screen[1], client.name(),
+                    selected, endpoint.equals(quickReceiver), endpoint.equals(quickSender));
         }
     }
 
@@ -367,65 +383,153 @@ final class LogisticsNetworkMapScreen extends Screen {
         }
     }
 
-    /** renderHoverTooltip: 显示客户端节点悬浮提示。 */
+    /** renderHoverTooltip: 显示端点或鼠标附近路线的悬浮框。 */
     private void renderHoverTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
-        LogisticsControlBoxService.ClientEntry client = client(hoveredClientId);
-        if (client == null) {
+        List<Component> lines = hoverTooltipLines();
+        if (lines.isEmpty()) {
             return;
         }
-        graphics.renderComponentTooltip(this.font, List.of(
-                Component.translatable("gui.simukraft.logistics.map.marker.client", client.name()),
-                Component.translatable("gui.simukraft.logistics.map.marker.ports", client.portCount()),
-                Component.literal(LogisticsNativeStyle.posText(client.boxPos())),
-                Component.translatable("gui.simukraft.logistics.map.quick_tooltip")
-        ), mouseX, mouseY);
+        graphics.renderComponentTooltip(this.font, lines, mouseX, mouseY);
     }
 
-    /** drawMarker: 绘制旧版方块节点标记和快速创建端点框。 */
-    private void drawMarker(GuiGraphics graphics, int x, int y, int color, String label, boolean selected, boolean receiver, boolean sender) {
-        if (sender) {
-            drawMarkerFrame(graphics, x, y, 0xFFFF6644, MARKER_SIZE + 5);
+    /** hoverTooltipLines: 组装端点信息和附近路线文本。 */
+    private List<Component> hoverTooltipLines() {
+        List<Component> lines = new ArrayList<>();
+        LogisticsControlBoxService.ClientEntry hoveredClient = client(hoveredClientId);
+        if (hoveredClient != null) {
+            lines.add(Component.translatable("gui.simukraft.logistics.map.marker.client", hoveredClient.name()));
+            lines.add(Component.translatable("gui.simukraft.logistics.map.marker.ports", hoveredClient.portCount()));
+            lines.add(Component.literal(LogisticsNativeStyle.posText(hoveredClient.boxPos())));
+            lines.add(Component.translatable("gui.simukraft.logistics.map.quick_tooltip"));
+        } else if (hoveredWarehouse) {
+            lines.add(Component.translatable("gui.simukraft.logistics.map.marker.warehouse"));
+            lines.add(Component.literal(LogisticsNativeStyle.posText(packet.boxPos())));
+            lines.add(Component.translatable("gui.simukraft.logistics.map.quick_tooltip"));
         }
-        if (receiver) {
-            drawMarkerFrame(graphics, x, y, 0xFF66AAFF, MARKER_SIZE + 3);
+        if (hoveredRoutes.isEmpty()) {
+            return lines;
         }
-        if (selected) {
-            graphics.fill(x - MARKER_SIZE - 2, y - MARKER_SIZE - 2, x + MARKER_SIZE + 2, y + MARKER_SIZE + 2, 0xFFFFFFFF);
+        if (!lines.isEmpty()) {
+            lines.add(Component.empty());
         }
-        graphics.fill(x - MARKER_SIZE, y - MARKER_SIZE, x + MARKER_SIZE, y + MARKER_SIZE, color);
-        graphics.drawCenteredString(this.font, label, x, y - 4, LogisticsNativeStyle.TEXT);
+        lines.add(Component.translatable("gui.simukraft.logistics.map.nearby_routes"));
+        for (HoveredRoute hovered : hoveredRoutes) {
+            String status = Component.translatable(hovered.channel().enabled()
+                    ? "gui.simukraft.logistics.map.route_on"
+                    : "gui.simukraft.logistics.map.route_off").getString();
+            String direction = Component.translatable(hovered.channel().direction() == LogisticsDirection.WAREHOUSE_TO_CLIENT
+                    ? "gui.simukraft.logistics.route_in"
+                    : "gui.simukraft.logistics.route_out").getString();
+            String name = LogisticsItemDisplayName.channelName(hovered.channel().name(), hovered.channel().filters());
+            String clientName = hovered.client() == null ? "-" : hovered.client().name();
+            lines.add(Component.translatable("gui.simukraft.logistics.map.route_entry",
+                    status, direction, clientName + " · " + name));
+            lines.add(Component.translatable("gui.simukraft.logistics.map.route_items",
+                    LogisticsItemDisplayName.filterText(hovered.channel().filters())));
+        }
+        return lines;
     }
 
-    /** drawMarkerFrame: 绘制节点外框，用于区分发送端和接收端。 */
-    private void drawMarkerFrame(GuiGraphics graphics, int x, int y, int color, int radius) {
-        graphics.fill(x - radius, y - radius, x + radius, y - radius + 1, color);
-        graphics.fill(x - radius, y + radius - 1, x + radius, y + radius, color);
-        graphics.fill(x - radius, y - radius, x - radius + 1, y + radius, color);
-        graphics.fill(x + radius - 1, y - radius, x + radius, y + radius, color);
-    }
-
-    /** drawLine: 用 Bresenham 算法绘制像素线路。 */
-    private void drawLine(GuiGraphics graphics, int x1, int y1, int x2, int y2, int color) {
-        int dx = Math.abs(x2 - x1);
-        int dy = Math.abs(y2 - y1);
-        int sx = x1 < x2 ? 1 : -1;
-        int sy = y1 < y2 ? 1 : -1;
-        int err = dx - dy;
-        while (true) {
-            graphics.fill(x1, y1, x1 + 1, y1 + 1, color);
-            if (x1 == x2 && y1 == y2) {
+    /** updateHover: 根据鼠标位置找出端点和附近路线。 */
+    private void updateHover(int mouseX, int mouseY, int mapWidth) {
+        hoveredClientId = null;
+        hoveredWarehouse = false;
+        hoveredRoutes = List.of();
+        if (dragging || mouseY >= this.height - 25 || mouseX >= mapWidth) {
+            return;
+        }
+        int centerX = mapWidth / 2;
+        int centerY = this.height / 2;
+        int[] warehouse = worldToScreen(packet.boxPos(), centerX, centerY);
+        if (LogisticsMapOverlay.containsMarker(mouseX, mouseY, warehouse[0], warehouse[1])) {
+            hoveredWarehouse = true;
+        }
+        for (LogisticsControlBoxService.ClientEntry clientEntry : packet.clients()) {
+            int[] screen = worldToScreen(clientEntry.boxPos(), centerX, centerY);
+            if (LogisticsMapOverlay.containsMarker(mouseX, mouseY, screen[0], screen[1])) {
+                hoveredClientId = clientEntry.clientId();
                 break;
             }
-            int e2 = 2 * err;
-            if (e2 > -dy) {
-                err -= dy;
-                x1 += sx;
+        }
+        hoveredRoutes = nearbyRoutes(mouseX, mouseY, warehouse, centerX, centerY);
+    }
+
+    /** nearbyRoutes: 收集鼠标附近的路线，端点上会带上该节点相关线路。 */
+    private List<HoveredRoute> nearbyRoutes(int mouseX, int mouseY, int[] warehouse, int centerX, int centerY) {
+        List<HoveredRoute> nearby = new ArrayList<>();
+        Set<UUID> seen = new HashSet<>();
+        for (LogisticsControlBoxService.ChannelEntry channel : packet.channels()) {
+            LogisticsControlBoxService.ClientEntry clientEntry = client(channel.clientId());
+            if (clientEntry == null) {
+                continue;
             }
-            if (e2 < dx) {
-                err += dx;
-                y1 += sy;
+            int[] clientPoint = worldToScreen(clientEntry.boxPos(), centerX, centerY);
+            float lane = hasBothDirections(channel.clientId())
+                    ? 0.0F
+                    : LogisticsMapOverlay.laneOffset(channelLaneSlot(channel), channelLaneCount(channel.clientId()));
+            double distance = LogisticsMapOverlay.routeDistance(
+                    mouseX, mouseY, warehouse[0], warehouse[1], clientPoint[0], clientPoint[1], lane);
+            boolean onEndpoint = hoveredWarehouse || channel.clientId().equals(hoveredClientId);
+            if (!onEndpoint && distance > LogisticsMapOverlay.ROUTE_HOVER_DISTANCE) {
+                continue;
+            }
+            if (!seen.add(channel.channelId())) {
+                continue;
+            }
+            nearby.add(new HoveredRoute(channel, clientEntry, distance));
+        }
+        nearby.sort(Comparator.comparingDouble(HoveredRoute::distance));
+        if (nearby.size() > 8) {
+            return List.copyOf(nearby.subList(0, 8));
+        }
+        return List.copyOf(nearby);
+    }
+
+    /** hasBothDirections: 同一客户端同时存在补货和回收时视为双向。 */
+    private boolean hasBothDirections(UUID clientId) {
+        boolean toClient = false;
+        boolean toWarehouse = false;
+        for (LogisticsControlBoxService.ChannelEntry channel : packet.channels()) {
+            if (!clientId.equals(channel.clientId()) || channel.direction() == null) {
+                continue;
+            }
+            if (channel.direction() == LogisticsDirection.WAREHOUSE_TO_CLIENT) {
+                toClient = true;
+            } else if (channel.direction() == LogisticsDirection.CLIENT_TO_WAREHOUSE) {
+                toWarehouse = true;
+            }
+            if (toClient && toWarehouse) {
+                return true;
             }
         }
+        return false;
+    }
+
+    private boolean anyChannelEnabled(UUID clientId) {
+        for (LogisticsControlBoxService.ChannelEntry channel : packet.channels()) {
+            if (clientId.equals(channel.clientId()) && channel.enabled()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean anyChannelHovered(UUID clientId) {
+        for (HoveredRoute hovered : hoveredRoutes) {
+            if (clientId.equals(hovered.channel().clientId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isHoveredRoute(UUID channelId) {
+        for (HoveredRoute hovered : hoveredRoutes) {
+            if (hovered.channel().channelId().equals(channelId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** endpointAt: 查询鼠标下的仓库或客户端节点。 */
@@ -433,12 +537,12 @@ final class LogisticsNetworkMapScreen extends Screen {
         int centerX = mapWidth() / 2;
         int centerY = this.height / 2;
         int[] warehouse = worldToScreen(packet.boxPos(), centerX, centerY);
-        if (containsMarker(mouseX, mouseY, warehouse[0], warehouse[1])) {
+        if (LogisticsMapOverlay.containsMarker(mouseX, mouseY, warehouse[0], warehouse[1])) {
             return warehouseEndpoint();
         }
         for (LogisticsControlBoxService.ClientEntry client : packet.clients()) {
             int[] screen = worldToScreen(client.boxPos(), centerX, centerY);
-            if (containsMarker(mouseX, mouseY, screen[0], screen[1])) {
+            if (LogisticsMapOverlay.containsMarker(mouseX, mouseY, screen[0], screen[1])) {
                 return clientEndpoint(client);
             }
         }
@@ -551,12 +655,37 @@ final class LogisticsNetworkMapScreen extends Screen {
         return selectedClientId == null ? this.width : this.width - 180;
     }
 
-    /** containsMarker: 判断点是否命中节点标记。 */
-    private static boolean containsMarker(double mouseX, double mouseY, int x, int y) {
-        return mouseX >= x - MARKER_SIZE && mouseX <= x + MARKER_SIZE && mouseY >= y - MARKER_SIZE && mouseY <= y + MARKER_SIZE;
+    /** channelLaneSlot: 同一客户端多条线路时的错开序号。 */
+    private int channelLaneSlot(LogisticsControlBoxService.ChannelEntry channel) {
+        int slot = 0;
+        for (LogisticsControlBoxService.ChannelEntry other : packet.channels()) {
+            if (!channel.clientId().equals(other.clientId())) {
+                continue;
+            }
+            if (channel.channelId().equals(other.channelId())) {
+                return slot;
+            }
+            slot++;
+        }
+        return 0;
     }
 
-    /** filterText: 格式化频道物品过滤列表。 */
+    /** channelLaneCount: 统计指向同一客户端的线路数量。 */
+    private int channelLaneCount(UUID clientId) {
+        int count = 0;
+        for (LogisticsControlBoxService.ChannelEntry channel : packet.channels()) {
+            if (clientId.equals(channel.clientId())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     private record QuickEndpoint(boolean warehouse, UUID clientId, BlockPos pos) {
+    }
+
+    private record HoveredRoute(LogisticsControlBoxService.ChannelEntry channel,
+                                LogisticsControlBoxService.ClientEntry client,
+                                double distance) {
     }
 }

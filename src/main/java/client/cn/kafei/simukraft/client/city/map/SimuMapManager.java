@@ -128,6 +128,7 @@ public class SimuMapManager {
     /**
      * onBlockAtlasReloaded: 方块图集重建后清空贴图色缓存并重扫已加载区块。
      */
+    @SuppressWarnings("null")
     public static void onBlockAtlasReloaded() {
         SimuBlockTextureColors.clear();
         if (instance == null || !instance.initialized) {

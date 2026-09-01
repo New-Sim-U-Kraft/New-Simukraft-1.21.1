@@ -32,7 +32,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
@@ -93,7 +93,7 @@ public final class ClientModBusSetup {
     /** onBlockAtlasStitched: 方块图集重建后刷新地图贴图色。 */
     @SubscribeEvent
     public static void onBlockAtlasStitched(TextureAtlasStitchedEvent event) {
-        if (TextureAtlas.LOCATION_BLOCKS.equals(event.getAtlas().location())) {
+        if (InventoryMenu.BLOCK_ATLAS.equals(event.getAtlas().location())) {
             SimuMapManager.onBlockAtlasReloaded();
         }
     }
