@@ -101,4 +101,13 @@ public final class ClientSetup {
         }
         SimuMapManager.getInstance().onClientChunkLoaded((net.minecraft.world.level.Level) event.getLevel(), event.getChunk());
     }
+
+    /** onClientChunkUnload: 释放该区块的已扫描标记，下次加载会重新采样。 */
+    @SubscribeEvent
+    public static void onClientChunkUnload(ChunkEvent.Unload event) {
+        if (!SimuMapManager.isAvailable() || !event.getLevel().isClientSide()) {
+            return;
+        }
+        SimuMapManager.getInstance().onClientChunkUnloaded(event.getChunk().getPos());
+    }
 }

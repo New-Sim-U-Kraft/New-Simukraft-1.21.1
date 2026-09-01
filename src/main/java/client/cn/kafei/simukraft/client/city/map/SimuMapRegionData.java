@@ -27,6 +27,12 @@ public class SimuMapRegionData {
     /** 数据是否被修改，需要重新渲染。 */
     private volatile boolean dirty = true;
 
+    /** 数据是否需要写回当前存档的磁盘缓存。 */
+    private volatile boolean saveDirty = true;
+
+    /** 已采样的非空列数量，避免 isEmpty 每次扫 26 万格。 */
+    private int filled;
+
     /** 该数据所属 region 坐标。 */
     public final int regionX;
     public final int regionZ;
@@ -49,10 +55,16 @@ public class SimuMapRegionData {
         if (height[idx] == h && color[idx] == argbColor && flags[idx] == f) {
             return;
         }
+        if (height[idx] == HEIGHT_UNKNOWN && h != HEIGHT_UNKNOWN) {
+            filled++;
+        } else if (height[idx] != HEIGHT_UNKNOWN && h == HEIGHT_UNKNOWN) {
+            filled--;
+        }
         height[idx] = h;
         color[idx] = argbColor;
         flags[idx] = f;
         dirty = true;
+        saveDirty = true;
     }
 
     /** 获取指定位置的高度。 */
@@ -92,10 +104,22 @@ public class SimuMapRegionData {
 
     /** 检查该 region 是否完全空白。 */
     public boolean isEmpty() {
-        for (short h : height) {
-            if (h != HEIGHT_UNKNOWN) return false;
-        }
-        return true;
+        return filled <= 0;
+    }
+
+    /** needsSave: 是否有尚未写入当前存档目录的修改。 */
+    public boolean needsSave() {
+        return saveDirty;
+    }
+
+    /** markSaved: 磁盘写入成功后清除存盘脏标记。 */
+    public void markSaved() {
+        saveDirty = false;
+    }
+
+    /** setFilledCount: 从磁盘加载后设置已填充列数。 */
+    public void setFilledCount(int filledCount) {
+        filled = Math.max(0, filledCount);
     }
 
     /** 获取该 region 起点的世界 X 坐标。 */

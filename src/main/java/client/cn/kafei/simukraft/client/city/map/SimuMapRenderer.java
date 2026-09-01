@@ -8,14 +8,15 @@ import java.util.Arrays;
 /**
  * 地图渲染器。
  * 将 {@link SimuMapRegionData} 的颜色和高度数据渲染到 {@link NativeImage}。
+ * 使用西北坡度明暗而不是整块加减，避免把草地画成亮绿色色块。
  */
 @OnlyIn(Dist.CLIENT)
 public class SimuMapRenderer {
 
-    private static float shadowStrength = 0.4f;
-    private static float noiseStrength = 0.02f;
-    private static boolean drawChunkGrid = true;
-    private static final int GRID_COLOR = 0x32464646;
+    private static float shadowStrength = 1.0f;
+    private static float noiseStrength = 0.03f;
+    private static boolean drawChunkGrid = false;
+    private static final int GRID_COLOR = 0x28464646;
 
     private SimuMapRenderer() {
     }
@@ -64,27 +65,21 @@ public class SimuMapRenderer {
                 boolean isWater = (flags[idx] & 1) != 0;
 
                 if (shadowStrength > 0) {
-                    float brightness = 0;
-
                     short heightN = z > 0 ? heights[x + (z - 1) * 512] : height;
                     short heightW = x > 0 ? heights[(x - 1) + z * 512] : height;
-
-                    if (heightN != SimuMapRegionData.HEIGHT_UNKNOWN && heightW != SimuMapRegionData.HEIGHT_UNKNOWN) {
-                        float shadowScale = isWater ? shadowStrength * 0.5f : shadowStrength;
-                        if (height > heightN || height > heightW) {
-                            brightness += shadowScale;
-                        }
-                        if (height < heightN || height < heightW) {
-                            brightness -= shadowScale;
-                        }
+                    if (heightN == SimuMapRegionData.HEIGHT_UNKNOWN) {
+                        heightN = height;
                     }
-
+                    if (heightW == SimuMapRegionData.HEIGHT_UNKNOWN) {
+                        heightW = height;
+                    }
+                    float brightness = SimuBlockColors.slopeBrightness(height, heightN, heightW, isWater)
+                            * shadowStrength;
                     if (noiseStrength > 0) {
                         long seed = (long) (regWX + x) * 31 + (regWZ + z);
                         float noise = ((seed * 6364136223846793005L + 1442695040888963407L) >> 33 & 0xFF) / 255f;
                         brightness += (noise - 0.5f) * noiseStrength;
                     }
-
                     if (brightness != 0) {
                         argb = SimuBlockColors.adjustBrightness(argb, brightness);
                     }

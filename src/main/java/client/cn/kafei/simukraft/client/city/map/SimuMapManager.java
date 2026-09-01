@@ -6,6 +6,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import org.jetbrains.annotations.Nullable;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -37,6 +39,7 @@ public class SimuMapManager {
     private static final int AUTO_SAVE_INTERVAL_TICKS = 1200;
     private static final int STALE_RELEASE_INTERVAL_TICKS = 600;
     private static final long STALE_REGION_MAX_AGE_MS = 60_000L;
+    private static final int ACTIVE_REFRESH_INTERVAL_TICKS = 200;
 
     private static SimuMapManager instance;
 
@@ -48,6 +51,7 @@ public class SimuMapManager {
 
     private final Map<Long, SimuMapRegion> regions = new ConcurrentHashMap<>();
     private final Set<Long> renderingKeys = ConcurrentHashMap.newKeySet();
+    private final Map<Long, Long> scannedAtTick = new ConcurrentHashMap<>();
 
     private int scanRadius = DEFAULT_SCAN_RADIUS;
     private long tickCount = 0L;
@@ -56,14 +60,14 @@ public class SimuMapManager {
     private int scanCursorDZ = -DEFAULT_SCAN_RADIUS;
     private int scanCursorRadius = DEFAULT_SCAN_RADIUS;
 
-    private boolean initialized = false;
-    private int loadGeneration = 0;
+    private volatile boolean initialized = false;
+    private volatile int loadGeneration = 0;
 
     @Nullable
-    private ResourceKey<Level> currentDimension = null;
+    private volatile ResourceKey<Level> currentDimension = null;
 
     @Nullable
-    private String currentWorldId = null;
+    private volatile String currentWorldId = null;
 
     private int activeConsumers = 0;
 
@@ -112,13 +116,32 @@ public class SimuMapManager {
         currentWorldId = SimuMapStorage.getCurrentWorldId();
         currentDimension = minecraft.level == null ? null : minecraft.level.dimension();
 
-        if (currentDimension != null) {
+        if (currentDimension != null && SimuMapStorage.isResolvedWorldId(currentWorldId)) {
             queueRegionLoad(currentWorldId, currentDimension);
             LOGGER.info("Simukraft: Map system initialization queued for world={} dim={}.",
                     currentWorldId, SimuMapStorage.dimensionToDir(currentDimension));
         } else {
-            LOGGER.info("Simukraft: Map system initialized (dimension not yet known).");
+            LOGGER.info("Simukraft: Map system initialized (world identity not yet resolved).");
         }
+    }
+
+    /**
+     * onBlockAtlasReloaded: 方块图集重建后清空贴图色缓存并重扫已加载区块。
+     */
+    public static void onBlockAtlasReloaded() {
+        SimuBlockTextureColors.clear();
+        if (instance == null || !instance.initialized) {
+            return;
+        }
+        instance.scannedAtTick.clear();
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player != null) {
+            instance.forceScanArea(
+                    minecraft.player.chunkPosition().x,
+                    minecraft.player.chunkPosition().z,
+                    instance.getEffectiveScanRadius());
+        }
+        instance.forceRenderAll();
     }
 
     public void shutdown() {
@@ -126,6 +149,7 @@ public class SimuMapManager {
             return;
         }
         initialized = false;
+        SimuBlockTextureColors.clear();
 
         persistRegionsAsync(currentWorldId, currentDimension, List.copyOf(regions.values()), "shutdown");
 
@@ -135,6 +159,7 @@ public class SimuMapManager {
 
         regions.clear();
         renderingKeys.clear();
+        scannedAtTick.clear();
         renderExecutor.shutdownNow();
 
         instance = null;
@@ -201,7 +226,7 @@ public class SimuMapManager {
                     continue;
                 }
 
-                scanLoadedChunk(level, chunkX, chunkZ);
+                scanLoadedChunk(level, chunkX, chunkZ, false);
             }
         }
     }
@@ -239,31 +264,45 @@ public class SimuMapManager {
         }
 
         updateScope(SimuMapStorage.getCurrentWorldId(), level.dimension());
-        scanLoadedChunk(level, chunk, chunk.getPos().x, chunk.getPos().z);
+        scanLoadedChunk(level, chunk, chunk.getPos().x, chunk.getPos().z, false);
+    }
+
+    /** onClientChunkUnloaded: 卸载后允许下次加载重新采样，建筑变化能反映到地图。 */
+    public void onClientChunkUnloaded(ChunkPos chunkPos) {
+        if (chunkPos == null) {
+            return;
+        }
+        scannedAtTick.remove(chunkPos.toLong());
     }
 
     private void updateScope(String worldId, ResourceKey<Level> dimension) {
         String previousWorldId = currentWorldId;
         ResourceKey<Level> previousDimension = currentDimension;
-        if (worldId.equals(previousWorldId) && dimension.equals(previousDimension)) {
+        if (Objects.equals(worldId, previousWorldId) && Objects.equals(dimension, previousDimension)) {
             return;
         }
 
         if (previousWorldId != null && previousDimension != null) {
-            persistRegionsAsync(previousWorldId, previousDimension, List.copyOf(regions.values()), "world_or_dimension_change");
-            LOGGER.info("Simukraft: Map scope changed from world={} dim={} to world={} dim={}, queued async save for {} regions.",
-                    previousWorldId, SimuMapStorage.dimensionToDir(previousDimension),
-                    worldId, SimuMapStorage.dimensionToDir(dimension), regions.size());
-            regions.clear();
-            renderingKeys.clear();
-            resetScanCursor();
+            boolean sameDimension = previousDimension.equals(dimension);
+            if (SimuMapStorage.isResolvedWorldId(previousWorldId) || !sameDimension) {
+                persistRegionsAsync(previousWorldId, previousDimension, List.copyOf(regions.values()), "world_or_dimension_change");
+                LOGGER.info("Simukraft: Map scope changed from world={} dim={} to world={} dim={}, queued async save for {} regions.",
+                        previousWorldId, SimuMapStorage.dimensionToDir(previousDimension),
+                        worldId, SimuMapStorage.dimensionToDir(dimension), regions.size());
+                regions.clear();
+                renderingKeys.clear();
+                scannedAtTick.clear();
+                resetScanCursor();
+            }
         } else if (previousDimension == null) {
             LOGGER.info("Simukraft: First dimension acquired: {}.", SimuMapStorage.dimensionToDir(dimension));
         }
 
         currentWorldId = worldId;
         currentDimension = dimension;
-        queueRegionLoad(worldId, dimension);
+        if (SimuMapStorage.isResolvedWorldId(worldId)) {
+            queueRegionLoad(worldId, dimension);
+        }
     }
 
     private boolean shouldScanThisTick(boolean active) {
@@ -310,28 +349,48 @@ public class SimuMapManager {
                 continue;
             }
 
-            if (scanLoadedChunk(level, chunkX, chunkZ)) {
+            if (scanLoadedChunk(level, chunkX, chunkZ, false)) {
                 scanned++;
             }
         }
     }
 
-    private boolean scanLoadedChunk(Level level, int chunkX, int chunkZ) {
+    private boolean scanLoadedChunk(Level level, int chunkX, int chunkZ, boolean force) {
         ChunkAccess chunk = SimuChunkScanner.getLoadedChunk(level, chunkX, chunkZ);
         if (chunk == null) {
             return false;
         }
-        return scanLoadedChunk(level, chunk, chunkX, chunkZ);
+        return scanLoadedChunk(level, chunk, chunkX, chunkZ, force);
     }
 
-    private boolean scanLoadedChunk(Level level, ChunkAccess chunk, int chunkX, int chunkZ) {
+    private boolean scanLoadedChunk(Level level, ChunkAccess chunk, int chunkX, int chunkZ, boolean force) {
+        long chunkLong = ChunkPos.asLong(chunkX, chunkZ);
+        if (!force && !shouldScanChunk(chunkLong)) {
+            return false;
+        }
         SimuMapRegion region = getOrCreateRegion(chunkX >> 5, chunkZ >> 5);
         try {
-            return SimuChunkScanner.scanChunk(level, chunk, chunkX, chunkZ, region);
+            boolean scanned = SimuChunkScanner.scanChunk(level, chunk, chunkX, chunkZ, region);
+            if (scanned) {
+                scannedAtTick.put(chunkLong, tickCount);
+            }
+            return scanned;
         } catch (Exception e) {
             LOGGER.debug("Simukraft: Chunk scan failed for ({}, {}): {}", chunkX, chunkZ, e.getMessage());
             return false;
         }
+    }
+
+    /** shouldScanChunk: 未扫描过的区块立刻采；地图打开时隔一段时间才重扫。 */
+    private boolean shouldScanChunk(long chunkLong) {
+        Long lastScanTick = scannedAtTick.get(chunkLong);
+        if (lastScanTick == null) {
+            return true;
+        }
+        if (!hasActiveConsumer()) {
+            return false;
+        }
+        return tickCount - lastScanTick >= ACTIVE_REFRESH_INTERVAL_TICKS;
     }
 
     private void resetScanCursor() {
@@ -408,7 +467,7 @@ public class SimuMapManager {
             region.releaseTexture();
         }
 
-        if (worldId != null && dimension != null) {
+        if (SimuMapStorage.isResolvedWorldId(worldId) && dimension != null) {
             SimuMapStorage.saveAllAsync(worldId, dimension, regionSnapshot, reason, true);
             return;
         }
@@ -419,18 +478,23 @@ public class SimuMapManager {
     }
 
     private void queueRegionLoad(String worldId, ResourceKey<Level> dimension) {
+        if (!SimuMapStorage.isResolvedWorldId(worldId) || dimension == null) {
+            return;
+        }
         int currentLoadGeneration = ++loadGeneration;
         SimuMapStorage.loadAllAsync(worldId, dimension, loadedRegions -> {
-            if (!initialized || currentLoadGeneration != loadGeneration) {
-                return;
-            }
-            if (currentDimension == null || !currentDimension.equals(dimension)) {
-                return;
-            }
+            Minecraft.getInstance().execute(() -> {
+                if (!initialized || currentLoadGeneration != loadGeneration) {
+                    return;
+                }
+                if (!worldId.equals(currentWorldId) || currentDimension == null || !currentDimension.equals(dimension)) {
+                    return;
+                }
 
-            loadedRegions.forEach(regions::putIfAbsent);
-            LOGGER.info("Simukraft: Async-loaded {} regions for world={} dim={}.",
-                    loadedRegions.size(), worldId, SimuMapStorage.dimensionToDir(dimension));
+                loadedRegions.forEach(regions::putIfAbsent);
+                LOGGER.info("Simukraft: Async-loaded {} regions for world={} dim={}.",
+                        loadedRegions.size(), worldId, SimuMapStorage.dimensionToDir(dimension));
+            });
         });
     }
 

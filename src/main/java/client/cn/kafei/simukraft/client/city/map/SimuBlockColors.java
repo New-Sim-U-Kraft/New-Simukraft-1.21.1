@@ -6,24 +6,30 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.block.BlockColors;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.util.FastColor;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.GrassBlock;
+import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.material.MapColor;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Simukraft 自有方块颜色映射系统。
- * 为方块状态计算 ARGB 地图颜色，完全独立于 FTB/Xaero。
+ * 优先用顶面纹理均值乘生物群系着色，接近 Xaero World Map 的地表质感。
  */
 @OnlyIn(Dist.CLIENT)
 public class SimuBlockColors {
     private static final SimuBlockColors INSTANCE = new SimuBlockColors();
-    private final Map<Block, Integer> colorOverrides = new HashMap<>();
+    private final Map<Block, Integer> colorOverrides = new ConcurrentHashMap<>();
     private boolean initialized = false;
 
     private SimuBlockColors() {
@@ -77,53 +83,117 @@ public class SimuBlockColors {
 
     /**
      * 获取方块在给定位置的地图颜色。
-     * 
+     *
      * @param state 方块状态
      * @param level 世界实例
      * @param pos 方块位置
      * @return ARGB 颜色值
      */
     public int getBlockColor(BlockState state, Level level, BlockPos pos) {
-        Block block = state.getBlock();
-
-        Integer override = colorOverrides.get(block);
-        if (override != null) {
-            return override;
-        }
-
         if (state.isAir()) {
             return 0x00000000;
         }
 
+        int textureColor = colorFromTexture(state, level, pos);
+        if (textureColor != 0) {
+            return textureColor;
+        }
+
+        Integer override = colorOverrides.get(state.getBlock());
+        if (override != null) {
+            return tintedFallback(state, level, pos, override);
+        }
+
+        try {
+            MapColor mapColor = state.getMapColor(Objects.requireNonNull(level), Objects.requireNonNull(pos));
+            if (mapColor != MapColor.NONE) {
+                return tintedFallback(state, level, pos, 0xFF000000 | mapColor.col);
+            }
+        } catch (RuntimeException ignored) {
+        }
+
+        return 0xFF7F7F7F;
+    }
+
+    /**
+     * colorFromTexture: 用顶面贴图均值乘生物群系着色，失败返回 0。
+     */
+    private int colorFromTexture(BlockState state, Level level, BlockPos pos) {
+        SimuBlockTextureColors.SampledTexture sampled = SimuBlockTextureColors.sample(state);
+        if (sampled == null) {
+            return 0;
+        }
+        int color = sampled.argb();
+        if (!sampled.tinted()) {
+            return 0xFF000000 | color;
+        }
+        int tint = readBlockTint(state, level, pos, sampled.tintIndex());
+        if (tint == -1) {
+            tint = inferBiomeTint(state, level, pos);
+        }
+        if (tint == -1) {
+            return 0xFF000000 | color;
+        }
+        return multiplyTint(color, tint);
+    }
+
+    /**
+     * tintedFallback: 无贴图时用中灰乘群系色，避免草地直接变成原版亮绿。
+     */
+    private int tintedFallback(BlockState state, Level level, BlockPos pos, int baseColor) {
+        int tint = inferBiomeTint(state, level, pos);
+        if (tint == -1) {
+            return baseColor;
+        }
+        return multiplyTint(0xFF9A9A9A, tint);
+    }
+
+    private int readBlockTint(BlockState state, Level level, BlockPos pos, int tintIndex) {
+        try {
+            BlockColors blockColors = Minecraft.getInstance().getBlockColors();
+            int tintColor = blockColors.getColor(state, level, pos, tintIndex);
+            if (tintColor != -1 && tintColor != 0) {
+                return tintColor;
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return -1;
+    }
+
+    private int inferBiomeTint(BlockState state, Level level, BlockPos pos) {
+        Block block = state.getBlock();
         if (block instanceof GrassBlock) {
             return getBiomeGrassColor(level, pos);
         }
         if (state.is(Objects.requireNonNull(BlockTags.LEAVES))) {
             return getBiomeFoliageColor(level, pos);
         }
-
-        if (block instanceof LiquidBlock) {
+        if (block instanceof LiquidBlock && state.getFluidState().is(Fluids.WATER)) {
             return getBiomeWaterColor(level, pos);
         }
+        return -1;
+    }
 
-        try {
-            BlockColors blockColors = Minecraft.getInstance().getBlockColors();
-            int tintColor = blockColors.getColor(state, level, pos, 0);
-            if (tintColor != -1 && tintColor != 0) {
-                return 0xFF000000 | tintColor;
-            }
-        } catch (Exception ignored) {
+    /**
+     * multiplyTint: 将纹理底色与生物群系着色相乘，得到 Xaero 风格的地表色。
+     */
+    public static int multiplyTint(int argb, int tintRgb) {
+        if (tintRgb == -1 || (tintRgb & 0x00FFFFFF) == 0x00FFFFFF) {
+            return argb;
         }
-
-        try {
-            MapColor mapColor = state.getMapColor(Objects.requireNonNull(level), Objects.requireNonNull(pos));
-            if (mapColor != MapColor.NONE) {
-                return 0xFF000000 | mapColor.col;
-            }
-        } catch (Exception ignored) {
+        int tint = tintRgb;
+        if ((tint >>> 24) == 0) {
+            tint = 0xFF000000 | (tint & 0x00FFFFFF);
         }
+        return FastColor.ARGB32.multiply(argb | 0xFF000000, tint);
+    }
 
-        return 0xFF7F7F7F;
+    /**
+     * slopeBrightness: 按西北高差计算明暗，正值表示迎光脊线。
+     */
+    public static float slopeBrightness(int height, int north, int west, boolean water) {
+        float scale = water ? 0.045f : 0.09f;
+        return Mth.clamp(((height - north) + (height - west)) * scale, -0.42f, 0.38f);
     }
 
     /** 获取生物群系草地颜色。 */

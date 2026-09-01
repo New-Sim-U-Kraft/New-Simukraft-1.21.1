@@ -4,11 +4,14 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.platform.TextureUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
+import org.lwjgl.opengl.GL30;
 import org.slf4j.Logger;
 
 /**
@@ -18,6 +21,7 @@ import org.slf4j.Logger;
 @OnlyIn(Dist.CLIENT)
 public class SimuMapRegion {
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final int MIPMAP_LEVELS = 8;
 
     public final int regionX;
     public final int regionZ;
@@ -86,8 +90,8 @@ public class SimuMapRegion {
     /** 获取 OpenGL 纹理 ID，并在需要时上传图像数据。 */
     public int getTextureId() {
         if (textureId == -1) {
-            textureId = com.mojang.blaze3d.platform.TextureUtil.generateTextureId();
-            com.mojang.blaze3d.platform.TextureUtil.prepareImage(textureId, 512, 512);
+            textureId = TextureUtil.generateTextureId();
+            TextureUtil.prepareImage(textureId, MIPMAP_LEVELS, 512, 512);
         }
 
         if (textureNeedsUpload && renderedImage != null) {
@@ -104,11 +108,14 @@ public class SimuMapRegion {
     private void uploadNow() {
         try {
             RenderSystem.bindTexture(textureId);
-            GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
-            GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
             synchronized (this) {
                 if (renderedImage != null) {
-                    renderedImage.upload(0, 0, 0, false);
+                    renderedImage.upload(0, 0, 0, 0, 0, 512, 512, false, true, false, false);
+                    GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
+                    GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+                    GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
+                    GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
+                    GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
                     imageLoaded = true;
                     textureNeedsUpload = false;
                 }

@@ -2,6 +2,7 @@ package client.cn.kafei.simukraft;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import client.cn.kafei.simukraft.client.bridge.ClientInteractionHandlerImpl;
+import client.cn.kafei.simukraft.client.city.map.SimuMapManager;
 import client.cn.kafei.simukraft.client.buildbox.BuildingBoundsRenderer;
 import client.cn.kafei.simukraft.client.config.ConfigButtonHandler;
 import client.cn.kafei.simukraft.client.config.SimuKraftConfigScreen;
@@ -31,9 +32,11 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.event.TextureAtlasStitchedEvent;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
@@ -85,6 +88,14 @@ public final class ClientModBusSetup {
     @SubscribeEvent
     public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
         SimuKraftKeyMappings.register(event);
+    }
+
+    /** onBlockAtlasStitched: 方块图集重建后刷新地图贴图色。 */
+    @SubscribeEvent
+    public static void onBlockAtlasStitched(TextureAtlasStitchedEvent event) {
+        if (TextureAtlas.LOCATION_BLOCKS.equals(event.getAtlas().location())) {
+            SimuMapManager.onBlockAtlasReloaded();
+        }
     }
 
     /** onRegisterMenuScreens: 注册客户端容器界面。 */
