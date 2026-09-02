@@ -50,6 +50,7 @@ public final class SimuSqliteStorage {
     private final LogisticsSqliteRepository logistics;
     private final FamilySqliteRepository families;
     private final BuildingAbandonmentRepository buildingAbandonment;
+    private final ResidentialOccupancyRepository residentialOccupancy;
     private final VirtualVeinSqliteRepository virtualVeins;
 
     private SimuSqliteStorage(SimuSqliteDatabase database) {
@@ -67,6 +68,7 @@ public final class SimuSqliteStorage {
         this.logistics = new LogisticsSqliteRepository(database);
         this.families = new FamilySqliteRepository(database);
         this.buildingAbandonment = new BuildingAbandonmentRepository(database);
+        this.residentialOccupancy = new ResidentialOccupancyRepository(database);
         this.virtualVeins = new VirtualVeinSqliteRepository(database);
     }
 
@@ -600,6 +602,32 @@ public final class SimuSqliteStorage {
             return;
         }
         write(level, "building_abandonment:" + buildingId, (storage, connection) -> storage.buildingAbandonment.delete(connection, buildingId));
+    }
+
+    // ── 住宅入住开关 ──────────────────────────────────────────────────────────
+
+    /** loadClosedResidentialOccupancy: 读取禁止分配入住的住宅建筑。 */
+    public static java.util.Set<UUID> loadClosedResidentialOccupancy(ServerLevel level) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null ? storage.residentialOccupancy.loadClosedBuildingIds() : java.util.Set.of();
+    }
+
+    /** saveResidentialOccupancy: 保存一座住宅是否允许分配入住。 */
+    public static void saveResidentialOccupancy(ServerLevel level, UUID buildingId, boolean occupancyAllowed) {
+        if (buildingId == null) {
+            return;
+        }
+        write(level, "residential_occupancy:" + buildingId,
+                (storage, connection) -> storage.residentialOccupancy.upsert(connection, buildingId, occupancyAllowed));
+    }
+
+    /** deleteResidentialOccupancy: 拆除后删除入住开关。 */
+    public static void deleteResidentialOccupancy(ServerLevel level, UUID buildingId) {
+        if (buildingId == null) {
+            return;
+        }
+        write(level, "residential_occupancy:" + buildingId,
+                (storage, connection) -> storage.residentialOccupancy.delete(connection, buildingId));
     }
 
     // ── 虚拟矿脉 ──────────────────────────────────────────────────────────────

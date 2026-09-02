@@ -30,6 +30,8 @@ public record ResidentialControlBoxOpenResponsePacket(BlockPos controlBoxPos,
                                                       int integrityRepairableBlocks,
                                                       int integrityManualRepairBlocks,
                                                       double integrityRepairCost,
+                                                      boolean occupancyAllowed,
+                                                      double evictionCost,
                                                       List<UnitEntry> units) implements CustomPacketPayload {
     public static final Type<ResidentialControlBoxOpenResponsePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "residential_control_box_open_response"));
     public static final StreamCodec<RegistryFriendlyByteBuf, ResidentialControlBoxOpenResponsePacket> STREAM_CODEC = StreamCodec.of(ResidentialControlBoxOpenResponsePacket::encode, ResidentialControlBoxOpenResponsePacket::decode);
@@ -56,6 +58,8 @@ public record ResidentialControlBoxOpenResponsePacket(BlockPos controlBoxPos,
                 view.integrityRepairableBlocks(),
                 view.integrityManualRepairBlocks(),
                 view.integrityRepairCost(),
+                view.occupancyAllowed(),
+                view.evictionCost(),
                 view.units().stream().map(u -> new UnitEntry(
                         u.unitId(), u.label(), u.bedCount(),
                         u.residents().stream().map(r -> new ResidentEntry(r.citizenId(), r.name())).toList()
@@ -79,6 +83,8 @@ public record ResidentialControlBoxOpenResponsePacket(BlockPos controlBoxPos,
                 0.0D,
                 0,
                 0,
+                0.0D,
+                true,
                 0.0D,
                 List.of()
         );
@@ -105,6 +111,8 @@ public record ResidentialControlBoxOpenResponsePacket(BlockPos controlBoxPos,
         buffer.writeVarInt(packet.integrityRepairableBlocks());
         buffer.writeVarInt(packet.integrityManualRepairBlocks());
         buffer.writeDouble(packet.integrityRepairCost());
+        buffer.writeBoolean(packet.occupancyAllowed());
+        buffer.writeDouble(packet.evictionCost());
         buffer.writeVarInt(packet.units().size());
         packet.units().forEach(unit -> {
             buffer.writeUUID(unit.unitId());
@@ -142,6 +150,8 @@ public record ResidentialControlBoxOpenResponsePacket(BlockPos controlBoxPos,
         int integrityRepairableBlocks = buffer.readVarInt();
         int integrityManualRepairBlocks = buffer.readVarInt();
         double integrityRepairCost = buffer.readDouble();
+        boolean occupancyAllowed = buffer.readBoolean();
+        double evictionCost = buffer.readDouble();
         int unitSize = buffer.readVarInt();
         List<UnitEntry> units = new ArrayList<>(unitSize);
         for (int i = 0; i < unitSize; i++) {
@@ -171,6 +181,8 @@ public record ResidentialControlBoxOpenResponsePacket(BlockPos controlBoxPos,
                 integrityRepairableBlocks,
                 integrityManualRepairBlocks,
                 integrityRepairCost,
+                occupancyAllowed,
+                evictionCost,
                 List.copyOf(units)
         );
     }

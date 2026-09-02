@@ -8,6 +8,7 @@ import common.cn.kafei.simukraft.city.group.CityGroupMessageService;
 import common.cn.kafei.simukraft.building.BuildingUnitResolver;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
+import common.cn.kafei.simukraft.building.ResidentialOccupancyService;
 import common.cn.kafei.simukraft.citizen.family.FamilyData;
 import common.cn.kafei.simukraft.citizen.family.FamilyManager;
 import net.minecraft.core.BlockPos;
@@ -220,7 +221,7 @@ public final class CitizenHousingService {
         List<Candidate> candidates = new java.util.ArrayList<>();
 
         for (var building : PlacedBuildingService.getBuildings(level)) {
-            if (!cityId.equals(building.cityId())) continue;
+            if (!cityId.equals(building.cityId()) || !isAssignableBuilding(level, building)) continue;
             for (List<UUID> household : householdResidentialPoiGroups(building, poiManager)) {
                 if (household.stream().anyMatch(occupiedPoiIds::contains)) continue;
                 if (household.size() >= needed) {
@@ -273,7 +274,7 @@ public final class CitizenHousingService {
         List<List<UUID>> households = new java.util.ArrayList<>();
         Set<UUID> groupedPoiIds = new java.util.HashSet<>();
         for (PlacedBuildingRecord building : PlacedBuildingService.getBuildings(level)) {
-            if (!cityId.equals(building.cityId())) {
+            if (!cityId.equals(building.cityId()) || !isAssignableBuilding(level, building)) {
                 continue;
             }
             for (List<UUID> household : householdResidentialPoiGroups(building, poiManager)) {
@@ -285,6 +286,7 @@ public final class CitizenHousingService {
                 .filter(CityPoiData::active)
                 .map(CityPoiData::poiId)
                 .filter(poiId -> !groupedPoiIds.contains(poiId))
+                .filter(poiId -> isAssignablePoi(level, poiId))
                 .forEach(poiId -> households.add(List.of(poiId)));
         households.sort(Comparator.comparingLong(household -> poiManager.getPoi(household.getFirst()).pos().asLong()));
         return List.copyOf(households);
@@ -335,8 +337,20 @@ public final class CitizenHousingService {
         return poiManager.getCityPois(cityId, CityPoiType.RESIDENTIAL).stream()
                 .filter(CityPoiData::active)
                 .filter(poi -> !occupiedHomes.contains(poi.poiId()))
+                .filter(poi -> isAssignablePoi(level, poi.poiId()))
                 .sorted(Comparator.comparing(poi -> poi.pos().asLong()))
                 .toList();
+    }
+
+    /** isAssignableBuilding: 禁止入住的住宅不参与分配、生成和空房统计。 */
+    public static boolean isAssignableBuilding(ServerLevel level, PlacedBuildingRecord building) {
+        return building != null && ResidentialOccupancyService.isOccupancyAllowed(level, building.buildingId());
+    }
+
+    /** isAssignablePoi: 床位所属建筑允许入住时才可被分配。 */
+    public static boolean isAssignablePoi(ServerLevel level, UUID poiId) {
+        PlacedBuildingRecord building = PlacedBuildingService.findByPoi(level, poiId);
+        return building == null || isAssignableBuilding(level, building);
     }
 
     private static boolean hasValidHome(CityPoiManager poiManager, UUID cityId, UUID homeId) {

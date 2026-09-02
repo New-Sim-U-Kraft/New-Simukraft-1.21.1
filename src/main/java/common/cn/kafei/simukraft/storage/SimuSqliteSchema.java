@@ -44,6 +44,7 @@ public final class SimuSqliteSchema {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS families(family_id TEXT PRIMARY KEY, city_id TEXT NOT NULL, husband_id TEXT, wife_id TEXT, paternal_family_id TEXT, maternal_family_id TEXT, generation INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'FORMING')");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS family_members(family_id TEXT NOT NULL, citizen_id TEXT NOT NULL, role TEXT NOT NULL, PRIMARY KEY(family_id, citizen_id))");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS building_abandonment(building_id TEXT PRIMARY KEY, city_id TEXT NOT NULL, abandonment_index INTEGER NOT NULL DEFAULT 0, last_tick_day INTEGER NOT NULL DEFAULT 0)");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS residential_occupancy(building_id TEXT PRIMARY KEY, occupancy_allowed INTEGER NOT NULL, updated_at INTEGER NOT NULL)");
             dropColumnIfPresent(connection, "citizens", "hunger");
             addColumnIfMissing(connection, "cities", "city_level", "INTEGER NOT NULL DEFAULT 0");
             addColumnIfMissing(connection, "cities", "dimension_id", "TEXT NOT NULL DEFAULT 'minecraft:overworld'");

@@ -229,6 +229,11 @@ public final class ResidentialRentService {
         return building != null && "residential".equalsIgnoreCase(building.category());
     }
 
+    /** rentForBuilding: 返回该住宅每日租金，供驱离扣费与界面展示。 */
+    public static double rentForBuilding(PlacedBuildingRecord building) {
+        return rentAmount(building);
+    }
+
     private static double rentAmount(PlacedBuildingRecord building) {
         double storedAmount = EconomyService.parseAmount(building.amount(), "residential_rent");
         if (storedAmount > 0.0D) {

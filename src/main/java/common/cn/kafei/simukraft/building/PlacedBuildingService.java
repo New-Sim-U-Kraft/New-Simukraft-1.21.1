@@ -89,6 +89,7 @@ public final class PlacedBuildingService {
         }
         // 建筑没了，废弃度记录也要清掉，否则同一 buildingId 的旧废弃度会一直留在库里。
         BuildingAbandonmentService.forget(level, buildingId);
+        ResidentialOccupancyService.forget(level, buildingId);
         BY_DIMENSION.computeIfPresent(cacheKey, (ignored, records) -> {
             List<PlacedBuildingRecord> mutable = new ArrayList<>(records);
             mutable.removeIf(existing -> existing.buildingId().equals(buildingId));
@@ -299,6 +300,7 @@ public final class PlacedBuildingService {
         BY_DIMENSION.keySet().removeIf(key -> key.startsWith(serverKey + "|"));
         POI_REPAIRED_DIMENSIONS.removeIf(key -> key.startsWith(serverKey + "|"));
         BuildingAbandonmentService.clearCache(server);
+        ResidentialOccupancyService.clearCache(server);
         BuildingStructureSqliteDatabase.closeFor(server);
     }
 

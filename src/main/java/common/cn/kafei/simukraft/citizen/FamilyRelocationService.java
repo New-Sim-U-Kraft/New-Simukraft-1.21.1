@@ -45,6 +45,7 @@ public final class FamilyRelocationService {
         for (PlacedBuildingRecord building : PlacedBuildingService.getBuildings(level)) {
             if (!family.cityId().equals(building.cityId())) continue;
             if (building.equals(currentBuilding)) continue;
+            if (!CitizenHousingService.isAssignableBuilding(level, building)) continue;
             double score = HabitationIndexCalculator.preferenceScore(level, building, poiManager, occupiedPoiIds, expectedBeds);
             for (List<UUID> household : CitizenHousingService.householdResidentialPoiGroups(building, poiManager)) {
                 long vacantBeds = household.stream().filter(poiId -> !occupiedPoiIds.contains(poiId)).count();

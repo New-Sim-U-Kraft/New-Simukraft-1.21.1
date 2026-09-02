@@ -5,6 +5,7 @@ import common.cn.kafei.simukraft.building.BuildingIntegrityService;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.building.controlbox.ResidentialControlBoxService;
 import common.cn.kafei.simukraft.citizen.CitizenHousingService;
+import common.cn.kafei.simukraft.network.hud.HudSyncService;
 import common.cn.kafei.simukraft.network.rts.RtsRemoteMenuAccess;
 import common.cn.kafei.simukraft.network.toast.InfoToastService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
@@ -66,13 +67,47 @@ public record ResidentialControlBoxOccupancyPacket(BlockPos pos, Action action) 
             PacketDistributor.sendToPlayer(player, ResidentialControlBoxOpenResponsePacket.from(ResidentialControlBoxService.buildView(level, packet.pos())));
             return;
         }
+        if (packet.action() == Action.EVICT || packet.action() == Action.TOGGLE_OCCUPANCY) {
+            if (!ResidentialControlBoxService.canManageBuilding(level, player, building)) {
+                InfoToastService.warning(player, Component.translatable("message.simukraft.residential_control_box.no_permission"));
+                return;
+            }
+            if (packet.action() == Action.TOGGLE_OCCUPANCY) {
+                boolean allowed = ResidentialControlBoxService.toggleOccupancy(level, building);
+                InfoToastService.success(player, Component.translatable(allowed
+                        ? "message.simukraft.residential_control_box.occupancy_allowed"
+                        : "message.simukraft.residential_control_box.occupancy_forbidden"));
+            } else {
+                ResidentialControlBoxService.EvictResult result = ResidentialControlBoxService.evictResidents(level, player, building);
+                sendEvictToast(player, result);
+                if (result.status() == ResidentialControlBoxService.EvictResult.Status.SUCCESS) {
+                    HudSyncService.syncToCityGroup(level, building.cityId(), true);
+                }
+            }
+            PacketDistributor.sendToPlayer(player, ResidentialControlBoxOpenResponsePacket.from(ResidentialControlBoxService.buildView(level, packet.pos())));
+            return;
+        }
         int changed = switch (packet.action()) {
             case ASSIGN_EXISTING -> CitizenHousingService.fillVacantHomes(level, building.cityId());
             case SPAWN_NEW -> CitizenHousingService.spawnCitizensForVacantHomes(level, building.cityId(), building.worldOrigin(), 1);
-            case REPAIR_BUILDING -> 0;
+            case REPAIR_BUILDING, EVICT, TOGGLE_OCCUPANCY -> 0;
         };
         InfoToastService.success(player, Component.translatable(packet.action().messageKey(), changed));
         PacketDistributor.sendToPlayer(player, ResidentialControlBoxOpenResponsePacket.from(ResidentialControlBoxService.buildView(level, packet.pos())));
+    }
+
+    private static void sendEvictToast(ServerPlayer player, ResidentialControlBoxService.EvictResult result) {
+        String cost = money(result.cost());
+        switch (result.status()) {
+            case SUCCESS -> InfoToastService.success(player, Component.translatable(
+                    "message.simukraft.residential_control_box.evicted", cost, result.evictedCount()));
+            case NO_RESIDENTS -> InfoToastService.warning(player, Component.translatable(
+                    "message.simukraft.residential_control_box.no_residents"));
+            case NOT_ENOUGH_FUNDS -> InfoToastService.warning(player, Component.translatable(
+                    "message.simukraft.residential_control_box.evict_not_enough_funds", cost));
+            case NO_BUILDING -> InfoToastService.warning(player, Component.translatable(
+                    "message.simukraft.residential_control_box.no_building"));
+        }
     }
 
     private static void sendRepairToast(ServerPlayer player, BuildingIntegrityService.RepairResult result) {
@@ -100,7 +135,9 @@ public record ResidentialControlBoxOccupancyPacket(BlockPos pos, Action action) 
     public enum Action {
         ASSIGN_EXISTING("message.simukraft.residential_control_box.assigned_existing"),
         SPAWN_NEW("message.simukraft.residential_control_box.spawned_new"),
-        REPAIR_BUILDING("");
+        REPAIR_BUILDING(""),
+        EVICT(""),
+        TOGGLE_OCCUPANCY("");
 
         private final String messageKey;
 

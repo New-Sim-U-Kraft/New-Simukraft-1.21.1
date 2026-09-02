@@ -20,6 +20,8 @@ public record ResidentialControlBoxView(BlockPos controlBoxPos,
                                         int integrityRepairableBlocks,
                                         int integrityManualRepairBlocks,
                                         double integrityRepairCost,
+                                        boolean occupancyAllowed,
+                                        double evictionCost,
                                         List<UnitView> units) {
     public record ResidentEntry(UUID citizenId, String name) {
     }

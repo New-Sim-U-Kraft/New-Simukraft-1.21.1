@@ -115,6 +115,16 @@ public final class ResidentialControlBoxScreenOpener {
         row.addChild(actionButton(BuildingIntegrityUi.repairText(packet.integrityRepairCost()), () -> repair(packet), packet.integrityAvailable() && (packet.integrityRepairableBlocks() > 0 || packet.integrityManualRepairBlocks() > 0)));
         panel.addChild(row);
 
+        UIElement managementRow = new UIElement().layout(layout -> {
+            layout.widthPercent(100);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.justifyContent(AlignContent.CENTER);
+            layout.gapAll(6);
+        });
+        managementRow.addChild(actionButton(evictText(packet), () -> occupancy(packet, ResidentialControlBoxOccupancyPacket.Action.EVICT), packet.hasBuildingBounds() && packet.residentCount() > 0));
+        managementRow.addChild(actionButton(occupancyToggleText(packet), () -> occupancy(packet, ResidentialControlBoxOccupancyPacket.Action.TOGGLE_OCCUPANCY), packet.hasBuildingBounds()));
+        panel.addChild(managementRow);
+
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null && mc.player.hasPermissions(2)) {
             UIElement occupancyRow = new UIElement().layout(layout -> {
@@ -211,6 +221,20 @@ public final class ResidentialControlBoxScreenOpener {
         return Component.translatable("gui.residential_control_box.resident_line", residentText)
                 .append(Component.literal(" "))
                 .append(Component.translatable("gui.residential_control_box.capacity", packet.residentCount(), packet.capacity()));
+    }
+
+    private static Component evictText(ResidentialControlBoxOpenResponsePacket packet) {
+        if (packet.evictionCost() > 0.0D) {
+            return Component.translatable("gui.residential_control_box.evict_cost",
+                    String.format(java.util.Locale.ROOT, "%.2f", packet.evictionCost()));
+        }
+        return Component.translatable("gui.residential_control_box.evict");
+    }
+
+    private static Component occupancyToggleText(ResidentialControlBoxOpenResponsePacket packet) {
+        return Component.translatable(packet.occupancyAllowed()
+                ? "gui.residential_control_box.forbid_occupancy"
+                : "gui.residential_control_box.allow_occupancy");
     }
 
     private static Component boundsText(ResidentialControlBoxOpenResponsePacket packet) {

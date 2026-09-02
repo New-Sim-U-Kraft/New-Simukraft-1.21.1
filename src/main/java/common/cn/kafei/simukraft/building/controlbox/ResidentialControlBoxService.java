@@ -6,12 +6,17 @@ import common.cn.kafei.simukraft.building.BuildingPoiInstance;
 import common.cn.kafei.simukraft.building.BuildingIntegrityService;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
+import common.cn.kafei.simukraft.building.ResidentialOccupancyService;
 import common.cn.kafei.simukraft.citizen.CitizenManager;
 import common.cn.kafei.simukraft.citizen.CitizenService;
+import common.cn.kafei.simukraft.city.CityService;
 import common.cn.kafei.simukraft.city.poi.CityPoiData;
 import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
+import common.cn.kafei.simukraft.economy.EconomyService;
+import common.cn.kafei.simukraft.economy.ResidentialRentService;
 import common.cn.kafei.simukraft.registry.ModBlocks;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
@@ -87,12 +92,68 @@ public final class ResidentialControlBoxService {
                 integrity.repairableBlocks(),
                 integrity.manualRepairBlocks(),
                 integrity.repairCost(),
+                building == null || ResidentialOccupancyService.isOccupancyAllowed(level, building.buildingId()),
+                building != null ? ResidentialRentService.rentForBuilding(building) : 0.0D,
                 units
         );
     }
 
     public static PlacedBuildingRecord findBuilding(ServerLevel level, BlockPos controlBoxPos) {
         return resolveBuilding(level, controlBoxPos);
+    }
+
+    /** canManageBuilding: 城市官员或管理员权限才能驱离和改入住开关。 */
+    public static boolean canManageBuilding(ServerLevel level, ServerPlayer player, PlacedBuildingRecord building) {
+        if (level == null || player == null || building == null || building.cityId() == null) {
+            return false;
+        }
+        return player.hasPermissions(2) || CityService.canManageCity(level, building.cityId(), player.getUUID());
+    }
+
+    /** toggleOccupancy: 切换该住宅是否允许被分配系统入住。 */
+    public static boolean toggleOccupancy(ServerLevel level, PlacedBuildingRecord building) {
+        if (level == null || building == null) {
+            return false;
+        }
+        boolean next = !ResidentialOccupancyService.isOccupancyAllowed(level, building.buildingId());
+        ResidentialOccupancyService.setOccupancyAllowed(level, building.buildingId(), next);
+        return next;
+    }
+
+    /** evictResidents: 按该建筑租金扣费后清除本楼全部住户。 */
+    public static EvictResult evictResidents(ServerLevel level, ServerPlayer player, PlacedBuildingRecord building) {
+        if (level == null || building == null || building.cityId() == null) {
+            return new EvictResult(EvictResult.Status.NO_BUILDING, 0, 0.0D);
+        }
+        List<ResidentialControlBoxView.ResidentEntry> residents = resolveResidents(level, resolveBedPois(level, building));
+        if (residents.isEmpty()) {
+            return new EvictResult(EvictResult.Status.NO_RESIDENTS, 0, 0.0D);
+        }
+        double cost = EconomyService.normalizeAmount(ResidentialRentService.rentForBuilding(building));
+        if (cost > 0.0D && !EconomyService.canAfford(level, building.cityId(), cost)) {
+            return new EvictResult(EvictResult.Status.NOT_ENOUGH_FUNDS, 0, cost);
+        }
+        if (cost > 0.0D && !EconomyService.withdrawCityFunds(level, building.cityId(), player, cost, "residential_eviction")) {
+            return new EvictResult(EvictResult.Status.NOT_ENOUGH_FUNDS, 0, cost);
+        }
+        for (ResidentialControlBoxView.ResidentEntry resident : residents) {
+            CitizenService.setHome(level, resident.citizenId(), null);
+        }
+        return EvictResult.success(residents.size(), cost);
+    }
+
+    /** EvictResult: 驱离结果，供网络层选择提示。 */
+    public record EvictResult(Status status, int evictedCount, double cost) {
+        public static EvictResult success(int evictedCount, double cost) {
+            return new EvictResult(Status.SUCCESS, evictedCount, cost);
+        }
+
+        public enum Status {
+            SUCCESS,
+            NO_RESIDENTS,
+            NOT_ENOUGH_FUNDS,
+            NO_BUILDING
+        }
     }
 
     private static PlacedBuildingRecord resolveBuilding(ServerLevel level, BlockPos controlBoxPos) {
