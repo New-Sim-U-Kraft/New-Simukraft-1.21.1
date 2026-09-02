@@ -1,5 +1,6 @@
 package common.cn.kafei.simukraft.virtualvein;
 
+import com.mojang.datafixers.util.Pair;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.biome.Climate;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SuppressWarnings("null")
@@ -67,6 +69,56 @@ class VirtualVeinFieldResolverTest {
         assertTrue(VirtualVeinService.isSurfaceParameterPoint(parameterPointWithDepth(1.0F)));
         assertFalse(VirtualVeinService.isSurfaceParameterPoint(parameterPointWithDepth(0.5F)));
         assertFalse(VirtualVeinService.isSurfaceParameterPoint(parameterPointWithDepth(1.1F)));
+    }
+
+    @Test
+    void usableVeinParametersAcceptModdedDepthRangesAndExcludeVanillaCaves() {
+        Climate.ParameterPoint surface = parameterPointWithDepth(0.0F);
+        Climate.ParameterPoint caveDepth = parameterPointWithDepth(0.5F);
+        Climate.ParameterPoint moddedRange = Climate.parameters(
+                Climate.Parameter.point(0.0F),
+                Climate.Parameter.point(0.0F),
+                Climate.Parameter.point(0.0F),
+                Climate.Parameter.point(0.0F),
+                Climate.Parameter.span(-1.0F, 1.0F),
+                Climate.Parameter.point(0.0F),
+                0.0F
+        );
+
+        assertTrue(VirtualVeinService.isUsableVeinParameter(surface, "minecraft:forest"));
+        assertFalse(VirtualVeinService.isUsableVeinParameter(caveDepth, "minecraft:forest"));
+        assertFalse(VirtualVeinService.isUsableVeinParameter(surface, "minecraft:lush_caves"));
+        assertFalse(VirtualVeinService.isUsableVeinParameter(caveDepth, "minecraft:deep_dark"));
+        assertTrue(VirtualVeinService.isUsableVeinParameter(caveDepth, "terralith:yellowstone"));
+        assertTrue(VirtualVeinService.isUsableVeinParameter(moddedRange, "biomesoplenty:lavender_field"));
+    }
+
+    @Test
+    void climateMatchUsesBiomeOwnPointInsteadOfVanillaAnalog() {
+        Climate.TargetPoint target = Climate.target(0.8F, 0.1F, 0.5F, -0.5F, 0.3F, 0.6F);
+        Climate.ParameterPoint vanillaForest = parameterPointWithDepth(0.0F);
+        Climate.ParameterPoint modded = Climate.parameters(0.8F, 0.1F, 0.5F, -0.5F, 0.3F, 0.6F, 0.0F);
+        List<Pair<Climate.ParameterPoint, String>> parameters = List.of(
+                Pair.of(vanillaForest, "minecraft:forest"),
+                Pair.of(modded, "mod:volcanic")
+        );
+
+        assertEquals(modded, VirtualVeinService.findNearestUsableParameterPoint(target, "mod:volcanic", parameters));
+        assertEquals(vanillaForest, VirtualVeinService.findNearestUsableParameterPoint(target, "minecraft:forest", parameters));
+    }
+
+    @Test
+    void caveBiomeFallsBackToNearestUsableWorldPoint() {
+        Climate.TargetPoint target = Climate.target(0.0F, 0.0F, 0.0F, 0.0F, 0.5F, 0.0F);
+        Climate.ParameterPoint cave = parameterPointWithDepth(0.5F);
+        Climate.ParameterPoint forest = parameterPointWithDepth(0.0F);
+        List<Pair<Climate.ParameterPoint, String>> parameters = List.of(
+                Pair.of(cave, "minecraft:lush_caves"),
+                Pair.of(forest, "minecraft:forest")
+        );
+
+        assertNull(VirtualVeinService.findNearestUsableParameterPoint(target, "minecraft:lush_caves", parameters));
+        assertEquals(forest, VirtualVeinService.findNearestUsableParameterPoint(target, null, parameters));
     }
 
     @Test

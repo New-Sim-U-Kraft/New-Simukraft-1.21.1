@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.virtualvein;
 
 import com.mojang.datafixers.util.Pair;
+import common.cn.kafei.simukraft.mixin.MixinMultiNoiseBiomeSourceAccessor;
 import common.cn.kafei.simukraft.storage.SimuSqliteStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -11,12 +12,13 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterLists;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.storage.LevelResource;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -187,7 +189,7 @@ public final class VirtualVeinService {
         return value < 0.70D ? 1 : 2;
     }
 
-    /** selectCandidates: 使用原版六项参数点、优先级和稳定 ID 筛选至多两种候选矿脉。 */
+    /** selectCandidates: 使用六项气候参数点、优先级和稳定 ID 筛选至多两种候选矿脉。 */
     static List<VirtualVeinDefinition> selectCandidates(List<VirtualVeinDefinition> definitions, Climate.ParameterPoint parameterPoint) {
         return definitions.stream()
                 .filter(definition -> definition.matches(parameterPoint))
@@ -196,7 +198,7 @@ public final class VirtualVeinService {
                 .toList();
     }
 
-    /** sampleClimate: 使用建档位置的地表群系与六项参数创建矿区快照。 */
+    /** sampleClimate: 用当前世界多重噪声表匹配群系自己的气候点，创建矿区快照。 */
     private static FieldClimate sampleClimate(ServerLevel level, BlockPos position, VirtualVeinFieldKey key) {
         int sampleY = level.getSeaLevel();
         RandomState randomState = level.getChunkSource().randomState();
@@ -205,14 +207,19 @@ public final class VirtualVeinService {
         int quartY = QuartPos.fromBlock(sampleY);
         int quartZ = QuartPos.fromBlock(position.getZ());
         Climate.TargetPoint target = sampler.sample(quartX, quartY, quartZ);
-        Climate.ParameterPoint parameterPoint = findNearestNativeParameterPoint(level, target, key.biomeId());
+        List<Pair<Climate.ParameterPoint, String>> parameters = climateParameterEntries(level);
+        Climate.ParameterPoint parameterPoint = findNearestUsableParameterPoint(target, key.biomeId(), parameters);
+        if (parameterPoint == null) {
+            // 海平面采到洞穴群系时，只在同一张世界参数表里找最近的可用点，不再换成原版预设。
+            parameterPoint = findNearestUsableParameterPoint(target, null, parameters);
+        }
         if (parameterPoint == null) {
             return null;
         }
         return new FieldClimate(parameterPoint);
     }
 
-    /** resolveFieldKey: 按当前位置的地表原版群系将空间矿区切分为独立档案。 */
+    /** resolveFieldKey: 按当前位置噪声群系将空间矿区切分为独立档案。 */
     private static VirtualVeinFieldKey resolveFieldKey(ServerLevel level, BlockPos position) {
         var biomeSource = level.getChunkSource().getGenerator().getBiomeSource();
         Climate.Sampler sampler = level.getChunkSource().randomState().sampler();
@@ -223,34 +230,42 @@ public final class VirtualVeinService {
         return VirtualVeinFieldResolver.resolve(level.getSeed(), position.getX(), position.getZ(), biomeId);
     }
 
-    /** findNearestNativeParameterPoint: 在指定原版群系内复现原版参数点距离规则。 */
-    private static Climate.ParameterPoint findNearestNativeParameterPoint(ServerLevel level, Climate.TargetPoint target, String biomeId) {
-        var parameters = level.registryAccess()
+    /** climateParameterEntries: 优先读取世界 MultiNoiseBiomeSource 的运行时表，否则回退原版预设。 */
+    private static List<Pair<Climate.ParameterPoint, String>> climateParameterEntries(ServerLevel level) {
+        List<Pair<Climate.ParameterPoint, Holder<Biome>>> parameters = worldClimateParameters(level);
+        List<Pair<Climate.ParameterPoint, String>> named = new ArrayList<>(parameters.size());
+        for (Pair<Climate.ParameterPoint, Holder<Biome>> parameter : parameters) {
+            named.add(Pair.of(parameter.getFirst(), biomeId(level.registryAccess(), parameter.getSecond())));
+        }
+        return named;
+    }
+
+    /** worldClimateParameters: 从当前维度群系源取出含模组群系的参数点列表。 */
+    private static List<Pair<Climate.ParameterPoint, Holder<Biome>>> worldClimateParameters(ServerLevel level) {
+        var biomeSource = level.getChunkSource().getGenerator().getBiomeSource();
+        if (biomeSource instanceof MixinMultiNoiseBiomeSourceAccessor accessor) {
+            return accessor.simukraft$parameters().values();
+        }
+        return level.registryAccess()
                 .registryOrThrow(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST)
                 .getOrThrow(MultiNoiseBiomeSourceParameterLists.OVERWORLD)
                 .parameters()
                 .values();
-        Climate.ParameterPoint nearest = findNearestNativeParameterPoint(level, target, biomeId, parameters);
-        if (nearest != null) {
-            return nearest;
-        }
-        // 海平面采样可能落在洞穴参数，原版群系 ID 因此没有对应的地表点。
-        // 回退到同一六项坐标中最近的地表点，仍然排除地下参数，不把普通主世界误报为不支持。
-        return findNearestNativeParameterPoint(level, target, null, parameters);
     }
 
-    /** findNearestNativeParameterPoint: 在指定群系或全部地表参数点中查找最近点。 */
-    private static Climate.ParameterPoint findNearestNativeParameterPoint(ServerLevel level,
-                                                                            Climate.TargetPoint target,
-                                                                            String biomeId,
-                                                                            List<Pair<Climate.ParameterPoint, Holder<Biome>>> parameters) {
+    /** findNearestUsableParameterPoint: 在指定群系或全部可用参数点中按原版距离公式取最近点。 */
+    @Nullable
+    static Climate.ParameterPoint findNearestUsableParameterPoint(Climate.TargetPoint target,
+                                                                  @Nullable String requiredBiomeId,
+                                                                  List<Pair<Climate.ParameterPoint, String>> parameters) {
         Climate.ParameterPoint nearest = null;
         long nearestFitness = Long.MAX_VALUE;
-        for (Pair<Climate.ParameterPoint, Holder<Biome>> parameter : parameters) {
-            if (biomeId != null && !biomeId.equals(biomeId(level.registryAccess(), parameter.getSecond()))) {
+        for (Pair<Climate.ParameterPoint, String> parameter : parameters) {
+            String biomeId = parameter.getSecond();
+            if (requiredBiomeId != null && !requiredBiomeId.equals(biomeId)) {
                 continue;
             }
-            if (!isSurfaceParameterPoint(parameter.getFirst())) {
+            if (!isUsableVeinParameter(parameter.getFirst(), biomeId)) {
                 continue;
             }
             long fitness = parameterPointFitness(parameter.getFirst(), target);
@@ -262,7 +277,25 @@ public final class VirtualVeinService {
         return nearest;
     }
 
-    /** isSurfaceParameterPoint: 排除洞穴和深暗之域专用的 Depth 参数点。 */
+    /** isUsableVeinParameter: 原版洞穴/深暗不可用；原版地表仍要求 Depth 0/1；模组群系接受其自身 Depth 区间。 */
+    static boolean isUsableVeinParameter(Climate.ParameterPoint parameterPoint, String biomeId) {
+        if (isVanillaUndergroundBiomeId(biomeId)) {
+            return false;
+        }
+        if (isSurfaceParameterPoint(parameterPoint)) {
+            return true;
+        }
+        return biomeId != null && !biomeId.startsWith("minecraft:");
+    }
+
+    /** isVanillaUndergroundBiomeId: 原版洞穴与深暗之域不单独建矿区。 */
+    static boolean isVanillaUndergroundBiomeId(String biomeId) {
+        return "minecraft:lush_caves".equals(biomeId)
+                || "minecraft:dripstone_caves".equals(biomeId)
+                || "minecraft:deep_dark".equals(biomeId);
+    }
+
+    /** isSurfaceParameterPoint: 识别原版地表 Depth 单点（0 或 1）。 */
     static boolean isSurfaceParameterPoint(Climate.ParameterPoint parameterPoint) {
         long depth = parameterPoint.depth().min();
         return depth == parameterPoint.depth().max()

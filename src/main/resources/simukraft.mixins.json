@@ -10,6 +10,7 @@
     "MixinChestMenu",
     "MixinEnderChestBlockEntity",
     "MixinMilkBucketItem",
+    "MixinMultiNoiseBiomeSourceAccessor",
     "MixinLivingEntityDimensions",
     "MixinServerGamePacketListenerImpl",
     "MixinServerPlayer",
