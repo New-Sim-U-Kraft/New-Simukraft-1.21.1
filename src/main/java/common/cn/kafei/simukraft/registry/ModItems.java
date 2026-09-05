@@ -17,7 +17,9 @@ public final class ModItems {
 
     public static final DeferredHolder<Item, Item> MANIFEST = ITEMS.register("manifest", ManifestItem::new);
     public static final DeferredHolder<Item, Item> PORTABLE_CITY_CORE = ITEMS.register("portable_city_core", PortableCityCoreItem::new);
-    public static final DeferredHolder<Item, Item> GOLD_COIN = ITEMS.register("gold_coin", () -> new Item(new Item.Properties()));
+    public static final DeferredHolder<Item, Item> COPPER_COIN = ITEMS.register("copper_coin", () -> new Item(new Item.Properties())); // 铜币
+    public static final DeferredHolder<Item, Item> SILVER_COIN = ITEMS.register("silver_coin", () -> new Item(new Item.Properties())); // 银币
+    public static final DeferredHolder<Item, Item> GOLD_COIN = ITEMS.register("gold_coin", () -> new Item(new Item.Properties())); // 金币
     public static final DeferredHolder<Item, Item> HAMBURGER = ITEMS.register("hamburger", () -> new BuffFoodItem(new Item.Properties().food(ModFoods.HAMBURGER)));
     public static final DeferredHolder<Item, Item> FRENCH_FRIES = ITEMS.register("french_fries", () -> new BuffFoodItem(new Item.Properties().food(ModFoods.FRENCH_FRIES)));
     public static final DeferredHolder<Item, Item> CHEESE_CHUNK = ITEMS.register("cheese_chunk", () -> new BuffFoodItem(new Item.Properties().food(ModFoods.CHEESE_CHUNK)));

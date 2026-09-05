@@ -23,12 +23,14 @@ class LogisticsMapOverlayTest {
     }
 
     @Test
-    void arrowStops_skipVeryShortPathsAndKeepMidpointOnMediumPaths() {
-        assertEquals(0, LogisticsMapOverlay.arrowStops(10.0F, 34.0F).length);
-        assertEquals(0.5F, LogisticsMapOverlay.arrowStops(20.0F, 34.0F)[0], 0.001F);
-        float[] stops = LogisticsMapOverlay.arrowStops(100.0F, 34.0F);
-        assertTrue(stops.length >= 2);
-        assertTrue(stops[0] > 0.2F && stops[stops.length - 1] < 0.8F);
+    void arrowStops_placeSingleArrowNearDestination() {
+        assertEquals(0, LogisticsMapOverlay.arrowStops(10.0F).length);
+        float[] medium = LogisticsMapOverlay.arrowStops(20.0F);
+        assertEquals(1, medium.length);
+        assertEquals(0.72F, medium[0], 0.001F);
+        float[] longPath = LogisticsMapOverlay.arrowStops(100.0F);
+        assertEquals(1, longPath.length);
+        assertEquals(0.84F, longPath[0], 0.001F);
     }
 
     @Test

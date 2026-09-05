@@ -62,22 +62,13 @@ final class LogisticsMapOverlay {
         return new float[] {x1 + nx, y1 + ny, x2 + nx, y2 + ny};
     }
 
-    /** arrowStops: 沿路径均匀放置方向箭头，短线至少保留中点一枚。 */
-    static float[] arrowStops(float length, float spacing) {
+    /** arrowStops: 只在终点一侧放一枚箭头，略微内收以免压住端点图标。 */
+    static float[] arrowStops(float length) {
         if (length < 18.0F) {
             return new float[0];
         }
-        if (length < spacing * 1.5F) {
-            return new float[] {0.5F};
-        }
-        int count = Math.max(2, Math.min(5, (int) (length / spacing)));
-        float[] stops = new float[count];
-        float start = 0.22F;
-        float span = 0.56F;
-        for (int i = 0; i < count; i++) {
-            stops[i] = start + span * i / (count - 1);
-        }
-        return stops;
+        float inset = Math.min(16.0F, length * 0.28F);
+        return new float[] {1.0F - inset / length};
     }
 
     /** distanceToSegment: 点到线段的最短像素距离，用于路线悬浮判定。 */
@@ -104,7 +95,7 @@ final class LogisticsMapOverlay {
         return distanceToSegment(mouseX, mouseY, offset[0], offset[1], offset[2], offset[3]);
     }
 
-    /** drawRoute: 用界面 Gui 缓冲画平滑宽带；双向时箭头画成对顶角。 */
+    /** drawRoute: 用界面 Gui 缓冲画平滑宽带；单向只在终点画一枚箭头，双向则两端各一枚。 */
     static void drawRoute(GuiGraphics graphics, float x1, float y1, float x2, float y2,
                           boolean enabled, float lane, boolean highlighted, boolean bidirectional) {
         float[] offset = offsetAlongNormal(x1, y1, x2, y2, lane);
@@ -135,13 +126,11 @@ final class LogisticsMapOverlay {
         float inv = 1.0F / length;
         float ux = dx * inv;
         float uy = dy * inv;
-        for (float stop : arrowStops(length, 52.0F)) {
-            float px = ax + dx * stop;
-            float py = ay + dy * stop;
+        for (float stop : arrowStops(length)) {
+            appendChevron(consumer, matrix, ax + dx * stop, ay + dy * stop, ux, uy, core, outline);
             if (bidirectional) {
-                appendOppositeChevrons(consumer, matrix, px, py, ux, uy, core, outline);
-            } else {
-                appendChevron(consumer, matrix, px, py, ux, uy, core, outline);
+                float origin = 1.0F - stop;
+                appendChevron(consumer, matrix, ax + dx * origin, ay + dy * origin, -ux, -uy, core, outline);
             }
         }
     }
@@ -255,13 +244,7 @@ final class LogisticsMapOverlay {
         }
     }
 
-    /** appendOppositeChevrons: 双向箭头共用顶点、方向相反，形成对顶角。 */
-    static void appendOppositeChevrons(VertexConsumer consumer, Matrix4f matrix,
-                                       float x, float y, float ux, float uy, int core, int outline) {
-        appendChevron(consumer, matrix, x, y, ux, uy, core, outline);
-        appendChevron(consumer, matrix, x, y, -ux, -uy, core, outline);
-    }
-
+    /** appendChevron: 沿 (ux, uy) 画 V 形箭头，尖端指向该方向。 */
     private static void appendChevron(VertexConsumer consumer, Matrix4f matrix,
                                       float x, float y, float ux, float uy, int core, int outline) {
         float px = -uy;
