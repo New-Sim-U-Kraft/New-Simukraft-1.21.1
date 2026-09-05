@@ -297,7 +297,7 @@ final class LogisticsNetworkMapScreen extends Screen {
         RenderSystem.disableBlend();
     }
 
-    /** renderChannelLines: 单向只在终点画一枚箭头，同一对端点双向时两端各一枚。 */
+    /** renderChannelLines: 画直线路径和流向动效，双向时同一条线两端各一枚箭头。 */
     private void renderChannelLines(GuiGraphics graphics, int mapWidth) {
         int centerX = mapWidth / 2;
         int centerY = this.height / 2;

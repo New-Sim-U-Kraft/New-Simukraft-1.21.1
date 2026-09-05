@@ -27,10 +27,24 @@ class LogisticsMapOverlayTest {
         assertEquals(0, LogisticsMapOverlay.arrowStops(10.0F).length);
         float[] medium = LogisticsMapOverlay.arrowStops(20.0F);
         assertEquals(1, medium.length);
-        assertEquals(0.72F, medium[0], 0.001F);
+        assertEquals(0.84F, medium[0], 0.001F);
         float[] longPath = LogisticsMapOverlay.arrowStops(100.0F);
         assertEquals(1, longPath.length);
-        assertEquals(0.84F, longPath[0], 0.001F);
+        assertEquals(0.91F, longPath[0], 0.001F);
+    }
+
+    @Test
+    void animationPhase_wrapsInsidePeriod() {
+        assertEquals(0.0F, LogisticsMapOverlay.animationPhase(0L, 900L), 0.001F);
+        assertEquals(0.5F, LogisticsMapOverlay.animationPhase(450L, 900L), 0.001F);
+        assertEquals(0.0F, LogisticsMapOverlay.animationPhase(900L, 900L), 0.001F);
+    }
+
+    @Test
+    void flowShift_movesMarkAlongSpacing() {
+        assertEquals(0.0F, LogisticsMapOverlay.flowShift(0.0F, 26.0F), 0.001F);
+        assertEquals(13.0F, LogisticsMapOverlay.flowShift(0.5F, 26.0F), 0.001F);
+        assertEquals(0.0F, LogisticsMapOverlay.flowShift(1.0F, 26.0F), 0.001F);
     }
 
     @Test

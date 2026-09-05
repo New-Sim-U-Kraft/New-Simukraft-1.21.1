@@ -1,6 +1,7 @@
 package client.cn.kafei.simukraft.client.logistics;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.Util;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderType;
@@ -10,7 +11,7 @@ import org.joml.Matrix4f;
 
 /**
  * 物流地图端点图标与路径绘制。
- * 路径走 GuiGraphics 的 gui RenderType 画平滑宽带，避免方块笔刷的像素锯齿。
+ * 路径为直线，终点有实心箭头；启用时沿线有流向动效，双向为双箭头。
  */
 @OnlyIn(Dist.CLIENT)
 final class LogisticsMapOverlay {
@@ -31,6 +32,11 @@ final class LogisticsMapOverlay {
     private static final int RING_RECEIVER = 0xFF4CA8FF;
     private static final int RING_SELECTED = 0xFFF5F7FA;
     private static final int LABEL_SHADOW = 0xE0000000;
+    private static final int FLOW_CORE = 0xFFD8FF9A;
+    private static final long FLOW_PERIOD_MS = 900L;
+    private static final float FLOW_SPACING = 26.0F;
+    private static final float HEAD_LENGTH = 13.0F;
+    private static final float HEAD_WIDTH = 15.0F;
 
     private LogisticsMapOverlay() {
     }
@@ -62,13 +68,35 @@ final class LogisticsMapOverlay {
         return new float[] {x1 + nx, y1 + ny, x2 + nx, y2 + ny};
     }
 
-    /** arrowStops: 只在终点一侧放一枚箭头，略微内收以免压住端点图标。 */
+    /** arrowTipInset: 箭头尖端相对终点的内收距离，避免完全盖住节点。 */
+    static float arrowTipInset(float length) {
+        return Math.min(9.0F, length * 0.16F);
+    }
+
+    /** arrowStops: 终点一侧箭头尖端的路径比例。 */
     static float[] arrowStops(float length) {
         if (length < 18.0F) {
             return new float[0];
         }
-        float inset = Math.min(16.0F, length * 0.28F);
-        return new float[] {1.0F - inset / length};
+        return new float[] {1.0F - arrowTipInset(length) / length};
+    }
+
+    /** animationPhase: 把毫秒时间折成 0~1 的循环相位。 */
+    static float animationPhase(long millis, long periodMs) {
+        if (periodMs <= 0L) {
+            return 0.0F;
+        }
+        long wrapped = Math.floorMod(millis, periodMs);
+        return wrapped / (float) periodMs;
+    }
+
+    /** flowShift: 流动标记沿路径的像素偏移。 */
+    static float flowShift(float phase, float spacing) {
+        float wrapped = phase - (float) Math.floor(phase);
+        if (wrapped < 0.0F) {
+            wrapped += 1.0F;
+        }
+        return wrapped * spacing;
     }
 
     /** distanceToSegment: 点到线段的最短像素距离，用于路线悬浮判定。 */
@@ -89,13 +117,13 @@ final class LogisticsMapOverlay {
         return routeDistance(mouseX, mouseY, x1, y1, x2, y2, lane) <= ROUTE_HOVER_DISTANCE;
     }
 
-    /** routeDistance: 鼠标到绘制后路线的距离。 */
+    /** routeDistance: 鼠标到绘制后直线的距离。 */
     static double routeDistance(double mouseX, double mouseY, float x1, float y1, float x2, float y2, float lane) {
         float[] offset = offsetAlongNormal(x1, y1, x2, y2, lane);
         return distanceToSegment(mouseX, mouseY, offset[0], offset[1], offset[2], offset[3]);
     }
 
-    /** drawRoute: 用界面 Gui 缓冲画平滑宽带；单向只在终点画一枚箭头，双向则两端各一枚。 */
+    /** drawRoute: 画直线路径；终点实心箭头，启用时沿线流动，双向则两端各一枚箭头。 */
     static void drawRoute(GuiGraphics graphics, float x1, float y1, float x2, float y2,
                           boolean enabled, float lane, boolean highlighted, boolean bidirectional) {
         float[] offset = offsetAlongNormal(x1, y1, x2, y2, lane);
@@ -109,28 +137,43 @@ final class LogisticsMapOverlay {
         if (length < 1.0F) {
             return;
         }
+        float inv = 1.0F / length;
+        float ux = dx * inv;
+        float uy = dy * inv;
         int core = enabled ? ROUTE_CORE : ROUTE_DISABLED_CORE;
         int outline = enabled ? ROUTE_OUTLINE : ROUTE_DISABLED_OUTLINE;
         VertexConsumer consumer = graphics.bufferSource().getBuffer(RenderType.gui());
         Matrix4f matrix = graphics.pose().last().pose();
+        float tipInset = arrowTipInset(length);
+        float headLen = Math.min(HEAD_LENGTH, length * 0.22F);
+        float headWidth = Math.min(HEAD_WIDTH, 8.0F + length * 0.04F);
+        float destTipX = bx - ux * tipInset;
+        float destTipY = by - uy * tipInset;
+        float destBaseX = destTipX - ux * headLen;
+        float destBaseY = destTipY - uy * headLen;
+        float srcTipX = ax + ux * tipInset;
+        float srcTipY = ay + uy * tipInset;
+        float srcBaseX = srcTipX + ux * headLen;
+        float srcBaseY = srcTipY + uy * headLen;
+        float lineX1 = bidirectional ? srcBaseX : ax + ux * Math.min(8.0F, length * 0.12F);
+        float lineY1 = bidirectional ? srcBaseY : ay + uy * Math.min(8.0F, length * 0.12F);
+        float lineX2 = destBaseX;
+        float lineY2 = destBaseY;
         if (highlighted) {
-            appendLineQuad(consumer, matrix, ax, ay, bx, by, 7.0F, 0xE6FFE28A);
+            appendLineQuad(consumer, matrix, lineX1, lineY1, lineX2, lineY2, 7.0F, 0xE6FFE28A);
         }
         if (enabled) {
-            appendLineQuad(consumer, matrix, ax, ay, bx, by, 5.0F, outline);
-            appendLineQuad(consumer, matrix, ax, ay, bx, by, 3.0F, core);
+            appendLineQuad(consumer, matrix, lineX1, lineY1, lineX2, lineY2, 5.0F, outline);
+            appendLineQuad(consumer, matrix, lineX1, lineY1, lineX2, lineY2, 3.0F, core);
+            appendFlowMarks(consumer, matrix, lineX1, lineY1, lineX2, lineY2, ux, uy, bidirectional);
         } else {
-            appendDashedQuad(consumer, matrix, ax, ay, bx, by, 5.0F, outline, 10.0F, 7.0F);
-            appendDashedQuad(consumer, matrix, ax, ay, bx, by, 3.0F, core, 10.0F, 7.0F);
+            appendDashedQuad(consumer, matrix, lineX1, lineY1, lineX2, lineY2, 5.0F, outline, 10.0F, 7.0F);
+            appendDashedQuad(consumer, matrix, lineX1, lineY1, lineX2, lineY2, 3.0F, core, 10.0F, 7.0F);
         }
-        float inv = 1.0F / length;
-        float ux = dx * inv;
-        float uy = dy * inv;
-        for (float stop : arrowStops(length)) {
-            appendChevron(consumer, matrix, ax + dx * stop, ay + dy * stop, ux, uy, core, outline);
+        if (length >= 22.0F) {
+            appendFilledHead(consumer, matrix, destBaseX, destBaseY, destTipX, destTipY, ux, uy, headWidth, core, outline);
             if (bidirectional) {
-                float origin = 1.0F - stop;
-                appendChevron(consumer, matrix, ax + dx * origin, ay + dy * origin, -ux, -uy, core, outline);
+                appendFilledHead(consumer, matrix, srcBaseX, srcBaseY, srcTipX, srcTipY, -ux, -uy, headWidth, core, outline);
             }
         }
     }
@@ -213,10 +256,8 @@ final class LogisticsMapOverlay {
         }
         float hx = -dy / length * width * 0.5F;
         float hy = dx / length * width * 0.5F;
-        putQuad(consumer, matrix,
+        putQuadBoth(consumer, matrix,
                 x1 - hx, y1 - hy, x2 - hx, y2 - hy, x2 + hx, y2 + hy, x1 + hx, y1 + hy, argb);
-        putQuad(consumer, matrix,
-                x1 + hx, y1 + hy, x2 + hx, y2 + hy, x2 - hx, y2 - hy, x1 - hx, y1 - hy, argb);
     }
 
     private static void appendDashedQuad(VertexConsumer consumer, Matrix4f matrix,
@@ -244,21 +285,70 @@ final class LogisticsMapOverlay {
         }
     }
 
-    /** appendChevron: 沿 (ux, uy) 画 V 形箭头，尖端指向该方向。 */
-    private static void appendChevron(VertexConsumer consumer, Matrix4f matrix,
-                                      float x, float y, float ux, float uy, int core, int outline) {
+    /** appendFilledHead: 画上窄下宽的实心三角箭头，尖端指向 (ux, uy)。 */
+    private static void appendFilledHead(VertexConsumer consumer, Matrix4f matrix,
+                                         float baseX, float baseY, float tipX, float tipY,
+                                         float ux, float uy, float headWidth, int core, int outline) {
         float px = -uy;
         float py = ux;
-        float tipX = x + ux * 5.5F;
-        float tipY = y + uy * 5.5F;
-        float leftX = x - ux * 3.5F + px * 3.5F;
-        float leftY = y - uy * 3.5F + py * 3.5F;
-        float rightX = x - ux * 3.5F - px * 3.5F;
-        float rightY = y - uy * 3.5F - py * 3.5F;
-        appendLineQuad(consumer, matrix, leftX, leftY, tipX, tipY, 2.4F, outline);
-        appendLineQuad(consumer, matrix, rightX, rightY, tipX, tipY, 2.4F, outline);
-        appendLineQuad(consumer, matrix, leftX, leftY, tipX, tipY, 1.3F, core);
-        appendLineQuad(consumer, matrix, rightX, rightY, tipX, tipY, 1.3F, core);
+        float half = headWidth * 0.5F;
+        float leftX = baseX + px * half;
+        float leftY = baseY + py * half;
+        float rightX = baseX - px * half;
+        float rightY = baseY - py * half;
+        float o = 1.5F;
+        putQuadBoth(consumer, matrix,
+                leftX + px * o, leftY + py * o, tipX + ux * o, tipY + uy * o,
+                rightX - px * o, rightY - py * o, baseX - ux * o, baseY - uy * o, outline);
+        putQuadBoth(consumer, matrix, leftX, leftY, tipX, tipY, rightX, rightY, baseX, baseY, core);
+    }
+
+    /** appendFlowMarks: 沿线绘制朝终点移动的小箭头；双向时对向各一列。 */
+    private static void appendFlowMarks(VertexConsumer consumer, Matrix4f matrix,
+                                        float x1, float y1, float x2, float y2,
+                                        float ux, float uy, boolean bidirectional) {
+        float length = (float) Math.hypot(x2 - x1, y2 - y1);
+        if (length < 24.0F) {
+            return;
+        }
+        float phase = animationPhase(Util.getMillis(), FLOW_PERIOD_MS);
+        float shift = flowShift(phase, FLOW_SPACING);
+        appendFlowColumn(consumer, matrix, x1, y1, length, ux, uy, shift);
+        if (bidirectional) {
+            appendFlowColumn(consumer, matrix, x2, y2, length, -ux, -uy, shift);
+        }
+    }
+
+    private static void appendFlowColumn(VertexConsumer consumer, Matrix4f matrix,
+                                         float x1, float y1, float length,
+                                         float ux, float uy, float shift) {
+        for (float distance = shift; distance <= length - 6.0F; distance += FLOW_SPACING) {
+            if (distance < 6.0F) {
+                continue;
+            }
+            appendMiniChevron(consumer, matrix, x1 + ux * distance, y1 + uy * distance, ux, uy);
+        }
+    }
+
+    /** appendMiniChevron: 流动用的小三角，尖端沿前进方向。 */
+    private static void appendMiniChevron(VertexConsumer consumer, Matrix4f matrix,
+                                          float x, float y, float ux, float uy) {
+        float px = -uy;
+        float py = ux;
+        float tipX = x + ux * 4.5F;
+        float tipY = y + uy * 4.5F;
+        float leftX = x - ux * 2.8F + px * 3.2F;
+        float leftY = y - uy * 2.8F + py * 3.2F;
+        float rightX = x - ux * 2.8F - px * 3.2F;
+        float rightY = y - uy * 2.8F - py * 3.2F;
+        putQuadBoth(consumer, matrix, leftX, leftY, tipX, tipY, rightX, rightY, x - ux * 1.2F, y - uy * 1.2F, FLOW_CORE);
+    }
+
+    private static void putQuadBoth(VertexConsumer consumer, Matrix4f matrix,
+                                    float x1, float y1, float x2, float y2,
+                                    float x3, float y3, float x4, float y4, int argb) {
+        putQuad(consumer, matrix, x1, y1, x2, y2, x3, y3, x4, y4, argb);
+        putQuad(consumer, matrix, x1, y1, x4, y4, x3, y3, x2, y2, argb);
     }
 
     private static void putQuad(VertexConsumer consumer, Matrix4f matrix,
