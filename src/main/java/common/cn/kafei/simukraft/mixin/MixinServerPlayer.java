@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /** RTS 远程容器兼容：只为当前 RTS 会话菜单绕过原版本体距离关闭。 */
-@SuppressWarnings("null")
+
 @Mixin(ServerPlayer.class)
 public abstract class MixinServerPlayer {
     /** simukraft$keepRtsRemoteMenuOpen: 保持已授权远程 Menu 的服务端有效性。 */

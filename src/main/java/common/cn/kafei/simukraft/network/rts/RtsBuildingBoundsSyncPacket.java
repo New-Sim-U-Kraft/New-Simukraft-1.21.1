@@ -15,7 +15,7 @@ import java.util.List;
 public record RtsBuildingBoundsSyncPacket(List<Entry> entries) implements CustomPacketPayload {
     public static final int MAX_ENTRIES = 512;
     public static final int MAX_DISPLAY_NAME_LENGTH = 128;
-    @SuppressWarnings("null")
+    
     public static final Type<RtsBuildingBoundsSyncPacket> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "rts_building_bounds_sync"));
     public static final StreamCodec<RegistryFriendlyByteBuf, RtsBuildingBoundsSyncPacket> STREAM_CODEC =
@@ -34,7 +34,7 @@ public record RtsBuildingBoundsSyncPacket(List<Entry> entries) implements Custom
     }
 
     /** encode: 编码有限建筑边界列表。 */
-    @SuppressWarnings("null")
+    
     private static void encode(RegistryFriendlyByteBuf buffer, RtsBuildingBoundsSyncPacket packet) {
         buffer.writeVarInt(packet.entries().size());
         for (Entry entry : packet.entries()) {

@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 public final class CitizenService {
     private CitizenService() {
     }

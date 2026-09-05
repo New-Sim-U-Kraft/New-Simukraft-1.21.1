@@ -14,7 +14,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 
 /** ToastPositionEditorScreen: 预览并调整独立通知的尺寸与六锚点位置。 */
 @OnlyIn(Dist.CLIENT)
-@SuppressWarnings("null")
+
 public final class ToastPositionEditorScreen extends Screen {
     private static final int BUTTON_WIDTH = 90;
     private static final int BUTTON_HEIGHT = 20;

@@ -11,7 +11,7 @@ import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.FMLEnvironment;
 
-@SuppressWarnings("null")
+
 public final class CommercialTradeMenuHolder implements IContainerUIHolder {
     private final CommercialTradeOpenResponsePacket packet;
 

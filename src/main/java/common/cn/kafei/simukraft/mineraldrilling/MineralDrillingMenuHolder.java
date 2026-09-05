@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 /** MineralDrillingMenuHolder: 持有容器权威状态并处理 LDLib2 服务端交互。 */
-@SuppressWarnings("null")
+
 public final class MineralDrillingMenuHolder implements IContainerUIHolder {
     private final MineralDrillingInventory inventory;
     private final MineralDrillingBoxData data;

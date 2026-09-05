@@ -9,7 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-@SuppressWarnings("null")
+
 public final class IndustrialBoxSqliteRepository {
     private static final String UPSERT_SQL =
             "INSERT INTO industrial_boxes(box_pos_long, building_id, definition_id, selected_recipe_id, running, spawn_entity_done, current_step, status_key, status_text, machine_state, work_state, updated_at, step_elapsed_ticks, worker_work_pos_long) "

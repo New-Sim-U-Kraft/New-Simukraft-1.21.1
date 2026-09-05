@@ -11,7 +11,7 @@ import net.minecraft.network.chat.Component;
 
 import java.util.Locale;
 
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class BuildingIntegrityUi {
     private BuildingIntegrityUi() {

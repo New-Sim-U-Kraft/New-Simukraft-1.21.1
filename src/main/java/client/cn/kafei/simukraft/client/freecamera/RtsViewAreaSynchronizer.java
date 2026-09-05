@@ -42,7 +42,7 @@ final class RtsViewAreaSynchronizer {
     }
 
     /** restore: RTS 退出时立即将区块缓存归还给玩家实体原点。 */
-    @SuppressWarnings("null")
+    
     static void restore() {
         if (ModList.get().isLoaded("sodium")) {
             clear();

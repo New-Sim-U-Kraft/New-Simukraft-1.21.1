@@ -16,7 +16,7 @@ import java.util.Optional;
  * 设计目标是真种真收：种植消耗箱子里的真实种子，收获只从世界里成熟的作物 getDrops，不凭空产出。
  */
 
-@SuppressWarnings("null")
+
 public enum FarmCrop {
     WHEAT(Items.WHEAT_SEEDS, Blocks.WHEAT, Layout.FULL),
     CARROTS(Items.CARROT, Blocks.CARROTS, Layout.FULL),

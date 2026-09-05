@@ -8,7 +8,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 
-@SuppressWarnings("null")
+
 final class CommercialTradeTabStrip {
     static final int HIT_X = 5;
     static final int HIT_Y = 18;

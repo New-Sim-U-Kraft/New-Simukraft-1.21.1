@@ -12,7 +12,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class CityEntryHud {
     private static final long DURATION_MS = 3000L;

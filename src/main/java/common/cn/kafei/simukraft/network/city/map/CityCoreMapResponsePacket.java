@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 public record CityCoreMapResponsePacket(BlockPos pos, UUID cityId, String cityName, double funds, int cityLevel, int memberCount, CityPermissionLevel permissionLevel, boolean canManageCity, int centerChunkX, int centerChunkZ, List<ChunkEntry> chunks) implements CustomPacketPayload {
     public static final Type<CityCoreMapResponsePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_core_map_response"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CityCoreMapResponsePacket> STREAM_CODEC = StreamCodec.of(CityCoreMapResponsePacket::encode, CityCoreMapResponsePacket::decode);

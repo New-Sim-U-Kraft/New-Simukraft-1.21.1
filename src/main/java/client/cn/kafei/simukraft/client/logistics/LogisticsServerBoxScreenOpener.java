@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class LogisticsServerBoxScreenOpener {
     private static ActiveTab activeTab = ActiveTab.OVERVIEW;

@@ -21,7 +21,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+
 public final class CitizenFoodConsumptionService {
     static final double FULL_HUNGER = CitizenEntity.DEFAULT_HUNGER;
     private static final long EAT_VISUAL_TICKS = 40L;

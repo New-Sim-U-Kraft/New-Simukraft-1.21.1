@@ -33,7 +33,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.List;
 
 /** 参考证件卡草图实现的 NPC 信息、装备与双背包一体界面。 */
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class CitizenInfoUiRoot extends UIElement {
     private static final int FRAME_OUTER = 0xFF171919;

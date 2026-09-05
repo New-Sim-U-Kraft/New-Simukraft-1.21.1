@@ -16,7 +16,7 @@ import java.io.InputStream;
 import java.util.Locale;
 import java.util.Optional;
 
-@SuppressWarnings("null")
+
 public final class BuildingStructureFileLoader {
     private BuildingStructureFileLoader() {
     }

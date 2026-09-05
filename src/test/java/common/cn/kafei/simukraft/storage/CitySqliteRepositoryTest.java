@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-@SuppressWarnings("null")
+
 class CitySqliteRepositoryTest {
     private static final String DIMENSION = "minecraft:overworld";
 

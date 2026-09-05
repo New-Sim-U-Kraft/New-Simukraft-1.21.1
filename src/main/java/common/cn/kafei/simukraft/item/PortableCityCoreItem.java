@@ -19,7 +19,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.Optional;
 
-@SuppressWarnings("null")
+
 public final class PortableCityCoreItem extends Item {
     public PortableCityCoreItem() {
         super(new Item.Properties().stacksTo(1));

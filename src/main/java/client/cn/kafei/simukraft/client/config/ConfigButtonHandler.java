@@ -19,7 +19,7 @@ import java.util.Objects;
 
 /** ConfigButtonHandler：在主菜单 Mod 按钮左侧和暂停菜单统计信息按钮右侧注入配置入口按钮。 */
 @OnlyIn(Dist.CLIENT)
-@SuppressWarnings("null")
+
 public final class ConfigButtonHandler {
 
     private static final int BUTTON_SIZE = 20;

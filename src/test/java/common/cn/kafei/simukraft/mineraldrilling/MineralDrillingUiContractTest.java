@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SuppressWarnings("null")
+
 class MineralDrillingUiContractTest {
     /** keepsReferenceSizeAndPanelsInsideWorkspace: 固定参考图上限并验证主要区域不越界。 */
     @Test

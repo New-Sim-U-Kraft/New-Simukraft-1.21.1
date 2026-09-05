@@ -30,7 +30,7 @@ import net.neoforged.neoforge.client.ClientHooks;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 
 /** PregnancyBellyArmorLayer：为已装备胸甲的孕期 NPC 绘制外扩腹部盔甲。 */
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class PregnancyBellyArmorLayer extends RenderLayer<CitizenEntity, CitizenModel> {
     private static final int ARMOR_TEXTURE_U = 17;

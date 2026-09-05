@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /** RTS 摄像机区块视窗：维护焦点票据，并让原版区块和实体追踪以焦点为中心。 */
-@SuppressWarnings("null")
+
 public final class RtsChunkViewService {
     private static final long FOCUS_UPDATE_INTERVAL_TICKS = 2L;
     private static final TicketType<UUID> RTS_VIEW_TICKET = TicketType.create("simukraft_rts_view",

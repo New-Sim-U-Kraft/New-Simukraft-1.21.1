@@ -15,7 +15,7 @@ import java.lang.reflect.Proxy;
 /**
  * LdlibTextFieldImeCompat: 通过反射软兼容 IMBlocker，让 LDLib2 文本框能被输入法焦点系统识别。
  */
-@SuppressWarnings("null")
+
 public final class LdlibTextFieldImeCompat {
     private static volatile boolean initialized;
     private static volatile boolean available;

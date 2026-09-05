@@ -3,7 +3,7 @@ package common.cn.kafei.simukraft.commercial;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 
-@SuppressWarnings("null")
+
 public final class CommercialStockData {
     private final BlockPos boxPos;
     private final String itemId;

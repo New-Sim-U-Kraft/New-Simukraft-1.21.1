@@ -17,7 +17,7 @@ import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 
-@SuppressWarnings("null")
+
 public class MilkLiquidBlock extends LiquidBlock {
     private static final int COAGULATION_TICKS = 1200;
 

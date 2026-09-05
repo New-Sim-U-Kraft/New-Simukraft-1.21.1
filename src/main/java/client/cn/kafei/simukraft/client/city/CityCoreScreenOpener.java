@@ -74,7 +74,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class CityCoreScreenOpener {
     private static final int BUTTON_WIDTH = 120;

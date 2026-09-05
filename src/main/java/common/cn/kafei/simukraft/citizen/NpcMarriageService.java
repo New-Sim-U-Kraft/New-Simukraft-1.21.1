@@ -16,7 +16,7 @@ import common.cn.kafei.simukraft.city.poi.CityPoiManager;
 
 import java.util.*;
 
-@SuppressWarnings("null")
+
 public final class NpcMarriageService {
     private NpcMarriageService() {
     }

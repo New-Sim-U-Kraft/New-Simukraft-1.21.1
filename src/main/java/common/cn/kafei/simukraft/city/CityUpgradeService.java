@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** CityUpgradeService: 在服务端校验并提交一次城市升级。 */
-@SuppressWarnings("null")
+
 public final class CityUpgradeService {
     private CityUpgradeService() {
     }

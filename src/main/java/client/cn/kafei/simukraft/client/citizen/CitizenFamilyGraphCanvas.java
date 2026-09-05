@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /** 五代关系图画布：复用城市地图的裁剪画布、拖拽平移和滚轮缩放。 */
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class CitizenFamilyGraphCanvas extends UIElement {
     private static final double MIN_ZOOM = 0.6D;

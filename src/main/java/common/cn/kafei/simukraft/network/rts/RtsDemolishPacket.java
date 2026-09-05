@@ -21,7 +21,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** RTS 拆除请求：服务端重新验证权限后才执行整体建筑或单方块拆除。 */
-@SuppressWarnings("null")
+
 public record RtsDemolishPacket(BlockPos pos) implements CustomPacketPayload {
     private static final double MAX_DISTANCE = 128.0D;
     public static final Type<RtsDemolishPacket> TYPE = new Type<>(

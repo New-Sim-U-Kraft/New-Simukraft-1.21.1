@@ -12,7 +12,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.function.Consumer;
 
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class RecipeBookSearchUi {
     public static final int FRAME_WIDTH = 95;

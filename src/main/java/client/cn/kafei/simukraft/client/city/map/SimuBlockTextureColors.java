@@ -58,7 +58,7 @@ public final class SimuBlockTextureColors {
         CACHE.clear();
     }
 
-    @SuppressWarnings("null")
+    
     @Nullable
     private static SampledTexture sampleUncached(BlockState state) {
         Minecraft minecraft = Minecraft.getInstance();

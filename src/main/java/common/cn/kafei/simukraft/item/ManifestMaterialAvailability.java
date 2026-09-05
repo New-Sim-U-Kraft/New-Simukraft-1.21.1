@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@SuppressWarnings("null")
+
 final class ManifestMaterialAvailability {
     private static final int INFINITE_CAPACITY = Integer.MAX_VALUE / 4;
 

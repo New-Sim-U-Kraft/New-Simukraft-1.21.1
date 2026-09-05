@@ -12,7 +12,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 public record CommercialControlBoxOpenResponsePacket(BlockPos boxPos,
                                                      boolean hasBuilding,
                                                      String buildingName,

@@ -18,7 +18,7 @@ import common.cn.kafei.simukraft.network.rts.RtsChunkViewPacket;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 
-@SuppressWarnings("null")
+
 @EventBusSubscriber(value = Dist.CLIENT)
 @OnlyIn(Dist.CLIENT)
 public final class FreeCameraManager {

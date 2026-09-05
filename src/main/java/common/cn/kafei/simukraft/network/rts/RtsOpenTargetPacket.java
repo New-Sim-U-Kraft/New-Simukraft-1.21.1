@@ -35,7 +35,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** RTS 双击打开请求：只允许远程打开已白名单的原版菜单或本模组管理界面。 */
-@SuppressWarnings("null")
+
 public record RtsOpenTargetPacket(BlockPos pos) implements CustomPacketPayload {
     public static final Type<RtsOpenTargetPacket> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "rts_open_target"));

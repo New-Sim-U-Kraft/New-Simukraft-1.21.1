@@ -19,7 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 public final class IndustrialControlBoxService {
     private static final int COLOR_WORK_POINT = 0xAA33CCFF;
     private static final int COLOR_MACHINE_POINT = 0xAAFFFF33;

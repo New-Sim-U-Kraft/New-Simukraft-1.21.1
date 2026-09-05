@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SuppressWarnings("null")
+
 class CityLevelDefinitionLoaderTest {
     private static final ResourceLocation TEST_ID = ResourceLocation.fromNamespaceAndPath("simukraft", "city_levels/test.json");
 

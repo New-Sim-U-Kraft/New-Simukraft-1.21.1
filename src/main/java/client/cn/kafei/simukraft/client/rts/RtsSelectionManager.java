@@ -44,7 +44,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /** RTS 鼠标目标状态：只负责光标射线、选择状态和鼠标捕获状态。 */
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class RtsSelectionManager {
     private static final double MAX_RAY_DISTANCE = 128.0D;

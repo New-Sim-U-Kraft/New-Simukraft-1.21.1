@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** 城市激活状态和离线居民按需恢复。 */
-@SuppressWarnings("null")
+
 public final class CityRuntimeService {
     private static final long RECOVERY_PROCESS_INTERVAL_TICKS = 20L;
     private static final long ACTIVE_GRACE_TICKS = 20L * 15L;

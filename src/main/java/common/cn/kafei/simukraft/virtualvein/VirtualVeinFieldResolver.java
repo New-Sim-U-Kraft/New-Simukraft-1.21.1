@@ -1,7 +1,7 @@
 package common.cn.kafei.simukraft.virtualvein;
 
 /** VirtualVeinFieldResolver: 根据细胞噪声解析不规则矿区。 */
-@SuppressWarnings("null")
+
 public final class VirtualVeinFieldResolver {
     public static final int FIELD_SIZE = 256;
     private static final int HALF_FIELD_SIZE = FIELD_SIZE / 2;

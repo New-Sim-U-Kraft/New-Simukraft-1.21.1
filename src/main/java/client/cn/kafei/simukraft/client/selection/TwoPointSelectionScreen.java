@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class TwoPointSelectionScreen extends Screen implements FreeCameraScreen {
     private static final double REACH_DISTANCE = 128.0D;

@@ -22,7 +22,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("null")
+
 public record MedicalControlBoxDemolishPacket(BlockPos pos) implements CustomPacketPayload {
     public static final Type<MedicalControlBoxDemolishPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "medical_control_box_demolish"));
     public static final StreamCodec<RegistryFriendlyByteBuf, MedicalControlBoxDemolishPacket> STREAM_CODEC = StreamCodec.of(MedicalControlBoxDemolishPacket::encode, MedicalControlBoxDemolishPacket::decode);

@@ -12,7 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /** MineralDrillingBoxSqliteRepository: 按维度和方块位置保存钻井控制箱状态。 */
-@SuppressWarnings("null")
+
 public final class MineralDrillingBoxSqliteRepository {
     private static final String TABLE = "mineral_drilling_boxes";
     private final SimuSqliteDatabase database;

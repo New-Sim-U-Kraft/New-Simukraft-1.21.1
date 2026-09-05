@@ -29,7 +29,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 public final class CitizenEmploymentService {
     private CitizenEmploymentService() {
     }

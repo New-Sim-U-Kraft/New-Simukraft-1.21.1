@@ -30,7 +30,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class CommercialControlBoxScreenOpener {
     private static final int PANEL_WIDTH = 320;

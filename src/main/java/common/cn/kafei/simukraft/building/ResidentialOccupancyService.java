@@ -10,7 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** ResidentialOccupancyService: 住宅是否允许被分配系统入住；默认允许。 */
-@SuppressWarnings("null")
+
 public final class ResidentialOccupancyService {
     private static final Set<String> CLOSED = ConcurrentHashMap.newKeySet();
     private static final Set<String> LOADED_SERVERS = ConcurrentHashMap.newKeySet();

@@ -19,7 +19,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 
 /** MineralDrillingDepthPanel: 绘制双向深度滚动条与最多两个只读矿脉标记。 */
-@SuppressWarnings("null")
+
 public final class MineralDrillingDepthPanel {
     private static final int FRAME_INNER = 0xFF767A7A;
     private static final int PANEL_RECESSED = 0xFF969A99;

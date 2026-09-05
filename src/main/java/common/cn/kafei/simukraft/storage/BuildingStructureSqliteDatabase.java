@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentMap;
  * <p>实例按 {@link MinecraftServer} 缓存，关服时 {@link #closeFor} 释放，避免跨存档复用；
  * 关服后 {@link #open} 返回 null，不让迟到的调用重建出一个没人关闭的僵尸实例。
  */
-@SuppressWarnings("null")
+
 public final class BuildingStructureSqliteDatabase implements Closeable {
     private static final String STORAGE_DIR = SimuKraft.MOD_ID;
     private static final String DATABASE_FILE = SimuKraft.MOD_ID + "_buildings.sqlite";

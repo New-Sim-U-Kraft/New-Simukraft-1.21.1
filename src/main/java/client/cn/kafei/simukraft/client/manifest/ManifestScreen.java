@@ -22,7 +22,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class ManifestScreen extends Screen {
     private static final int MIN_PAGE_WIDTH = 145;

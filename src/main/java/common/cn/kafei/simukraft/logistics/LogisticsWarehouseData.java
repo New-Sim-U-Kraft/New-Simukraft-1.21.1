@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 public record LogisticsWarehouseData(UUID warehouseId,
                                      BlockPos boxPos,
                                      UUID cityId,

@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 /** RTS 远程容器兼容：允许已授权容器处理物品栏操作。 */
-@SuppressWarnings("null")
+
 @Mixin(ServerGamePacketListenerImpl.class)
 public abstract class MixinServerGamePacketListenerImpl {
     /** simukraft$allowRtsRemoteMenuInteraction: 仅绕过当前 RTS 容器会话的距离校验。 */

@@ -25,7 +25,7 @@ import java.util.UUID;
 /**
  * CityCitizenManageActionPacket: 在“市民管理”界面对指定市民执行解雇/流放（客户端 -> 服务端）。
  */
-@SuppressWarnings("null")
+
 public record CityCitizenManageActionPacket(BlockPos pos, Action action, UUID citizenId) implements CustomPacketPayload {
     public static final Type<CityCitizenManageActionPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_citizen_manage_action"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CityCitizenManageActionPacket> STREAM_CODEC = StreamCodec.of(CityCitizenManageActionPacket::encode, CityCitizenManageActionPacket::decode);

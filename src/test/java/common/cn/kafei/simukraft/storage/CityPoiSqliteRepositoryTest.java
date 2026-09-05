@@ -16,7 +16,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-@SuppressWarnings("null")
+
 class CityPoiSqliteRepositoryTest {
     private static final String DIMENSION = "minecraft:overworld";
 

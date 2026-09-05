@@ -19,7 +19,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /** RTS 远程方块放置服务：在服务端校验领地并复用原版方块放置流程。 */
-@SuppressWarnings("null")
+
 public final class RtsBlockPlacementService {
     private RtsBlockPlacementService() {
     }

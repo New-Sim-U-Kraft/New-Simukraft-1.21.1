@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * </ul>
  * 这里用"残缺快照"覆盖一次，断言库里已有的行必须原样保留。
  */
-@SuppressWarnings("null")
+
 class NonDestructiveSaveAllTest {
     @TempDir
     Path tempDir;

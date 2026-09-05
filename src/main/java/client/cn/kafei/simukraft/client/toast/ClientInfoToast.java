@@ -17,7 +17,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 /** ClientInfoToast: 独立管理并绘制 SimuKraft 客户端通知。 */
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class ClientInfoToast {
     private static final int SLOT_HEIGHT = 32;

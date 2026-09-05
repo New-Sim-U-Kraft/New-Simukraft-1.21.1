@@ -13,7 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+
 public final class CitizenJobVisualService {
     public static final CitizenJobVisualAction SWING_WHEN_BUILDING = BuilderConstructionService::hasActiveBuildTask;
     public static final CitizenJobVisualAction SWING_WHEN_PLANNING = PlannerWorkService::hasActiveTask;

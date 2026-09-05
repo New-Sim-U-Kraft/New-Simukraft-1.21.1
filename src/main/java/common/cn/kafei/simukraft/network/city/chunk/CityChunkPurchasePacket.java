@@ -17,7 +17,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("null")
+
 public record CityChunkPurchasePacket(BlockPos pos, int chunkX, int chunkZ) implements CustomPacketPayload {
     public static final Type<CityChunkPurchasePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_chunk_purchase"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CityChunkPurchasePacket> STREAM_CODEC = StreamCodec.of(CityChunkPurchasePacket::encode, CityChunkPurchasePacket::decode);

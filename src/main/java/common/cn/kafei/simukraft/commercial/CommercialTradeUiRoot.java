@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-@SuppressWarnings("null")
+
 public final class CommercialTradeUiRoot extends UIElement {
     private static final ResourceLocation VILLAGER_LOCATION = ResourceLocation.withDefaultNamespace("textures/gui/container/villager.png");
     private static final ResourceLocation SCROLLER_SPRITE = ResourceLocation.withDefaultNamespace("container/villager/scroller");

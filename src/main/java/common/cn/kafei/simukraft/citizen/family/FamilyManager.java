@@ -11,7 +11,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+
 public final class FamilyManager extends SavedData {
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_families";
     private static final int MAX_GENERATION = 10;

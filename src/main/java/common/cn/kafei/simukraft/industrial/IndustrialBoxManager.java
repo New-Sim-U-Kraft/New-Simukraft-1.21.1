@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+
 public final class IndustrialBoxManager extends SavedData {
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_industrial_boxes";
     private static final Factory<IndustrialBoxManager> FACTORY = new Factory<>(IndustrialBoxManager::new, IndustrialBoxManager::load, null);

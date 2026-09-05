@@ -15,7 +15,7 @@ import net.neoforged.neoforge.client.event.InputEvent;
 import org.lwjgl.glfw.GLFW;
 
 /** RTS 小地图：复用本地地图缓存，绘制相机视口并处理相机跳转。 */
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class RtsMiniMapRenderer {
     private static final int SMALL_MAP_SIZE = 112;

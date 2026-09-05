@@ -44,7 +44,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-@SuppressWarnings("null")
+
 public final class IndustrialBlockClusterHarvestService {
     private static final String STATE_KIND = "harvest_block_clusters";
     private static final int LOG_NEIGHBOR_RADIUS = 1;

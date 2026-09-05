@@ -23,7 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+
 public final class CitizenSelfFeedingService {
     public static final String GOING_TO_BUY_FOOD_STATUS = "gui.npc.status.going_to_buy_food";
     public static final String BUYING_FOOD_STATUS = "gui.npc.status.buying_food";

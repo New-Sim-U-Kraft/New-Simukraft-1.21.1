@@ -25,7 +25,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /** 建筑盒雇佣状态响应：支持原版近距离请求和 RTS 已授权的远程请求。 */
-@SuppressWarnings("null")
+
 public record EmploymentStateResponsePacket(BlockPos sourcePos, String sourceType, UUID builderCitizenId,
                                             UUID plannerCitizenId, String statusKey, int cityLevel)
         implements CustomPacketPayload {

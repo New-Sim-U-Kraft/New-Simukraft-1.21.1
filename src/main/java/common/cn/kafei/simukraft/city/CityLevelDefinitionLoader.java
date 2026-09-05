@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /** CityLevelDefinitionLoader: 从数据包原子加载城市等级定义。 */
-@SuppressWarnings("null")
+
 public final class CityLevelDefinitionLoader implements PreparableReloadListener {
     public static final CityLevelDefinitionLoader INSTANCE = new CityLevelDefinitionLoader();
     private static final String DIRECTORY = "city_levels";

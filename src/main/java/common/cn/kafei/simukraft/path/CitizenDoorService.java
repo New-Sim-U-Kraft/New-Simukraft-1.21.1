@@ -19,7 +19,7 @@ import java.util.UUID;
  * Opens wooden doors for arriving citizens and closes them once the opener (and any other
  * citizen still in the doorway) has cleared the opening.
  */
-@SuppressWarnings("null")
+
 final class CitizenDoorService {
     private static final double DOOR_INTERACT_RANGE_SQR = 9.0D;
     private static final double DOOR_CLEAR_RANGE_SQR = 2.25D;

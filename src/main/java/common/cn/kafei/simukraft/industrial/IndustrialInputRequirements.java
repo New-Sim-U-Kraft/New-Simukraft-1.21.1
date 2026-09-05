@@ -6,7 +6,7 @@ import java.util.List;
  * 工业输入表达式工具：把 AND/OR 树转换成界面和统计需要的叶子物品。
  */
 
-@SuppressWarnings("null")
+
 public final class IndustrialInputRequirements {
     private IndustrialInputRequirements() {
     }

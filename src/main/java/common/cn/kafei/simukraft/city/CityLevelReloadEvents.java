@@ -6,7 +6,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 
 /** CityLevelReloadEvents: 将城市等级定义加入数据包重载流程。 */
-@SuppressWarnings("null")
+
 @EventBusSubscriber(modid = SimuKraft.MOD_ID)
 public final class CityLevelReloadEvents {
     private CityLevelReloadEvents() {

@@ -19,7 +19,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 public record FarmlandBoxSetCropPacket(BlockPos pos, String cropId) implements CustomPacketPayload {
     public static final Type<FarmlandBoxSetCropPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "farmland_box_set_crop"));
     public static final StreamCodec<RegistryFriendlyByteBuf, FarmlandBoxSetCropPacket> STREAM_CODEC = StreamCodec.of(FarmlandBoxSetCropPacket::encode, FarmlandBoxSetCropPacket::decode);

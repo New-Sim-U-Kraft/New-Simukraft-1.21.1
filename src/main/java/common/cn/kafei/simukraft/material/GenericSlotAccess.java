@@ -15,7 +15,7 @@ import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 import javax.annotation.Nullable;
 
-@SuppressWarnings("null")
+
 public final class GenericSlotAccess {
     private GenericSlotAccess() {
     }

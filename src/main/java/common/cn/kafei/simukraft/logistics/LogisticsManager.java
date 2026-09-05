@@ -18,7 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+
 public final class LogisticsManager extends SavedData {
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_logistics";
     private static final Factory<LogisticsManager> FACTORY = new Factory<>(LogisticsManager::new, LogisticsManager::load, null);

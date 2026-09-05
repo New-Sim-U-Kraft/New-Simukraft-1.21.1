@@ -86,7 +86,7 @@ public final class RtsCitizenContextMenuScreen extends Screen {
     }
 
     @Override
-    public void render(@SuppressWarnings("null") GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void render( GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(menuX, menuY, menuX + MENU_WIDTH, menuY + 1, COLOR_BORDER);
         graphics.fill(menuX, menuY + 1, menuX + MENU_WIDTH, menuY + MENU_HEIGHT, COLOR_BACKGROUND);
         graphics.drawString(font, fitTitle(citizenName.getString()), menuX + 6, menuY + 6, COLOR_TITLE, false);

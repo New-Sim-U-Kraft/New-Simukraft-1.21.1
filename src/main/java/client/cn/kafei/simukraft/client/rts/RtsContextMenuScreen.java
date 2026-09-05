@@ -14,7 +14,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /** RTS 右键下拉菜单：只负责客户端菜单呈现和发送已验证的动作请求。 */
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class RtsContextMenuScreen extends Screen {
     private static final int MENU_WIDTH = 76;

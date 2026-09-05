@@ -15,7 +15,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** RTS 移动请求：客户端提交源、目标位置、高度微调和预览旋转，服务端重新校验最终落点。 */
-@SuppressWarnings("null")
+
 public record RtsMovePacket(BlockPos source, BlockPos destination, int manualVerticalOffset,
                             int rotationDegrees, int focusChunkX, int focusChunkZ) implements CustomPacketPayload {
     public static final Type<RtsMovePacket> TYPE = new Type<>(

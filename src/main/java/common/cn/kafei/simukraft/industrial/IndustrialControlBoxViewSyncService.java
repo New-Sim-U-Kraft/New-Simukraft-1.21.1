@@ -12,7 +12,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+
 public final class IndustrialControlBoxViewSyncService {
     private static final long MIN_SYNC_INTERVAL_TICKS = 5L;
     private static final double SYNC_RADIUS = 64.0D;

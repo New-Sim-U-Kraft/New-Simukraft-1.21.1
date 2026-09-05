@@ -19,7 +19,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.util.Optional;
 
 /** CityUpgradeRequestPacket: 请求服务端校验并升级当前城市。 */
-@SuppressWarnings("null")
+
 public record CityUpgradeRequestPacket(BlockPos pos, int expectedCurrentLevel, int targetLevel) implements CustomPacketPayload {
     public static final Type<CityUpgradeRequestPacket> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_upgrade_request"));

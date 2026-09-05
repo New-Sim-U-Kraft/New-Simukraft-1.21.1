@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.UUID;
 
 /** RTS 市民操作请求：打开市民界面或向已选市民下达移动命令。 */
-@SuppressWarnings("null")
+
 public record RtsCitizenActionPacket(Action action, List<UUID> citizenIds, BlockPos destination) implements CustomPacketPayload {
     private static final int MAX_CITIZENS = 32;
     public static final Type<RtsCitizenActionPacket> TYPE = new Type<>(

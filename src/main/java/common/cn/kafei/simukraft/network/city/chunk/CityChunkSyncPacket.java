@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@SuppressWarnings("null")
+
 public record CityChunkSyncPacket(UUID currentCityId,
                                   Map<UUID, Set<Long>> cityChunks,
                                   Map<UUID, CityCoreEntry> cityCores) implements CustomPacketPayload {

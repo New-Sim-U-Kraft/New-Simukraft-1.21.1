@@ -11,7 +11,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("null")
+
 class CitizenDataTest {
     @Test
     void deadWorkStatusClearsHomeOnLoad() {

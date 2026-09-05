@@ -9,7 +9,7 @@ import net.minecraft.nbt.CompoundTag;
  * 城市归属、FARMLAND POI、农民雇佣由既有系统(放置事件 / POI / 雇佣)负责，这里不重复存。
  */
 
-@SuppressWarnings("null")
+
 public final class FarmlandBoxData {
     private final BlockPos boxPos;
     private FarmCrop crop;

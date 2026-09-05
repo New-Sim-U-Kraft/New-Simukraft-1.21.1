@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 public record CityCoreOpenResponsePacket(BlockPos pos, boolean hasCity, UUID cityId, String cityName, double funds, int cityLevel, int memberCount, int cityPopulation, int housingCapacity, int cityChunkCount, int cityEnclaveCount, CityPermissionLevel permissionLevel, boolean canCreateCity, boolean canManageCity, List<FinanceEntry> financeEntries, List<PoiStat> poiStats, List<JobStat> jobStats, List<UpgradeTarget> upgradeTargets, UpgradeProgress upgradeProgress) implements CustomPacketPayload {
     private static final int MAX_FINANCE_ENTRIES = 128;
     private static final int MAX_POI_STATS = 64;

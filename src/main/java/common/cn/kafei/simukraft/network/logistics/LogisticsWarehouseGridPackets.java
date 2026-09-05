@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 final class LogisticsWarehouseGridPackets {
     private LogisticsWarehouseGridPackets() {
     }

@@ -37,7 +37,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** 已登记建筑和普通方块的 RTS 移动事务。所有方法只在服务端主线程调用。 */
-@SuppressWarnings("null")
+
 public final class PlacedBuildingMoveService {
     private static final double MAX_DISTANCE = 128.0D;
     private static final int MAX_MOVED_BLOCKS = 32768;

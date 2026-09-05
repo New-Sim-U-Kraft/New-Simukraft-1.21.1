@@ -7,7 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.Locale;
 
-@SuppressWarnings("null")
+
 public final class ClientConfig {
     public static final String DEFAULT_HUD_ANCHOR = "TOP_RIGHT";
     public static final int DEFAULT_HUD_POS_X = -5;

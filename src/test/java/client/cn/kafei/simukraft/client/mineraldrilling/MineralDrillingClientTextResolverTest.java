@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@SuppressWarnings("null")
+
 class MineralDrillingClientTextResolverTest {
     /** resolvesProductIdWithClientItemName: 使用本地物品注册表生成可本地化的物品名称。 */
     @Test

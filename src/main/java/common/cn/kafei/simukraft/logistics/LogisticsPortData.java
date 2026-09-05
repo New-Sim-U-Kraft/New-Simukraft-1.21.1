@@ -3,7 +3,7 @@ package common.cn.kafei.simukraft.logistics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 
-@SuppressWarnings("null")
+
 public record LogisticsPortData(String id, String name, String kind, BlockPos pos) {
     public LogisticsPortData {
         id = id != null && !id.isBlank() ? id.trim() : "port";

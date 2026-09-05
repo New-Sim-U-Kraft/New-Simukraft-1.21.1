@@ -16,7 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("null")
+
 public record CommercialControlBoxOpenRequestPacket(BlockPos pos) implements CustomPacketPayload {
     public static final Type<CommercialControlBoxOpenRequestPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "commercial_control_box_open_request"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CommercialControlBoxOpenRequestPacket> STREAM_CODEC = StreamCodec.of(CommercialControlBoxOpenRequestPacket::encode, CommercialControlBoxOpenRequestPacket::decode);

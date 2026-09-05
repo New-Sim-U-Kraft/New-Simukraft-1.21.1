@@ -8,7 +8,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 /** MineralDrillingSlotLayout: 以固定顺序创建钻井工具槽与玩家背包槽。 */
-@SuppressWarnings("null")
+
 public final class MineralDrillingSlotLayout {
     private MineralDrillingSlotLayout() {
     }

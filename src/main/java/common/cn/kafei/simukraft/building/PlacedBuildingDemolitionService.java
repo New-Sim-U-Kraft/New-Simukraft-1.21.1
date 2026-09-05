@@ -13,7 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 public final class PlacedBuildingDemolitionService {
     private PlacedBuildingDemolitionService() {
     }

@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** NPC 工作区块加载：任务锚点维持实体 tick，工作范围仅维持区块加载。 */
-@SuppressWarnings("null")
+
 public final class NpcWorkChunkLoadService {
     private static final int ANCHOR_TICKET_DISTANCE = 2;
     private static final int WORK_AREA_TICKET_DISTANCE = 0;

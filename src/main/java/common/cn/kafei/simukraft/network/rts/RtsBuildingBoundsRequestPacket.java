@@ -18,7 +18,7 @@ import java.util.Comparator;
 /** RTS 建筑边界请求：仅请求玩家附近的已登记建筑，不修改服务端状态。 */
 public record RtsBuildingBoundsRequestPacket() implements CustomPacketPayload {
     private static final double MAX_DISTANCE_SQR = 192.0D * 192.0D;
-    @SuppressWarnings("null")
+    
     public static final Type<RtsBuildingBoundsRequestPacket> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "rts_building_bounds_request"));
     public static final StreamCodec<RegistryFriendlyByteBuf, RtsBuildingBoundsRequestPacket> STREAM_CODEC =
@@ -38,7 +38,7 @@ public record RtsBuildingBoundsRequestPacket() implements CustomPacketPayload {
     }
 
     /** sendNearbyBounds: 在服务端主线程生成受限边界快照。 */
-    @SuppressWarnings("null")
+    
     public static void sendNearbyBounds(ServerPlayer player, ServerLevel level) {
         List<RtsBuildingBoundsSyncPacket.Entry> entries = PlacedBuildingService.getBuildings(level).stream()
                 .filter(record -> isNear(player, record, MAX_DISTANCE_SQR))

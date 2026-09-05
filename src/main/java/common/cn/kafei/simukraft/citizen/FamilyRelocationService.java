@@ -11,7 +11,7 @@ import net.minecraft.server.level.ServerLevel;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("null")
+
 public final class FamilyRelocationService {
     private FamilyRelocationService() {
     }

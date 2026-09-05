@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /** RTS 小地图纹理：从已有地图缓存采样并管理动态纹理生命周期。 */
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 final class RtsMiniMapTexture {
     private static final int SIZE = 192;

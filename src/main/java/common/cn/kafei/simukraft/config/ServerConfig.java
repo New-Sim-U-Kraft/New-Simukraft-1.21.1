@@ -5,7 +5,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.List;
 
-@SuppressWarnings("null")
+
 public final class ServerConfig {
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.DoubleValue CITY_CHUNK_PRICE;

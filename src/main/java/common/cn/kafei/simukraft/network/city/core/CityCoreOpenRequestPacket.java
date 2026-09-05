@@ -12,7 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("null")
+
 public record CityCoreOpenRequestPacket(BlockPos pos) implements CustomPacketPayload {
     public static final Type<CityCoreOpenRequestPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_core_open_request"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CityCoreOpenRequestPacket> STREAM_CODEC = StreamCodec.of(CityCoreOpenRequestPacket::encode, CityCoreOpenRequestPacket::decode);

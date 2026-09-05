@@ -27,7 +27,7 @@ import java.util.List;
  *   <li>基线之上还有待执行迁移时，先 checkpoint 并把库文件复制到 backups/ 再动手。</li>
  * </ul>
  */
-@SuppressWarnings("null")
+
 public final class SchemaMigrator {
     private static final DateTimeFormatter BACKUP_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final int BASELINE_VERSION = 1;

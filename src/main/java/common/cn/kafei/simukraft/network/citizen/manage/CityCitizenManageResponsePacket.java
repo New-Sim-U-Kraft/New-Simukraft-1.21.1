@@ -16,7 +16,7 @@ import java.util.UUID;
 /**
  * CityCitizenManageResponsePacket: 城市核心“市民管理”界面的市民列表快照（服务端 -> 客户端）。
  */
-@SuppressWarnings("null")
+
 public record CityCitizenManageResponsePacket(BlockPos pos, String cityName, boolean canManage, List<CitizenEntry> citizens) implements CustomPacketPayload {
     public static final Type<CityCitizenManageResponsePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_citizen_manage_response"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CityCitizenManageResponsePacket> STREAM_CODEC = StreamCodec.of(CityCitizenManageResponsePacket::encode, CityCitizenManageResponsePacket::decode);

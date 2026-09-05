@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** MineralDrillingWorkService: 按矿脉周期推进已启动钻井并生成原版产物。 */
-@SuppressWarnings("null")
+
 public final class MineralDrillingWorkService {
     private static final int MAX_BOXES_PER_TICK = 32;
     private static final ConcurrentMap<String, LevelRuntime> RUNTIMES = new ConcurrentHashMap<>();

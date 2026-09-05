@@ -27,7 +27,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.neoforge.common.SoundActions;
 
-@SuppressWarnings("null")
+
 public final class MilkBucketPlacementService {
     private MilkBucketPlacementService() {
     }

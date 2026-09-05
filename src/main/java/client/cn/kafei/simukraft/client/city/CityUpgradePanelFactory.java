@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Locale;
 
 /** CityUpgradePanelFactory: 组合城市升级页并计算客户端展示进度。 */
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 final class CityUpgradePanelFactory {
     private CityUpgradePanelFactory() {

@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
  * pit, a waterside, a step lip and a wall corner — and every assertion is an independent oracle that
  * fails on the pre-fix behaviour and passes on the fixed behaviour.
  */
-@SuppressWarnings("null")
+
 class HybridPathfinderRegressionTest {
     private static final ResourceLocation DIMENSION = ResourceLocation.fromNamespaceAndPath("minecraft", "overworld");
 

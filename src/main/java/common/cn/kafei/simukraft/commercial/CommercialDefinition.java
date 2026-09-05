@@ -6,7 +6,7 @@ import java.util.Map;
 
 import net.minecraft.core.BlockPos;
 
-@SuppressWarnings("null")
+
 public record CommercialDefinition(String id,
                                    String name,
                                    JobDefinition job,

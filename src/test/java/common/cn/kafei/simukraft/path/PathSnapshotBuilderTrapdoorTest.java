@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 class PathSnapshotBuilderTrapdoorTest {
     private static final ResourceLocation DIMENSION = ResourceLocation.fromNamespaceAndPath("minecraft", "overworld");
 

@@ -31,7 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+
 public final class CitizenHomeRestService {
     public static final String HOME_REST_MARKER = "home_rest";
     public static final String HOME_REST_STATUS_KEY = "gui.simukraft.citizen.status.home_rest";

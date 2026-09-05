@@ -32,7 +32,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 public record NpcHireFirePacket(BlockPos sourcePos, String sourceType, String role, UUID citizenId) implements CustomPacketPayload {
     public static final Type<NpcHireFirePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "npc_hire_fire"));
     public static final StreamCodec<RegistryFriendlyByteBuf, NpcHireFirePacket> STREAM_CODEC = StreamCodec.of(NpcHireFirePacket::encode, NpcHireFirePacket::decode);

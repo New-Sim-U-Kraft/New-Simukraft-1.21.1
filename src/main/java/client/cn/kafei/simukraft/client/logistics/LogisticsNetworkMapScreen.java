@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 final class LogisticsNetworkMapScreen extends Screen {
     private static final double MIN_ZOOM = 0.1D;

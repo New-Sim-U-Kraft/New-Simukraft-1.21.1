@@ -3,7 +3,7 @@ package common.cn.kafei.simukraft.industrial;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 
-@SuppressWarnings("null")
+
 public final class IndustrialBoxData {
     private final BlockPos boxPos;
     private String buildingId = "";

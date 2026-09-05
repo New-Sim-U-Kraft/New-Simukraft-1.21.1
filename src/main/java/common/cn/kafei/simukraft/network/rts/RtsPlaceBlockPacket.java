@@ -15,7 +15,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** RTS 放置请求：客户端仅提交命中的方块面，服务端使用主手物品完成实际放置。 */
-@SuppressWarnings("null")
+
 public record RtsPlaceBlockPacket(BlockPos clickedPos, Direction face) implements CustomPacketPayload {
     public static final Type<RtsPlaceBlockPacket> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "rts_place_block"));

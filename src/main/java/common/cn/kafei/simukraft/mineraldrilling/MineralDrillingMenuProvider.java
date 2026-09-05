@@ -15,7 +15,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 
 /** MineralDrillingMenuProvider: 通过原版菜单协议打开带真实工具槽的钻井控制箱。 */
-@SuppressWarnings("null")
+
 public final class MineralDrillingMenuProvider implements MenuProvider {
     private final MineralDrillingMenuSnapshot snapshot;
     private final MineralDrillingBoxData data;

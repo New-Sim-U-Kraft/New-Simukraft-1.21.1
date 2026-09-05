@@ -20,7 +20,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+
 public final class CommercialFoodMarketService {
     private static final double MAX_DISTANCE_SQR = 256.0D * 256.0D;
     private static final double NPC_FOOD_TAX_RATE = 0.4D;

@@ -17,7 +17,7 @@ public final class CityClaimService {
     private CityClaimService() {
     }
 
-    @SuppressWarnings("null")
+    
     public static synchronized ClaimResult buyChunk(ServerLevel level, ServerPlayer player, CityData city, int chunkX, int chunkZ) {
         if (level == null || player == null || city == null) {
             return ClaimResult.failed(Component.translatable("message.simukraft.city_chunk.claim_failed"));

@@ -11,7 +11,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.Locale;
 
-@SuppressWarnings({"unchecked", "null","deprecation"})
+@SuppressWarnings({"unchecked","deprecation"})
 public final class BuildingTransform {
     private BuildingTransform() {
     }

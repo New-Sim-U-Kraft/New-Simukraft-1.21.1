@@ -22,7 +22,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("null")
+
 public record CityCoreCreateCityPacket(BlockPos pos, String cityName) implements CustomPacketPayload {
     public static final Type<CityCoreCreateCityPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_core_create_city"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CityCoreCreateCityPacket> STREAM_CODEC = StreamCodec.of(CityCoreCreateCityPacket::encode, CityCoreCreateCityPacket::decode);

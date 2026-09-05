@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+
 public final class CommercialStockManager extends SavedData {
     private static final String DATA_NAME = SimuKraft.MOD_ID + "_commercial_stock";
     private static final Factory<CommercialStockManager> FACTORY = new Factory<>(CommercialStockManager::new, CommercialStockManager::load, null);

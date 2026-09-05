@@ -32,7 +32,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 
 import java.util.List;
 
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class BuildingConfirmScreen extends ModularUIScreen {
     private static final int MIN_BUTTON_WIDTH = 80;

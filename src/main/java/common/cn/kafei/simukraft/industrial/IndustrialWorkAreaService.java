@@ -4,7 +4,7 @@ import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 
-@SuppressWarnings("null")
+
 public final class IndustrialWorkAreaService {
     private IndustrialWorkAreaService() {
     }

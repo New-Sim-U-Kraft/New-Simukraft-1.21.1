@@ -12,7 +12,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 
-@SuppressWarnings("null")
+
 public final class SimuKraftClientConfigScreen {
     private static final int WINDOW_WIDTH = 280;
     private static final int WINDOW_HEIGHT = 320;

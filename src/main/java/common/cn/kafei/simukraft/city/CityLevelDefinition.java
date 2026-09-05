@@ -137,7 +137,7 @@ public record CityLevelDefinition(int level,
         }
 
         /** matches: 判断物品堆是否满足该材料条件。 */
-        @SuppressWarnings("null")
+        
         public boolean matches(ItemStack stack) {
             if (stack == null || stack.isEmpty()) {
                 return false;

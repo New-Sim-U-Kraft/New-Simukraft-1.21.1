@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings("null")
+
 public final class SaveScopedCacheKey {
     private static final ConcurrentMap<MinecraftServer, String> SERVER_KEYS = new ConcurrentHashMap<>();
 

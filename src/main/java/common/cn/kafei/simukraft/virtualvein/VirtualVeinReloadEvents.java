@@ -6,7 +6,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 
 /** VirtualVeinReloadEvents: 注册虚拟矿脉数据包重载监听器。 */
-@SuppressWarnings("null")
+
 @EventBusSubscriber(modid = SimuKraft.MOD_ID)
 public final class VirtualVeinReloadEvents {
     private VirtualVeinReloadEvents() {

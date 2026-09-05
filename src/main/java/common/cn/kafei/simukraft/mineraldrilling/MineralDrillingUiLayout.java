@@ -27,7 +27,7 @@ import net.minecraft.world.entity.player.Player;
 import java.util.function.Supplier;
 
 /** MineralDrillingUiLayout: 组合钻井控制区、矿脉信息、操作按钮和玩家背包。 */
-@SuppressWarnings("null")
+
 public final class MineralDrillingUiLayout {
     private static final ResourceLocation ORE_STYLESHEET = StylesheetManager.ORE;
     private static final ResourceLocation SIMUKRAFT_ORE_STYLESHEET =

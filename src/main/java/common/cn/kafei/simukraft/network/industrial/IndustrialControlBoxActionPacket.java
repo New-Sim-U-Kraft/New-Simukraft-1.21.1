@@ -20,7 +20,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.Locale;
 
-@SuppressWarnings("null")
+
 public record IndustrialControlBoxActionPacket(BlockPos pos, Action action, String recipeId) implements CustomPacketPayload {
     public static final Type<IndustrialControlBoxActionPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "industrial_control_box_action"));
     public static final StreamCodec<RegistryFriendlyByteBuf, IndustrialControlBoxActionPacket> STREAM_CODEC = StreamCodec.of(IndustrialControlBoxActionPacket::encode, IndustrialControlBoxActionPacket::decode);

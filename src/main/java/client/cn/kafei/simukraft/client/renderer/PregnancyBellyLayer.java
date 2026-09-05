@@ -18,7 +18,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 /** PregnancyBellyLayer：按同步的孕期阶段绘制成年 NPC 的腹部几何体。 */
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class PregnancyBellyLayer extends RenderLayer<CitizenEntity, CitizenModel> {
     private static final float EARLY_SCALE = 0.45F;

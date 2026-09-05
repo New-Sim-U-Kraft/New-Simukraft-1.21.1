@@ -28,7 +28,7 @@ import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class ClientCityMapTerrainCache {
     private static final ClientCityMapTerrainCache INSTANCE = new ClientCityMapTerrainCache();

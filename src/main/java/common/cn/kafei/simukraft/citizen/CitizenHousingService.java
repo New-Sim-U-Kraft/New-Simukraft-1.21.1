@@ -23,7 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("null")
+
 public final class CitizenHousingService {
     private CitizenHousingService() {
     }

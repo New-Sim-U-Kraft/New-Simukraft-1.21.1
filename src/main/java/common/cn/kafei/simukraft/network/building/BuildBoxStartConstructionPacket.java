@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 public record BuildBoxStartConstructionPacket(BlockPos buildBoxPos,
                                               String category,
                                               String buildingFileName,

@@ -21,7 +21,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("null")
+
 public record ResidentialControlBoxDemolishPacket(BlockPos pos) implements CustomPacketPayload {
     public static final Type<ResidentialControlBoxDemolishPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "residential_control_box_demolish"));
     public static final StreamCodec<RegistryFriendlyByteBuf, ResidentialControlBoxDemolishPacket> STREAM_CODEC = StreamCodec.of(ResidentialControlBoxDemolishPacket::encode, ResidentialControlBoxDemolishPacket::decode);

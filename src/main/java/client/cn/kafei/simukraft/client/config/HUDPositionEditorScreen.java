@@ -20,7 +20,7 @@ import java.util.List;
  * 锚点决定文本对齐方向，实际 HUD 渲染同步生效。
  */
 @OnlyIn(Dist.CLIENT)
-@SuppressWarnings("null")
+
 public final class HUDPositionEditorScreen extends Screen {
     private static final int PADDING = 6;
     private static final int BUTTON_WIDTH = 90;

@@ -9,7 +9,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.List;
 import java.util.Map;
 
-@SuppressWarnings("null")
+
 /** Drives a single citizen's per-tick movement along an already-computed {@link PathResult}. */
 final class ActiveNavigation {
     private static final double PASSED_WAYPOINT_DOT_EPSILON = 1.05D;

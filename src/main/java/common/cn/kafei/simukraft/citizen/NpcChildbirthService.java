@@ -20,7 +20,7 @@ import net.minecraft.util.RandomSource;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("null")
+
 public final class NpcChildbirthService {
     private NpcChildbirthService() {
     }

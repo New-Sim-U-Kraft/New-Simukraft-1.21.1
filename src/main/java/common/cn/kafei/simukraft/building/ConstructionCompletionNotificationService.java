@@ -10,7 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 
-@SuppressWarnings("null")
+
 public final class ConstructionCompletionNotificationService {
     private ConstructionCompletionNotificationService() {
     }

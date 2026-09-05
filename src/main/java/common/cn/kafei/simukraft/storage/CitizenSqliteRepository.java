@@ -9,7 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-@SuppressWarnings("null")
+
 public final class CitizenSqliteRepository {
     // 38 列的占位符与整条 SQL 都是常量，只在类加载时拼一次（旧实现每次 save 都重建这条 700+ 字符的 SQL）。
     private static final String UPSERT_SQL =

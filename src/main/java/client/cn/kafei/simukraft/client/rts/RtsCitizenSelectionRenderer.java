@@ -44,7 +44,7 @@ public final class RtsCitizenSelectionRenderer {
         AABB searchBounds = new AABB(cameraPos.x - SEARCH_RADIUS, cameraPos.y - SEARCH_RADIUS,
                 cameraPos.z - SEARCH_RADIUS, cameraPos.x + SEARCH_RADIUS, cameraPos.y + SEARCH_RADIUS,
                 cameraPos.z + SEARCH_RADIUS);
-        @SuppressWarnings("null")
+        
         var citizens = minecraft.level.getEntitiesOfClass(CitizenEntity.class, searchBounds,
                 citizen -> citizen.isAlive() && !citizen.isRemoved()
                         && RtsSelectionManager.isCitizenSelected(citizen.getUUID()));

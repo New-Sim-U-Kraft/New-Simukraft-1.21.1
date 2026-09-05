@@ -6,7 +6,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 /** 直接绘制双层区域面板，避免 LDLib 背景纹理的层级覆盖。 */
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class CitizenSectionPanelElement extends UIElement {
     private final int fillColor;

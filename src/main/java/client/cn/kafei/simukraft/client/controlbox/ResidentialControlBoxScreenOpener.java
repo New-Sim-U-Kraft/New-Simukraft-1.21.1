@@ -29,7 +29,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.stream.Collectors;
 
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class ResidentialControlBoxScreenOpener {
     private static final int PANEL_WIDTH = 320;

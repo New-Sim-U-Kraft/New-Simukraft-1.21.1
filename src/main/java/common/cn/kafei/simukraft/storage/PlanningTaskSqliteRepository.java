@@ -22,7 +22,7 @@ import java.util.UUID;
  * 规划任务的 SQLite 仓库。任务扁平存储（区域用 min/max 的 long 表示），按维度加载用于恢复，按市民删除。
  */
 
-@SuppressWarnings("null")
+
 public final class PlanningTaskSqliteRepository {
     private final SimuSqliteDatabase database;
 

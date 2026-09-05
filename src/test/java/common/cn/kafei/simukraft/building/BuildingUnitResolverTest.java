@@ -20,7 +20,7 @@ class BuildingUnitResolverTest {
         BuildingUnitDefinition secondUnit = new BuildingUnitDefinition("second", new BlockPos(-2, 0, 4), new BlockPos(-2, 2, 4));
 
         for (int rotationDegrees : List.of(0, 90, 180, 270)) {
-            @SuppressWarnings("null")
+            
             PlacedBuildingRecord building = building(
                     origin,
                     rotationDegrees,

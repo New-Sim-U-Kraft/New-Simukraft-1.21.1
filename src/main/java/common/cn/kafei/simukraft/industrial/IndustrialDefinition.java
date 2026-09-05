@@ -6,7 +6,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-@SuppressWarnings("null")
+
 public record IndustrialDefinition(String id,
                                    String name,
                                    String jobType,

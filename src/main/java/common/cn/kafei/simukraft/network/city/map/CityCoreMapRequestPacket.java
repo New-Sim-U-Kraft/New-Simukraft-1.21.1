@@ -15,7 +15,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-@SuppressWarnings("null")
+
 public record CityCoreMapRequestPacket(BlockPos pos) implements CustomPacketPayload {
     public static final Type<CityCoreMapRequestPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "city_core_map_request"));
     public static final StreamCodec<RegistryFriendlyByteBuf, CityCoreMapRequestPacket> STREAM_CODEC = StreamCodec.of(CityCoreMapRequestPacket::encode, CityCoreMapRequestPacket::decode);

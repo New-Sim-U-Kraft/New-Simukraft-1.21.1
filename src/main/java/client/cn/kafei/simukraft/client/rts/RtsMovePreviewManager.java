@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** RTS 抓取预览状态：抓取时构建一次网格，鼠标移动时只平移网格。 */
-@SuppressWarnings("null")
+
 @OnlyIn(Dist.CLIENT)
 public final class RtsMovePreviewManager {
     private static final int MAX_CAPTURED_BLOCKS = 32768;

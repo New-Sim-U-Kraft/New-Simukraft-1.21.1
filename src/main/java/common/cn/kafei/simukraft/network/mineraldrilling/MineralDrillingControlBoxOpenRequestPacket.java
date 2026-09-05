@@ -12,7 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** MineralDrillingControlBoxOpenRequestPacket: 请求服务端重新打开钻井控制箱容器。 */
-@SuppressWarnings("null")
+
 public record MineralDrillingControlBoxOpenRequestPacket(BlockPos pos) implements CustomPacketPayload {
     public static final Type<MineralDrillingControlBoxOpenRequestPacket> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(SimuKraft.MOD_ID, "mineral_drilling_control_box_open_request"));
