@@ -44,6 +44,10 @@ import common.cn.kafei.simukraft.network.industrial.IndustrialControlBoxViewUpda
 import common.cn.kafei.simukraft.network.logistics.LogisticsClientBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.logistics.LogisticsServerBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.logistics.LogisticsWarehouseGridResponsePacket;
+import client.cn.kafei.simukraft.client.bank.BankControlBoxScreenOpener;
+import client.cn.kafei.simukraft.client.exchange.ExchangeControlBoxScreenOpener;
+import common.cn.kafei.simukraft.network.bank.BankControlBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.exchange.ExchangeControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.npc.hire.NpcHireListResponsePacket;
 import common.cn.kafei.simukraft.network.npc.state.EmploymentStateResponsePacket;
@@ -183,6 +187,16 @@ public final class ClientboundNetworkHandlerImpl implements ClientboundNetworkHa
     @Override
     public void handleMedicalControlBoxOpenResponse(MedicalControlBoxOpenResponsePacket packet) {
         MedicalControlBoxScreenOpener.open(packet);
+    }
+
+    @Override
+    public void handleBankControlBoxOpenResponse(BankControlBoxOpenResponsePacket packet) {
+        BankControlBoxScreenOpener.open(packet);
+    }
+
+    @Override
+    public void handleExchangeControlBoxOpenResponse(ExchangeControlBoxOpenResponsePacket packet) {
+        ExchangeControlBoxScreenOpener.open(packet);
     }
 
     @Override

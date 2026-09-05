@@ -21,6 +21,8 @@ import common.cn.kafei.simukraft.network.industrial.IndustrialControlBoxViewUpda
 import common.cn.kafei.simukraft.network.logistics.LogisticsClientBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.logistics.LogisticsServerBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.logistics.LogisticsWarehouseGridResponsePacket;
+import common.cn.kafei.simukraft.network.bank.BankControlBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.exchange.ExchangeControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.npc.hire.NpcHireListResponsePacket;
 import common.cn.kafei.simukraft.network.npc.state.EmploymentStateResponsePacket;
@@ -102,6 +104,14 @@ public interface ClientboundNetworkHandler {
 
     /** handleMedicalControlBoxOpenResponse：打开医疗控制箱 LDLib 界面。 */
     default void handleMedicalControlBoxOpenResponse(MedicalControlBoxOpenResponsePacket packet) {
+    }
+
+    /** handleBankControlBoxOpenResponse: 打开银行控制箱界面。 */
+    default void handleBankControlBoxOpenResponse(BankControlBoxOpenResponsePacket packet) {
+    }
+
+    /** handleExchangeControlBoxOpenResponse: 打开交易所界面。 */
+    default void handleExchangeControlBoxOpenResponse(ExchangeControlBoxOpenResponsePacket packet) {
     }
 
     /** handleCommercialTradeOpenResponse: 处理 NPC 商业交易界面响应。 */

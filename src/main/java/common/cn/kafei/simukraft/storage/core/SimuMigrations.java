@@ -15,7 +15,9 @@ public final class SimuMigrations {
                 new CityChunksDimensionPrimaryKey(),
                 new CitizenReservedBabyBed(),
                 new CommercialBoxesDimensionPrimaryKey(),
-                new CitizenLastHospitalProgressDayTime());
+                new CitizenLastHospitalProgressDayTime(),
+                new ExchangeTables(),
+                new ResidentialOccupancyTable());
     }
 
     /**
@@ -152,6 +154,58 @@ public final class SimuMigrations {
             try (Statement statement = connection.createStatement()) {
                 statement.executeUpdate(
                         "ALTER TABLE citizens ADD COLUMN last_hospital_progress_day_time INTEGER NOT NULL DEFAULT 0");
+            }
+        }
+    }
+
+    /** v6: 股市市况、行情、K 线与持仓。 */
+    private static final class ExchangeTables implements Migration {
+        @Override
+        public int version() {
+            return 6;
+        }
+
+        @Override
+        public String description() {
+            return "add exchange market, quotes, candles and holdings";
+        }
+
+        @Override
+        public void apply(Connection connection) throws SQLException {
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS exchange_market("
+                        + "dimension_id TEXT PRIMARY KEY, market_day INTEGER NOT NULL, regime TEXT NOT NULL, last_hour INTEGER NOT NULL)");
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS exchange_quotes("
+                        + "dimension_id TEXT NOT NULL, company_id TEXT NOT NULL, price REAL NOT NULL, previous_close REAL NOT NULL, volume INTEGER NOT NULL, "
+                        + "PRIMARY KEY(dimension_id, company_id))");
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS exchange_candles("
+                        + "dimension_id TEXT NOT NULL, company_id TEXT NOT NULL, market_day INTEGER NOT NULL, hour_index INTEGER NOT NULL, "
+                        + "open_price REAL NOT NULL, high_price REAL NOT NULL, low_price REAL NOT NULL, close_price REAL NOT NULL, volume INTEGER NOT NULL, "
+                        + "PRIMARY KEY(dimension_id, company_id, market_day, hour_index))");
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS exchange_holdings("
+                        + "city_id TEXT NOT NULL, company_id TEXT NOT NULL, shares INTEGER NOT NULL, cost_basis REAL NOT NULL, "
+                        + "PRIMARY KEY(city_id, company_id))");
+            }
+        }
+    }
+
+    /** v7: 旧存档基线没有住宅入住开关表，缺表会把整库打成降级，股市 K 线也无法落盘。 */
+    private static final class ResidentialOccupancyTable implements Migration {
+        @Override
+        public int version() {
+            return 7;
+        }
+
+        @Override
+        public String description() {
+            return "add residential occupancy flags table";
+        }
+
+        @Override
+        public void apply(Connection connection) throws SQLException {
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS residential_occupancy("
+                        + "building_id TEXT PRIMARY KEY, occupancy_allowed INTEGER NOT NULL, updated_at INTEGER NOT NULL)");
             }
         }
     }

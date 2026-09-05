@@ -10,7 +10,9 @@ public enum CityPoiType {
     LOGISTICS,
     FARMLAND,
     DEFENSE,
-    MEDICAL;
+    MEDICAL,
+    BANK,
+    EXCHANGE;
 
     public static CityPoiType fromName(String name) {
         for (CityPoiType type : values()) {

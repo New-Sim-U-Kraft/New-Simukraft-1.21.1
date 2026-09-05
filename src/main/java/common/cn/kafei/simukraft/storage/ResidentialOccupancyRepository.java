@@ -29,10 +29,26 @@ public final class ResidentialOccupancyRepository {
                 closed.add(UUID.fromString(resultSet.getString("building_id")));
             }
         } catch (SQLException | IllegalArgumentException exception) {
+            if (isMissingTable(exception, "residential_occupancy")) {
+                SimuKraft.LOGGER.warn("residential_occupancy 表尚未建立，入住开关按允许处理");
+                return closed;
+            }
             database.markDegraded("loadClosedBuildingIds(residential_occupancy)", exception);
             SimuKraft.LOGGER.error("Failed to load residential occupancy flags from SQLite", exception);
         }
         return closed;
+    }
+
+    private static boolean isMissingTable(Throwable throwable, String table) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.contains("no such table") && message.contains(table)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     /** upsert: 写入一座住宅的入住开关。 */

@@ -10,6 +10,7 @@ import client.cn.kafei.simukraft.client.buildbox.BuildingPreviewManager;
 import client.cn.kafei.simukraft.client.city.ClientCityChunkCache;
 import client.cn.kafei.simukraft.client.city.ClientCityMapTerrainCache;
 import client.cn.kafei.simukraft.client.city.map.SimuMapManager;
+import client.cn.kafei.simukraft.client.exchange.ExchangeControlBoxScreenOpener;
 import client.cn.kafei.simukraft.client.farmland.FarmlandHoverPreview;
 import client.cn.kafei.simukraft.client.freecamera.FreeCameraManager;
 import client.cn.kafei.simukraft.client.rts.RtsMiniMapRenderer;
@@ -92,6 +93,7 @@ public final class ClientSetup {
         CityEntryHud.onClientTick();
         RtsSelectionManager.onClientTick();
         RtsMiniMapRenderer.onClientTick();
+        ExchangeControlBoxScreenOpener.onClientTick();
     }
 
     @SubscribeEvent

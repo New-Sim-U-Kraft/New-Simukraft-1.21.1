@@ -1,0 +1,7 @@
+{
+  "id": "lapis_industry",
+  "display_name": "青金石工业",
+  "sector": "industry",
+  "base_price": 1.10,
+  "volatility": 0.022
+}

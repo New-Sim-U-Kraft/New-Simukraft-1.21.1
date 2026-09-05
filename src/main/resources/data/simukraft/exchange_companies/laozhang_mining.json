@@ -1,0 +1,7 @@
+{
+  "id": "laozhang_mining",
+  "display_name": "老张矿业",
+  "sector": "mining",
+  "base_price": 1.05,
+  "volatility": 0.030
+}

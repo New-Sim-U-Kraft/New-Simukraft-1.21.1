@@ -44,3 +44,8 @@ button.simukraft_card_button:host {
   hover-background: sdf(#55565b, 5, 1, #fff);
   pressed-background: sdf(#71a4f4, 5, 1, #9ec4f8);
 }
+
+.__selector_dialog__ label {
+  text-color: #e8e8e8;
+  text-shadow: false;
+}

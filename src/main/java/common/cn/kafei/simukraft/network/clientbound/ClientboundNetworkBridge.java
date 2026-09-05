@@ -21,6 +21,8 @@ import common.cn.kafei.simukraft.network.industrial.IndustrialControlBoxViewUpda
 import common.cn.kafei.simukraft.network.logistics.LogisticsClientBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.logistics.LogisticsServerBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.logistics.LogisticsWarehouseGridResponsePacket;
+import common.cn.kafei.simukraft.network.bank.BankControlBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.exchange.ExchangeControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.npc.hire.NpcHireListResponsePacket;
 import common.cn.kafei.simukraft.network.npc.state.EmploymentStateResponsePacket;
@@ -134,6 +136,16 @@ public final class ClientboundNetworkBridge {
     /** handleMedicalControlBoxOpenResponse：分发医疗控制箱打开响应。 */
     public static void handleMedicalControlBoxOpenResponse(MedicalControlBoxOpenResponsePacket packet) {
         HANDLER.get().handleMedicalControlBoxOpenResponse(packet);
+    }
+
+    /** handleBankControlBoxOpenResponse: 分发银行控制箱打开响应。 */
+    public static void handleBankControlBoxOpenResponse(BankControlBoxOpenResponsePacket packet) {
+        HANDLER.get().handleBankControlBoxOpenResponse(packet);
+    }
+
+    /** handleExchangeControlBoxOpenResponse: 分发交易所打开响应。 */
+    public static void handleExchangeControlBoxOpenResponse(ExchangeControlBoxOpenResponsePacket packet) {
+        HANDLER.get().handleExchangeControlBoxOpenResponse(packet);
     }
 
     /** handleCommercialTradeOpenResponse: 分发 NPC 商业交易界面响应。 */

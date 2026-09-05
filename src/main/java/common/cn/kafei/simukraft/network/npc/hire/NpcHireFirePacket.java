@@ -1,12 +1,16 @@
 package common.cn.kafei.simukraft.network.npc.hire;
 
 import common.cn.kafei.simukraft.SimuKraft;
+import common.cn.kafei.simukraft.bank.BankControlBoxService;
 import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenService;
 import common.cn.kafei.simukraft.commercial.CommercialConstants;
 import common.cn.kafei.simukraft.commercial.CommercialControlBoxService;
 import common.cn.kafei.simukraft.city.group.CityGroupMessageService;
+import common.cn.kafei.simukraft.network.bank.BankControlBoxOpenRequestPacket;
 import common.cn.kafei.simukraft.network.commercial.CommercialControlBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.exchange.ExchangeControlBoxOpenRequestPacket;
+import common.cn.kafei.simukraft.exchange.ExchangeControlBoxService;
 import common.cn.kafei.simukraft.job.CitizenEmploymentService;
 import common.cn.kafei.simukraft.logistics.LogisticsConstants;
 import common.cn.kafei.simukraft.logistics.LogisticsControlBoxService;
@@ -83,6 +87,12 @@ public record NpcHireFirePacket(BlockPos sourcePos, String sourceType, String ro
             if (MedicalControlBoxService.HIRE_SOURCE_TYPE.equals(access.sourceType())) {
                 MedicalService.releasePatientsForControlBox(level, access.sourcePos());
                 PacketDistributor.sendToPlayer(player, MedicalControlBoxOpenResponsePacket.from(MedicalControlBoxService.buildView(level, access.sourcePos())));
+            }
+            if (BankControlBoxService.HIRE_SOURCE_TYPE.equals(access.sourceType())) {
+                PacketDistributor.sendToPlayer(player, BankControlBoxOpenRequestPacket.snapshot(level, player, access.sourcePos()));
+            }
+            if (ExchangeControlBoxService.HIRE_SOURCE_TYPE.equals(access.sourceType())) {
+                PacketDistributor.sendToPlayer(player, ExchangeControlBoxOpenRequestPacket.snapshot(level, player, access.sourcePos(), ""));
             }
             CityGroupMessageService.successToCity(level, access.cityId(), Component.translatable("message.simukraft.fire_npc.success", citizen.name()));
         }

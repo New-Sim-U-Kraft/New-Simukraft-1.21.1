@@ -1,5 +1,6 @@
 package common.cn.kafei.simukraft.network.npc.hire;
 
+import common.cn.kafei.simukraft.bank.BankControlBoxService;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.citizen.CitizenData;
 import common.cn.kafei.simukraft.citizen.CitizenService;
@@ -7,6 +8,7 @@ import common.cn.kafei.simukraft.city.CityChunkManager;
 import common.cn.kafei.simukraft.city.CityService;
 import common.cn.kafei.simukraft.commercial.CommercialConstants;
 import common.cn.kafei.simukraft.commercial.CommercialControlBoxService;
+import common.cn.kafei.simukraft.exchange.ExchangeControlBoxService;
 import common.cn.kafei.simukraft.farmland.FarmlandBoxService;
 import common.cn.kafei.simukraft.industrial.IndustrialConstants;
 import common.cn.kafei.simukraft.industrial.IndustrialControlBoxService;
@@ -130,6 +132,18 @@ final class NpcHireAccessValidator {
             PlacedBuildingRecord building = MedicalControlBoxService.resolveBuilding(level, sourcePos);
             return building != null ? building.cityId() : null;
         }
+        if (BankControlBoxService.HIRE_SOURCE_TYPE.equals(sourceType)
+                && BankControlBoxService.HIRE_ROLE.equals(role)
+                && level.getBlockState(sourcePos).is(ModBlocks.BANK_CONTROL_BOX.get())) {
+            PlacedBuildingRecord building = BankControlBoxService.resolveBuilding(level, sourcePos);
+            return building != null ? building.cityId() : null;
+        }
+        if (ExchangeControlBoxService.HIRE_SOURCE_TYPE.equals(sourceType)
+                && ExchangeControlBoxService.HIRE_ROLE.equals(role)
+                && level.getBlockState(sourcePos).is(ModBlocks.EXCHANGE_CONTROL_BOX.get())) {
+            PlacedBuildingRecord building = ExchangeControlBoxService.resolveBuilding(level, sourcePos);
+            return building != null ? building.cityId() : null;
+        }
         if (LogisticsConstants.SERVER_SOURCE_TYPE.equals(sourceType)
                 && LogisticsConstants.STORAGE_ROLE.equals(role)
                 && level.getBlockState(sourcePos).is(ModBlocks.LOGISTICS_SERVER_BOX.get())) {
@@ -175,6 +189,12 @@ final class NpcHireAccessValidator {
         }
         if (MedicalControlBoxService.HIRE_SOURCE_TYPE.equals(sourceType)) {
             return "message.simukraft.medical_control_box.too_far";
+        }
+        if (BankControlBoxService.HIRE_SOURCE_TYPE.equals(sourceType)) {
+            return "message.simukraft.bank.too_far";
+        }
+        if (ExchangeControlBoxService.HIRE_SOURCE_TYPE.equals(sourceType)) {
+            return "message.simukraft.exchange.too_far";
         }
         if (LogisticsConstants.SERVER_SOURCE_TYPE.equals(sourceType)) {
             return "message.simukraft.logistics.too_far";

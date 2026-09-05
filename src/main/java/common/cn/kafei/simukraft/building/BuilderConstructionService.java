@@ -856,7 +856,8 @@ public final class BuilderConstructionService {
         if (building == null) {
             return false;
         }
-        return "medical".equalsIgnoreCase(building.category())
+        return PublicBuildingTypes.isMedical(building)
+                || "medical".equalsIgnoreCase(building.category())
                 || building.poiDefinitions().stream().anyMatch(poi -> poi.poiType() == CityPoiType.MEDICAL)
                 || building.poiInstances().stream().anyMatch(poi -> poi.poiType() == CityPoiType.MEDICAL)
                 || building.blocks().stream().anyMatch(block -> block.state().is(ModBlocks.MEDICAL_CONTROL_BOX.get()));

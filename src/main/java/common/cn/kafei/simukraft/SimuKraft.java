@@ -25,6 +25,7 @@ import common.cn.kafei.simukraft.building.ResidentialBedPoiService;
 import common.cn.kafei.simukraft.building.MedicalBedPoiService;
 import common.cn.kafei.simukraft.medical.MedicalDefinitionLoader;
 import common.cn.kafei.simukraft.medical.MedicalMealService;
+import common.cn.kafei.simukraft.exchange.ExchangeMarketService;
 import common.cn.kafei.simukraft.medical.MedicalService;
 import common.cn.kafei.simukraft.commercial.CommercialBoxManager;
 import common.cn.kafei.simukraft.commercial.CommercialDefinitionLoader;
@@ -80,6 +81,7 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.level.ExplosionEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.level.PistonEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -136,6 +138,7 @@ public final class SimuKraft {
         NeoForge.EVENT_BUS.addListener(this::onServerTick);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
         NeoForge.EVENT_BUS.addListener(this::onServerStopped);
+        NeoForge.EVENT_BUS.addListener(this::onLevelSave);
         NeoForge.EVENT_BUS.addListener(this::onPlayerInteractBed);
         LOGGER.info("\nWelcome to\n========================================================================\n███████╗██╗███╗   ███╗██╗   ██╗██╗  ██╗██████╗  █████╗ ███████╗████████╗\n██╔════╝██║████╗ ████║██║   ██║██║ ██╔╝██╔══██╗██╔══██╗██╔════╝╚══██╔══╝\n███████╗██║██╔████╔██║██║   ██║█████╔╝ ██████╔╝███████║█████╗     ██║   \n╚════██║██║██║╚██╔╝██║██║   ██║██╔═██╗ ██╔══██╗██╔══██║██╔══╝     ██║   \n███████║██║██║ ╚═╝ ██║╚██████╔╝██║  ██╗██║  ██║██║  ██║██║        ██║   \n╚══════╝╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝        ╚═╝  \n========================================================================\n");
     }
@@ -272,6 +275,7 @@ public final class SimuKraft {
             BuildingIntegrityService.tick(level);
             CitizenHomeRestService.tick(level);
             MedicalService.tick(level);
+            ExchangeMarketService.tick(level);
             CitizenSelfFeedingService.tick(level);
             BuilderConstructionService.tick(level);
             PlannerWorkService.tick(level);
@@ -286,6 +290,13 @@ public final class SimuKraft {
             CityPermissionInviteService.tick(level);
         });
         PlayerWelcomeService.tick(event.getServer());
+    }
+
+    /** onLevelSave: 世界自动保存时顺带落股市，避免只在关服才写。 */
+    private void onLevelSave(LevelEvent.Save event) {
+        if (event.getLevel() instanceof ServerLevel level) {
+            ExchangeMarketService.saveToSqlite(level);
+        }
     }
 
     private void onServerStopping(ServerStoppingEvent event) {
@@ -316,6 +327,7 @@ public final class SimuKraft {
         ResidentialBedPoiService.clearServerCaches(event.getServer());
         MedicalBedPoiService.clearServerCaches(event.getServer());
         MedicalDefinitionLoader.clearCache();
+        ExchangeMarketService.clearServerCaches(event.getServer());
         MedicalMealService.clearServerCaches(event.getServer());
         CitizenHomeRestService.clearServerCaches(event.getServer());
         CitizenDroppedFoodService.clearServerCaches(event.getServer());
@@ -357,6 +369,7 @@ public final class SimuKraft {
         CommercialBoxManager.get(level).saveToSqlite(level);
         CommercialStockManager.get(level).saveToSqlite(level);
         LogisticsManager.get(level).saveToSqlite(level);
+        ExchangeMarketService.saveToSqlite(level);
     }
 
     private void saveGlobalSqlite(MinecraftServer server) {

@@ -1,0 +1,7 @@
+{
+  "id": "redstone_medical",
+  "display_name": "红石医疗",
+  "sector": "medical",
+  "base_price": 1.15,
+  "volatility": 0.020
+}

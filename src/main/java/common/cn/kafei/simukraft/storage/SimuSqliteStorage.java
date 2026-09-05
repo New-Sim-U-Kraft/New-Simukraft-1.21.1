@@ -1,6 +1,7 @@
 package common.cn.kafei.simukraft.storage;
 
 import common.cn.kafei.simukraft.SimuKraft;
+import common.cn.kafei.simukraft.exchange.ExchangeCandle;
 import common.cn.kafei.simukraft.virtualvein.VirtualVeinConsumption;
 import common.cn.kafei.simukraft.virtualvein.VirtualVeinFieldKey;
 import common.cn.kafei.simukraft.virtualvein.VirtualVeinFieldProfile;
@@ -52,6 +53,7 @@ public final class SimuSqliteStorage {
     private final BuildingAbandonmentRepository buildingAbandonment;
     private final ResidentialOccupancyRepository residentialOccupancy;
     private final VirtualVeinSqliteRepository virtualVeins;
+    private final ExchangeSqliteRepository exchange;
 
     private SimuSqliteStorage(SimuSqliteDatabase database) {
         this.database = database;
@@ -70,6 +72,7 @@ public final class SimuSqliteStorage {
         this.buildingAbandonment = new BuildingAbandonmentRepository(database);
         this.residentialOccupancy = new ResidentialOccupancyRepository(database);
         this.virtualVeins = new VirtualVeinSqliteRepository(database);
+        this.exchange = new ExchangeSqliteRepository(database);
     }
 
     // ── 生命周期 ──────────────────────────────────────────────────────────────
@@ -665,6 +668,66 @@ public final class SimuSqliteStorage {
             return Optional.empty();
         }
         return storage.virtualVeins.consume(dimensionId(level), key, slotIndex, amount);
+    }
+
+    /** loadExchangeMarket: 读取当日市况。 */
+    public static ExchangeSqliteRepository.MarketRow loadExchangeMarket(ServerLevel level) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null ? storage.exchange.loadMarket(dimensionId(level)) : null;
+    }
+
+    /** saveExchangeMarket: 写入当日市况。 */
+    public static void saveExchangeMarket(ServerLevel level, long day, String regime, int lastHour) {
+        String dimensionId = dimensionId(level);
+        write(level, "exchange_market:" + dimensionId,
+                (storage, connection) -> storage.exchange.saveMarket(connection, dimensionId, day, regime, lastHour));
+    }
+
+    /** loadExchangeQuotes: 读取行情。 */
+    public static List<ExchangeSqliteRepository.QuoteRow> loadExchangeQuotes(ServerLevel level) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null ? storage.exchange.loadQuotes(dimensionId(level)) : List.of();
+    }
+
+    /** saveExchangeQuote: 写入单只行情。 */
+    public static void saveExchangeQuote(ServerLevel level, String companyId, double price, double previousClose, int volume) {
+        String dimensionId = dimensionId(level);
+        write(level, "exchange_quote:" + dimensionId + ":" + companyId,
+                (storage, connection) -> storage.exchange.saveQuote(connection, dimensionId, companyId, price, previousClose, volume));
+    }
+
+    /** loadExchangeCandles: 读取 K 线。 */
+    public static List<ExchangeCandle> loadExchangeCandles(ServerLevel level, String companyId) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null ? storage.exchange.loadCandles(dimensionId(level), companyId) : List.of();
+    }
+
+    /** saveExchangeCandle: 写入一根 K 线。 */
+    public static void saveExchangeCandle(ServerLevel level, String companyId, long day, ExchangeCandle candle) {
+        String dimensionId = dimensionId(level);
+        write(level, "exchange_candle:" + dimensionId + ":" + companyId + ":" + day + ":" + candle.hourIndex(),
+                (storage, connection) -> storage.exchange.saveCandle(connection, dimensionId, companyId, day, candle));
+    }
+
+    /** deleteExchangeCandlesAfter: 删除尚未走到的小时柱，避免一次性补全日后挡住后续整点。 */
+    public static void deleteExchangeCandlesAfter(ServerLevel level, long day, int maxHour) {
+        String dimensionId = dimensionId(level);
+        writeOrdered(level, (storage, connection) -> storage.exchange.deleteCandlesAfter(connection, dimensionId, day, maxHour));
+    }
+
+    /** loadExchangeHoldings: 读取城市持仓。 */
+    public static List<ExchangeSqliteRepository.HoldingRow> loadExchangeHoldings(ServerLevel level, UUID cityId) {
+        SimuSqliteStorage storage = openSafely(level);
+        return storage != null && cityId != null ? storage.exchange.loadHoldings(cityId) : List.of();
+    }
+
+    /** saveExchangeHolding: 写入城市持仓。 */
+    public static void saveExchangeHolding(ServerLevel level, UUID cityId, String companyId, int shares, double costBasis) {
+        if (cityId == null || companyId == null) {
+            return;
+        }
+        write(level, "exchange_holding:" + cityId + ":" + companyId,
+                (storage, connection) -> storage.exchange.saveHolding(connection, cityId, companyId, shares, costBasis));
     }
 
     private static String dimensionId(ServerLevel level) {

@@ -2,6 +2,7 @@ package common.cn.kafei.simukraft.building;
 
 import common.cn.kafei.simukraft.SimuKraft;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
+import common.cn.kafei.simukraft.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -69,7 +70,7 @@ public final class BuildingStructureService {
                 BuildingMetadataReader.parseSize(definition.size()),
                 List.copyOf(blocks),
                 parseEntities(loaded.get().rootTag()),
-                scanPoiDefinitions(blocks),
+                scanPoiDefinitions(blocks, definition.buildingType()),
                 BlockPos.ZERO,
                 blocks.size()
         ));
@@ -207,13 +208,27 @@ public final class BuildingStructureService {
         return property.getValue(value).map(parsed -> state.setValue(property, parsed)).orElse(state);
     }
 
-    /** 扫描 NBT 方块列表中的床头方块，自动生成 POI 定义：红床→RESIDENTIAL，白床→MEDICAL */
-    private static List<BuildingPoiDefinition> scanPoiDefinitions(List<BuildingBlockData> blocks) {
+    /** 扫描 NBT：红床→住宅，白床→医疗；银行/交易所以 JSON type 为准。 */
+    private static List<BuildingPoiDefinition> scanPoiDefinitions(List<BuildingBlockData> blocks,
+                                                                  BuildingCatalog.BuildingType buildingType) {
+        BuildingCatalog.BuildingType type = buildingType != null ? buildingType : BuildingCatalog.BuildingType.STANDARD;
         int residentialCount = 0;
         int medicalCount = 0;
+        boolean bankBox = false;
+        boolean exchangeBox = false;
         for (BuildingBlockData block : blocks) {
             BlockState state = block.state();
-            if (state == null) continue;
+            if (state == null) {
+                continue;
+            }
+            if (state.is(ModBlocks.BANK_CONTROL_BOX.get())) {
+                bankBox = true;
+                continue;
+            }
+            if (state.is(ModBlocks.EXCHANGE_CONTROL_BOX.get())) {
+                exchangeBox = true;
+                continue;
+            }
             // 只统计床头，避免一张床的头/脚两个方块重复计数
             if (!state.hasProperty(BlockStateProperties.BED_PART) ||
                     state.getValue(BlockStateProperties.BED_PART) != BedPart.HEAD) {
@@ -221,7 +236,8 @@ public final class BuildingStructureService {
             }
             if (state.is(Blocks.RED_BED)) {
                 residentialCount++;
-            } else if (state.is(Blocks.WHITE_BED)) {
+            } else if (state.is(Blocks.WHITE_BED) && type != BuildingCatalog.BuildingType.BANK
+                    && type != BuildingCatalog.BuildingType.EXCHANGE) {
                 medicalCount++;
             }
         }
@@ -231,6 +247,12 @@ public final class BuildingStructureService {
         }
         if (medicalCount > 0) {
             result.add(new BuildingPoiDefinition("medical", CityPoiType.MEDICAL, medicalCount));
+        }
+        if (type == BuildingCatalog.BuildingType.BANK || (type == BuildingCatalog.BuildingType.STANDARD && bankBox)) {
+            result.add(new BuildingPoiDefinition("bank", CityPoiType.BANK, 1));
+        }
+        if (type == BuildingCatalog.BuildingType.EXCHANGE || (type == BuildingCatalog.BuildingType.STANDARD && exchangeBox)) {
+            result.add(new BuildingPoiDefinition("exchange", CityPoiType.EXCHANGE, 1));
         }
         return List.copyOf(result);
     }

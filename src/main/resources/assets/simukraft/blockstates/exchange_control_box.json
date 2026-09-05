@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "simukraft:block/exchange_control_box"
+    }
+  }
+}

@@ -255,14 +255,18 @@ public final class BuildingPackageCatalog {
         );
     }
 
-    /** readBuildingType: 从工业建筑的配套 JSON 读取控制箱类型声明。 */
+    /** readBuildingType: 从工业/公共建筑配套 JSON 读取子类声明。 */
     private static BuildingCatalog.BuildingType readBuildingType(Path packagePath,
                                                                  ZipFile zipFile,
                                                                  String category,
                                                                  String baseName,
                                                                  String metaText,
                                                                  Map<String, String> packageFiles) {
-        if (!"industry".equals(normalizeCategory(category))) {
+        String normalized = normalizeCategory(category);
+        if ("public".equals(normalized) || "other".equals(normalized)) {
+            return readPublicBuildingType(packagePath, zipFile, category, baseName, metaText, packageFiles);
+        }
+        if (!"industry".equals(normalized)) {
             return BuildingCatalog.BuildingType.STANDARD;
         }
         String drillingFile = findValue(metaText, "drilling", "");
@@ -291,6 +295,100 @@ public final class BuildingPackageCatalog {
             SimuKraft.LOGGER.warn("Simukraft: Failed to read building type from {} in {}", actualFile, packagePath, exception);
         }
         return BuildingCatalog.BuildingType.STANDARD;
+    }
+
+    /** readPublicBuildingType: 公共目录与医院相同，用同名 JSON 的 type 区分子类。 */
+    private static BuildingCatalog.BuildingType readPublicBuildingType(Path packagePath,
+                                                                       ZipFile zipFile,
+                                                                       String category,
+                                                                       String baseName,
+                                                                       String metaText,
+                                                                       Map<String, String> packageFiles) {
+        String declaredKey = null;
+        String configuredFile = findDeclaredValue(metaText, "bank");
+        if (configuredFile != null && !configuredFile.isBlank()) {
+            declaredKey = "bank";
+        } else {
+            configuredFile = findDeclaredValue(metaText, "exchange");
+            if (configuredFile != null && !configuredFile.isBlank()) {
+                declaredKey = "exchange";
+            } else {
+                configuredFile = findDeclaredValue(metaText, "medical");
+                if (configuredFile != null && !configuredFile.isBlank()) {
+                    declaredKey = "medical";
+                } else {
+                    configuredFile = baseName + ".json";
+                }
+            }
+        }
+        String actualFile = isSafePackageFileName(configuredFile)
+                ? actualFileName(packageFiles, configuredFile)
+                : null;
+        if (actualFile == null) {
+            return fallbackPublicType(declaredKey);
+        }
+        Optional<String> jsonText = readText(zipFile, categoryPath(category, actualFile));
+        if (jsonText.isEmpty()) {
+            return fallbackPublicType(declaredKey);
+        }
+        try {
+            JsonObject root = JsonParser.parseString(jsonText.get()).getAsJsonObject();
+            BuildingCatalog.BuildingType parsed = publicTypeFromJson(root);
+            return parsed != BuildingCatalog.BuildingType.STANDARD ? parsed : fallbackPublicType(declaredKey);
+        } catch (Exception exception) {
+            SimuKraft.LOGGER.warn("Simukraft: Failed to read public building type from {} in {}", actualFile, packagePath, exception);
+            return fallbackPublicType(declaredKey);
+        }
+    }
+
+    /** fallbackPublicType: .sk 显式写了 medical/bank/exchange 时，JSON 缺 type 仍按该类别。 */
+    private static BuildingCatalog.BuildingType fallbackPublicType(String declaredKey) {
+        if ("bank".equals(declaredKey)) {
+            return BuildingCatalog.BuildingType.BANK;
+        }
+        if ("exchange".equals(declaredKey)) {
+            return BuildingCatalog.BuildingType.EXCHANGE;
+        }
+        if ("medical".equals(declaredKey)) {
+            return BuildingCatalog.BuildingType.MEDICAL;
+        }
+        return BuildingCatalog.BuildingType.STANDARD;
+    }
+
+    /** publicTypeFromJson: 解析公共建筑 JSON 的 type；旧医院包可用 serviceRangeRings 推断。 */
+    static BuildingCatalog.BuildingType publicTypeFromJson(JsonObject root) {
+        if (root == null) {
+            return BuildingCatalog.BuildingType.STANDARD;
+        }
+        JsonElement element = root.get("type");
+        if (element != null && element.isJsonPrimitive()) {
+            String type = element.getAsString().trim();
+            if (equalsAnyIgnoreCase(type, "bank", "simukraft:bank")) {
+                return BuildingCatalog.BuildingType.BANK;
+            }
+            if (equalsAnyIgnoreCase(type, "exchange", "stock", "simukraft:exchange")) {
+                return BuildingCatalog.BuildingType.EXCHANGE;
+            }
+            if (equalsAnyIgnoreCase(type, "hospital", "medical", "simukraft:hospital", "simukraft:medical")) {
+                return BuildingCatalog.BuildingType.MEDICAL;
+            }
+        }
+        if (root.has("serviceRangeRings") || root.has("service_range_rings")) {
+            return BuildingCatalog.BuildingType.MEDICAL;
+        }
+        return BuildingCatalog.BuildingType.STANDARD;
+    }
+
+    private static boolean equalsAnyIgnoreCase(String value, String... candidates) {
+        if (value == null) {
+            return false;
+        }
+        for (String candidate : candidates) {
+            if (value.equalsIgnoreCase(candidate)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** readDedicatedDrillingType: 读取 drilling: 指向的专用钻井 JSON。 */

@@ -58,6 +58,14 @@ import common.cn.kafei.simukraft.network.logistics.LogisticsWarehouseGridOpenReq
 import common.cn.kafei.simukraft.network.logistics.LogisticsWarehouseGridRequestPacket;
 import common.cn.kafei.simukraft.network.logistics.LogisticsWarehouseGridResponsePacket;
 import common.cn.kafei.simukraft.network.logistics.LogisticsWarehouseGridShiftClickPacket;
+import common.cn.kafei.simukraft.network.bank.BankControlBoxActionPacket;
+import common.cn.kafei.simukraft.network.bank.BankControlBoxDemolishPacket;
+import common.cn.kafei.simukraft.network.bank.BankControlBoxOpenRequestPacket;
+import common.cn.kafei.simukraft.network.bank.BankControlBoxOpenResponsePacket;
+import common.cn.kafei.simukraft.network.exchange.ExchangeControlBoxActionPacket;
+import common.cn.kafei.simukraft.network.exchange.ExchangeControlBoxDemolishPacket;
+import common.cn.kafei.simukraft.network.exchange.ExchangeControlBoxOpenRequestPacket;
+import common.cn.kafei.simukraft.network.exchange.ExchangeControlBoxOpenResponsePacket;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxDemolishPacket;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenRequestPacket;
 import common.cn.kafei.simukraft.network.medical.MedicalControlBoxOpenResponsePacket;
@@ -131,6 +139,12 @@ public final class ModNetwork {
         registrar.playToServer(IndustrialControlBoxDemolishPacket.TYPE, IndustrialControlBoxDemolishPacket.STREAM_CODEC, IndustrialControlBoxDemolishPacket::handle);
         registrar.playToServer(CommercialControlBoxOpenRequestPacket.TYPE, CommercialControlBoxOpenRequestPacket.STREAM_CODEC, CommercialControlBoxOpenRequestPacket::handle);
         registrar.playToServer(MedicalControlBoxOpenRequestPacket.TYPE, MedicalControlBoxOpenRequestPacket.STREAM_CODEC, MedicalControlBoxOpenRequestPacket::handle);
+        registrar.playToServer(BankControlBoxOpenRequestPacket.TYPE, BankControlBoxOpenRequestPacket.STREAM_CODEC, BankControlBoxOpenRequestPacket::handle);
+        registrar.playToServer(BankControlBoxActionPacket.TYPE, BankControlBoxActionPacket.STREAM_CODEC, BankControlBoxActionPacket::handle);
+        registrar.playToServer(BankControlBoxDemolishPacket.TYPE, BankControlBoxDemolishPacket.STREAM_CODEC, BankControlBoxDemolishPacket::handle);
+        registrar.playToServer(ExchangeControlBoxOpenRequestPacket.TYPE, ExchangeControlBoxOpenRequestPacket.STREAM_CODEC, ExchangeControlBoxOpenRequestPacket::handle);
+        registrar.playToServer(ExchangeControlBoxActionPacket.TYPE, ExchangeControlBoxActionPacket.STREAM_CODEC, ExchangeControlBoxActionPacket::handle);
+        registrar.playToServer(ExchangeControlBoxDemolishPacket.TYPE, ExchangeControlBoxDemolishPacket.STREAM_CODEC, ExchangeControlBoxDemolishPacket::handle);
         registrar.playToServer(MineralDrillingControlBoxOpenRequestPacket.TYPE, MineralDrillingControlBoxOpenRequestPacket.STREAM_CODEC, MineralDrillingControlBoxOpenRequestPacket::handle);
         registrar.playToServer(MedicalControlBoxDemolishPacket.TYPE, MedicalControlBoxDemolishPacket.STREAM_CODEC, MedicalControlBoxDemolishPacket::handle);
         registrar.playToServer(CommercialControlBoxActionPacket.TYPE, CommercialControlBoxActionPacket.STREAM_CODEC, CommercialControlBoxActionPacket::handle);
@@ -175,6 +189,8 @@ public final class ModNetwork {
         registrar.playToClient(IndustrialControlBoxViewUpdatePacket.TYPE, IndustrialControlBoxViewUpdatePacket.STREAM_CODEC, IndustrialControlBoxViewUpdatePacket::handle);
         registrar.playToClient(CommercialControlBoxOpenResponsePacket.TYPE, CommercialControlBoxOpenResponsePacket.STREAM_CODEC, CommercialControlBoxOpenResponsePacket::handle);
         registrar.playToClient(MedicalControlBoxOpenResponsePacket.TYPE, MedicalControlBoxOpenResponsePacket.STREAM_CODEC, MedicalControlBoxOpenResponsePacket::handle);
+        registrar.playToClient(BankControlBoxOpenResponsePacket.TYPE, BankControlBoxOpenResponsePacket.STREAM_CODEC, BankControlBoxOpenResponsePacket::handle);
+        registrar.playToClient(ExchangeControlBoxOpenResponsePacket.TYPE, ExchangeControlBoxOpenResponsePacket.STREAM_CODEC, ExchangeControlBoxOpenResponsePacket::handle);
         registrar.playToClient(CommercialTradeOpenResponsePacket.TYPE, CommercialTradeOpenResponsePacket.STREAM_CODEC, CommercialTradeOpenResponsePacket::handle);
         registrar.playToClient(LogisticsServerBoxOpenResponsePacket.TYPE, LogisticsServerBoxOpenResponsePacket.STREAM_CODEC, LogisticsServerBoxOpenResponsePacket::handle);
         registrar.playToClient(LogisticsClientBoxOpenResponsePacket.TYPE, LogisticsClientBoxOpenResponsePacket.STREAM_CODEC, LogisticsClientBoxOpenResponsePacket::handle);

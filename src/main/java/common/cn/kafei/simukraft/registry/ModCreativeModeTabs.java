@@ -26,6 +26,8 @@ public final class ModCreativeModeTabs {
                 output.accept(ModBlocks.INDUSTRIAL_CONTROL_BOX.get());
                 output.accept(ModBlocks.MINERAL_DRILLING_CONTROL_BOX.get());
                 output.accept(ModBlocks.MEDICAL_CONTROL_BOX.get());
+                output.accept(ModBlocks.BANK_CONTROL_BOX.get());
+                output.accept(ModBlocks.EXCHANGE_CONTROL_BOX.get());
                 output.accept(ModBlocks.RESIDENTIAL_CONTROL_BOX.get());
                 output.accept(ModBlocks.OTHER_CONTROL_BOX.get());
                 output.accept(ModBlocks.LOGISTICS_SERVER_BOX.get());

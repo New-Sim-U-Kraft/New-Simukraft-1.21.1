@@ -84,6 +84,21 @@ public final class BuildingCatalog {
             return buildingType == BuildingType.DRILLING_PLATFORM;
         }
 
+        /** isMedical: 公共 JSON type 为医院/医疗。 */
+        public boolean isMedical() {
+            return buildingType == BuildingType.MEDICAL;
+        }
+
+        /** isBank: 公共 JSON type 为银行。 */
+        public boolean isBank() {
+            return buildingType == BuildingType.BANK;
+        }
+
+        /** isExchange: 公共 JSON type 为交易所。 */
+        public boolean isExchange() {
+            return buildingType == BuildingType.EXCHANGE;
+        }
+
         public Optional<InputStream> openMeta() throws IOException {
             return openFile(metaFileName);
         }
@@ -122,9 +137,12 @@ public final class BuildingCatalog {
         }
     }
 
-    /** BuildingType: 区分普通建筑与需要矿物钻井控制箱驱动的钻井平台。 */
+    /** BuildingType: 由建筑包 JSON 声明的公共/工业子类。公共目录用 type 区分医院、银行、交易所。 */
     public enum BuildingType {
         STANDARD,
-        DRILLING_PLATFORM
+        DRILLING_PLATFORM,
+        MEDICAL,
+        BANK,
+        EXCHANGE
     }
 }

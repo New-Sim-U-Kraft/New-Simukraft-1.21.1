@@ -15,6 +15,8 @@ import common.cn.kafei.simukraft.industrial.IndustrialDefinition;
 import common.cn.kafei.simukraft.industrial.IndustrialDefinitionLoader;
 import common.cn.kafei.simukraft.industrial.IndustrialWorkService;
 import common.cn.kafei.simukraft.logistics.LogisticsConstants;
+import common.cn.kafei.simukraft.bank.BankControlBoxService;
+import common.cn.kafei.simukraft.exchange.ExchangeControlBoxService;
 import common.cn.kafei.simukraft.medical.MedicalControlBoxService;
 import common.cn.kafei.simukraft.medical.MedicalService;
 import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingConstants;
@@ -203,6 +205,12 @@ public final class CitizenEmploymentService {
         }
         if (workplaceId(MedicalControlBoxService.HIRE_SOURCE_TYPE, MedicalControlBoxService.HIRE_ROLE, workplacePos).equals(workplaceId)) {
             return CityJobType.DOCTOR;
+        }
+        if (workplaceId(BankControlBoxService.HIRE_SOURCE_TYPE, BankControlBoxService.HIRE_ROLE, workplacePos).equals(workplaceId)) {
+            return CityJobType.BANKER;
+        }
+        if (workplaceId(ExchangeControlBoxService.HIRE_SOURCE_TYPE, ExchangeControlBoxService.HIRE_ROLE, workplacePos).equals(workplaceId)) {
+            return CityJobType.BROKER;
         }
         return null;
     }

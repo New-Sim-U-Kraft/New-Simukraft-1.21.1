@@ -42,6 +42,8 @@ public final class CityJobMobilityService {
             case "logistics_worker", "logistics" -> CityJobType.LOGISTICS_WORKER;
             case "storage_worker", "storage" -> CityJobType.STORAGE_WORKER;
             case "doctor" -> CityJobType.DOCTOR;
+            case "teller", "banker" -> CityJobType.BANKER;
+            case "broker" -> CityJobType.BROKER;
             default -> CityJobType.OTHER;
         };
     }

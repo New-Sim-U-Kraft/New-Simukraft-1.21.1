@@ -5,9 +5,11 @@ import common.cn.kafei.simukraft.building.BuildingBlockData;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.building.PlacedBuildingService;
 import common.cn.kafei.simukraft.mineraldrilling.MineralDrillingMenuProvider;
+import common.cn.kafei.simukraft.network.bank.BankControlBoxOpenRequestPacket;
 import common.cn.kafei.simukraft.network.building.controlbox.ResidentialControlBoxOpenRequestPacket;
 import common.cn.kafei.simukraft.network.city.core.CityCoreOpenRequestPacket;
 import common.cn.kafei.simukraft.network.commercial.CommercialControlBoxOpenRequestPacket;
+import common.cn.kafei.simukraft.network.exchange.ExchangeControlBoxOpenRequestPacket;
 import common.cn.kafei.simukraft.network.farmland.FarmlandBoxOpenRequestPacket;
 import common.cn.kafei.simukraft.network.industrial.IndustrialControlBoxOpenRequestPacket;
 import common.cn.kafei.simukraft.network.logistics.LogisticsClientBoxOpenRequestPacket;
@@ -89,6 +91,10 @@ public record RtsOpenTargetPacket(BlockPos pos) implements CustomPacketPayload {
             CommercialControlBoxOpenRequestPacket.openFor(level, player, pos);
         } else if (state.is(ModBlocks.MEDICAL_CONTROL_BOX.get())) {
             MedicalControlBoxOpenRequestPacket.openFor(level, player, pos);
+        } else if (state.is(ModBlocks.BANK_CONTROL_BOX.get())) {
+            BankControlBoxOpenRequestPacket.openFor(level, player, pos);
+        } else if (state.is(ModBlocks.EXCHANGE_CONTROL_BOX.get())) {
+            ExchangeControlBoxOpenRequestPacket.openFor(level, player, pos);
         } else if (state.is(ModBlocks.LOGISTICS_SERVER_BOX.get())) {
             LogisticsServerBoxOpenRequestPacket.openFor(level, player, pos);
         } else if (state.is(ModBlocks.LOGISTICS_CLIENT_BOX.get())) {
@@ -118,6 +124,7 @@ public record RtsOpenTargetPacket(BlockPos pos) implements CustomPacketPayload {
     private static boolean isSupportedTarget(ServerLevel level, BlockPos pos, BlockState state) {
         if (state.is(ModBlocks.RESIDENTIAL_CONTROL_BOX.get()) || state.is(ModBlocks.INDUSTRIAL_CONTROL_BOX.get())
                 || state.is(ModBlocks.COMMERCIAL_CONTROL_BOX.get()) || state.is(ModBlocks.MEDICAL_CONTROL_BOX.get())
+                || state.is(ModBlocks.BANK_CONTROL_BOX.get()) || state.is(ModBlocks.EXCHANGE_CONTROL_BOX.get())
                 || state.is(ModBlocks.LOGISTICS_SERVER_BOX.get()) || state.is(ModBlocks.LOGISTICS_CLIENT_BOX.get())
                 || state.is(ModBlocks.NSUK_FARMLAND_BOX.get()) || state.is(ModBlocks.CITY_CORE.get())
                 || state.is(ModBlocks.BUILD_BOX.get()) || state.is(ModBlocks.MINERAL_DRILLING_CONTROL_BOX.get())
@@ -178,6 +185,8 @@ public record RtsOpenTargetPacket(BlockPos pos) implements CustomPacketPayload {
                 || state.is(ModBlocks.INDUSTRIAL_CONTROL_BOX.get())
                 || state.is(ModBlocks.COMMERCIAL_CONTROL_BOX.get())
                 || state.is(ModBlocks.MEDICAL_CONTROL_BOX.get())
+                || state.is(ModBlocks.BANK_CONTROL_BOX.get())
+                || state.is(ModBlocks.EXCHANGE_CONTROL_BOX.get())
                 || state.is(ModBlocks.MINERAL_DRILLING_CONTROL_BOX.get()));
     }
 

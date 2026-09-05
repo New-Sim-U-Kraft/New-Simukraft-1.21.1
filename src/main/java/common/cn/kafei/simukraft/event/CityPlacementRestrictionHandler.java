@@ -1,5 +1,6 @@
 package common.cn.kafei.simukraft.event;
 
+import common.cn.kafei.simukraft.bank.BankControlBoxService;
 import common.cn.kafei.simukraft.building.MedicalBedPoiService;
 import common.cn.kafei.simukraft.building.PlacedBuildingRecord;
 import common.cn.kafei.simukraft.building.ResidentialBedPoiService;
@@ -11,6 +12,7 @@ import common.cn.kafei.simukraft.city.poi.CityPoiService;
 import common.cn.kafei.simukraft.city.poi.CityPoiType;
 import common.cn.kafei.simukraft.commercial.CommercialControlBoxService;
 import common.cn.kafei.simukraft.config.ServerConfig;
+import common.cn.kafei.simukraft.exchange.ExchangeControlBoxService;
 import common.cn.kafei.simukraft.farmland.FarmlandBoxService;
 import common.cn.kafei.simukraft.industrial.IndustrialControlBoxService;
 import common.cn.kafei.simukraft.medical.MedicalControlBoxService;
@@ -142,6 +144,8 @@ public final class CityPlacementRestrictionHandler {
                 || block == ModBlocks.INDUSTRIAL_CONTROL_BOX.get()
                 || block == ModBlocks.MINERAL_DRILLING_CONTROL_BOX.get()
                 || block == ModBlocks.MEDICAL_CONTROL_BOX.get()
+                || block == ModBlocks.BANK_CONTROL_BOX.get()
+                || block == ModBlocks.EXCHANGE_CONTROL_BOX.get()
                 || block == ModBlocks.NSUK_FARMLAND_BOX.get();
     }
 
@@ -174,6 +178,10 @@ public final class CityPlacementRestrictionHandler {
             building = MineralDrillingControlBoxService.resolveBuilding(level, pos);
         } else if (block == ModBlocks.MEDICAL_CONTROL_BOX.get()) {
             building = MedicalControlBoxService.resolveBuilding(level, pos);
+        } else if (block == ModBlocks.BANK_CONTROL_BOX.get()) {
+            building = BankControlBoxService.resolveBuilding(level, pos);
+        } else if (block == ModBlocks.EXCHANGE_CONTROL_BOX.get()) {
+            building = ExchangeControlBoxService.resolveBuilding(level, pos);
         }
         return building != null ? building.cityId() : null;
     }
@@ -237,6 +245,12 @@ public final class CityPlacementRestrictionHandler {
         if (block == ModBlocks.MEDICAL_CONTROL_BOX.get()) {
             return Optional.of(CityPoiType.MEDICAL);
         }
+        if (block == ModBlocks.BANK_CONTROL_BOX.get()) {
+            return Optional.of(CityPoiType.BANK);
+        }
+        if (block == ModBlocks.EXCHANGE_CONTROL_BOX.get()) {
+            return Optional.of(CityPoiType.EXCHANGE);
+        }
         if (block == ModBlocks.OTHER_CONTROL_BOX.get()) {
             return Optional.of(CityPoiType.OTHER);
         }
@@ -256,7 +270,7 @@ public final class CityPlacementRestrictionHandler {
         return switch (type) {
             case RESIDENTIAL -> 0;
             case COMMERCIAL, INDUSTRIAL, FARMLAND -> 2;
-            case MEDICAL, LOGISTICS, STORAGE, GATHERING, DEFENSE, OTHER -> 1;
+            case MEDICAL, LOGISTICS, STORAGE, GATHERING, DEFENSE, OTHER, BANK, EXCHANGE -> 1;
         };
     }
 
@@ -270,6 +284,8 @@ public final class CityPlacementRestrictionHandler {
                 || block == ModBlocks.INDUSTRIAL_CONTROL_BOX.get()
                 || block == ModBlocks.MINERAL_DRILLING_CONTROL_BOX.get()
                 || block == ModBlocks.MEDICAL_CONTROL_BOX.get()
+                || block == ModBlocks.BANK_CONTROL_BOX.get()
+                || block == ModBlocks.EXCHANGE_CONTROL_BOX.get()
                 || block == ModBlocks.OTHER_CONTROL_BOX.get();
     }
 

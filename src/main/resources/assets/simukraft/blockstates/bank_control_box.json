@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "simukraft:block/bank_control_box"
+    }
+  }
+}
